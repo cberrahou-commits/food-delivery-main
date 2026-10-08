@@ -18,6 +18,9 @@ jobs:
     name: Build APK Client & Cuisinier
     if: inputs.target_app == 'all' || inputs.target_app == 'user-side'
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m"
 
     steps:
       - name: 📥 Récupération du code
@@ -29,13 +32,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 📱 Configuration du SDK Android
-        uses: android-actions/setup-android@v3
-
       - name: 🟢 Configuration de Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
+
+      - name: 📱 Acceptation des licences Android SDK
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
 
       - name: 📦 Installation des dépendances (user-side)
         run: |
@@ -48,8 +52,6 @@ jobs:
           npx expo prebuild -p android --clean
 
       - name: 🔨 Compilation de l'APK Android avec Gradle
-        env:
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m"
         run: |
           cd user-side/android
           chmod +x gradlew
@@ -72,6 +74,9 @@ jobs:
     name: Build APK Livreur Partenaire
     if: inputs.target_app == 'all' || inputs.target_app == 'driver-app'
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m"
 
     steps:
       - name: 📥 Récupération du code
@@ -83,13 +88,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 📱 Configuration du SDK Android
-        uses: android-actions/setup-android@v3
-
       - name: 🟢 Configuration de Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
+
+      - name: 📱 Acceptation des licences Android SDK
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
 
       - name: 📦 Installation des dépendances (driver-app)
         run: |
@@ -102,8 +108,6 @@ jobs:
           npx expo prebuild -p android --clean
 
       - name: 🔨 Compilation de l'APK Android avec Gradle
-        env:
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m"
         run: |
           cd driver-app/android
           chmod +x gradlew
@@ -121,4 +125,3 @@ jobs:
           name: FoodDelivery-Livreur-APK
           path: output-apks/FoodDelivery-Livreur.apk
           retention-days: 14
-
