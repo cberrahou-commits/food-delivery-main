@@ -1,10 +1,13 @@
-import { View, Text, Pressable, Image, TouchableOpacity } from "react-native";
+import { View, Text, Pressable, Image, TouchableOpacity, Alert } from "react-native";
 import { MinusCircleIcon, PlusCircleIcon } from "react-native-heroicons/solid";
 import React, { useState } from "react";
 import Currency from "react-currency-formatter";
 import {
   addToBasket,
+  clearBasket,
   selectBasketItemsWithId,
+  selectBasketItems,
+  selectBasketRestaurantId,
   removeFromBasket,
 } from "../features/basketSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -14,11 +17,39 @@ const DishRow = ({ id, name, description, price, image, restaurantId }) => {
 
   const dispatch = useDispatch();
   const items = useSelector((state) => selectBasketItemsWithId(state, id));
+  const basketItems = useSelector(selectBasketItems);
+  const basketRestaurantId = useSelector(selectBasketRestaurantId);
 
-  // const addItems = () => {
-  //   dispatch(addToBasket({ id, name, description, price, image }));
-  // };
   const addItems = () => {
+    if (
+      basketItems.length > 0 &&
+      basketRestaurantId &&
+      restaurantId &&
+      basketRestaurantId !== restaurantId
+    ) {
+      Alert.alert(
+        "Changer de cuisinier / restaurant ?",
+        "Votre panier contient déjà des plats d'un autre cuisinier.\n\nVoulez-vous vider votre panier actuel pour commander auprès de cette cuisine ?",
+        [
+          {
+            text: "Annuler",
+            style: "cancel",
+          },
+          {
+            text: "Vider et ajouter",
+            style: "destructive",
+            onPress: () => {
+              dispatch(clearBasket());
+              dispatch(
+                addToBasket({ id, restaurantId, name, description, price, image })
+              );
+            },
+          },
+        ]
+      );
+      return;
+    }
+
     dispatch(
       addToBasket({ id, restaurantId, name, description, price, image })
     );
@@ -41,7 +72,7 @@ const DishRow = ({ id, name, description, price, image, restaurantId }) => {
             <Text className="text-xl mb-1 font-semibold">{name}</Text>
             <Text className="text-gray-400">{description}</Text>
             <Text className="text-gray-600 mt-3 text-base font-medium">
-              <Currency quantity={price} currency="INR" />
+              <Currency quantity={price} currency="EUR" />
             </Text>
           </View>
 

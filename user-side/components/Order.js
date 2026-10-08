@@ -19,32 +19,32 @@ const Order = ({ orderId, status, timestamp, restaurantName, total }) => {
     minute: "2-digit",
     hour12: true,
   };
-  const formattedDate = orderTimeStamp.toLocaleString("en-US", options);
+  const formattedDate = orderTimeStamp.toLocaleString("fr-FR", options);
 
   if (status === "PENDING") {
-    statusText = "Order Pending ⏳";
-    statusColor = "text-amber-400";
+    statusText = "Commande en attente ⏳";
+    statusColor = "text-amber-500";
   } else if (status === "ACCEPTED") {
-    statusText = "Order Confirmed 🎉";
-    statusColor = "text-orange-400";
+    statusText = "Acceptée par la cuisine 🎉";
+    statusColor = "text-orange-500";
   } else if (status === "DECLINED") {
-    statusText = "Order Declined ❌";
+    statusText = "Commande refusée ❌";
     statusColor = "text-red-500";
   } else if (status === "PREPARING") {
-    statusText = "Preparing Food 🍲";
-    statusColor = "text-yellow-500";
+    statusText = "En préparation en cuisine 🍲";
+    statusColor = "text-yellow-600";
   } else if (status === "READY") {
-    statusText = "Ready for Pickup 🛵";
-    statusColor = "text-green-500";
+    statusText = "Prête pour le coursier 🛵";
+    statusColor = "text-green-600";
   } else if (status === "DRIVERACCEPTED") {
-    statusText = "Delivery Partner Assigned 🚴🏻‍♀️";
-    statusColor = "text-green-500";
+    statusText = "Livreur en route vers la cuisine 🚴🏻‍♀️";
+    statusColor = "text-green-600";
   } else if (status === "DRIVERPICKEDUP") {
-    statusText = "Picked Up by Driver 🏍️";
-    statusColor = "text-green-500"; 
+    statusText = "En cours de livraison 🏍️";
+    statusColor = "text-green-600"; 
   } else if (status === "COMPLETE") {
-    statusText = "Delivered ✅";
-    statusColor = "text-green-500"; 
+    statusText = "Commande livrée ✅";
+    statusColor = "text-green-600"; 
   }
 
   useEffect(() => {
@@ -55,13 +55,9 @@ const Order = ({ orderId, status, timestamp, restaurantName, total }) => {
       await getDocs(q).then((querySnapshot) => {
         let dishIds = [];
         let items = [];
-        // querySnapshot.forEach((doc) => {
-        //   dishIds.push(doc.data().dishId);
-        // });
         querySnapshot.forEach((doc) => {
           items.push({ ...doc.data() });
         });
-        // setDishIds(dishIds);
         setDishes(items);
       });
     };
@@ -78,7 +74,7 @@ const Order = ({ orderId, status, timestamp, restaurantName, total }) => {
           </Text>
           <Text className="text-sm pt-1 text-gray-700">{formattedDate}</Text>
           <Text className="text-sm pt-1 text-gray-700">
-            Order ID #{orderId}
+            Commande N° #{orderId}
           </Text>
           <View>
             {dishes.map((dish) => {
@@ -94,16 +90,16 @@ const Order = ({ orderId, status, timestamp, restaurantName, total }) => {
 
           <View className="flex-row justify-between mt-2">
             <Text className="font-semibold text-lg pt-1 text-gray-700">
-              Order Total:
+              Total :
             </Text>
             <Text className="font-semibold text-lg pt-1 text-gray-700">
-              Rs. {total}
+              {Number(total).toFixed(2)} €
             </Text>
           </View>
 
           <View className="flex-row justify-between">
             <Text className="font-semibold text-lg pt-1 text-gray-700">
-              From:
+              Cuisine :
             </Text>
             <Text className="font-semibold text-lg pt-1 text-gray-700">
               {restaurantName}

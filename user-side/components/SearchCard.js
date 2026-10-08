@@ -1,7 +1,7 @@
 import { View, Text, Image, Pressable } from "react-native";
 import React from "react";
 import {
-  CurrencyRupeeIcon,
+  CurrencyEuroIcon,
   ArrowRightIcon,
   StarIcon,
   MapPinIcon,
@@ -36,16 +36,16 @@ const SearchCard = ({ results }) => {
         {results.price ? (
           <>
             <View className="flex-row items-center space-x-1">
-              <CurrencyRupeeIcon color="teal" opacity={0.8} size={25} />
+              <CurrencyEuroIcon color="#16a34a" opacity={0.8} size={22} />
               <Text className="text-sm text-gray-500">
-                <Text className="text-gray-700 font-semibold text-base ">
-                  {results.price}
+                <Text className="text-gray-800 font-semibold text-base">
+                  {results.price} €
                 </Text>
               </Text>
             </View>
             <View className="mt-2 flex-row items-center space-x-1">
-              <ArrowRightIcon color="teal" opacity={0.8} size={25} />
-              <Text className="mt-4 my-auto">Tap to know more</Text>
+              <ArrowRightIcon color="#16a34a" opacity={0.8} size={20} />
+              <Text className="mt-4 my-auto text-xs text-gray-500">Voir le restaurant</Text>
             </View>
           </>
         ) : (

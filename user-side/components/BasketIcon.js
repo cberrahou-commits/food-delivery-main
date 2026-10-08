@@ -23,10 +23,10 @@ const BasketIcon = () => {
           {items.length}
         </Text>
         <Text className="flex-1 text-white font-extrabold text-lg text-center">
-          View Basket
+          Voir le panier
         </Text>
         <Text className="text-lg text-white font-extrabold">
-          <Currency quantity={basketTotal} currency="INR" />
+          <Currency quantity={basketTotal} currency="EUR" />
         </Text>
       </TouchableOpacity>
     </View>

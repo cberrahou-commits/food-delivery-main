@@ -113,8 +113,8 @@ const OrderModal = ({ setIsActive, selectedOrder }) => {
               </div>
 
               <div className="w-full flex py-4 justify-around font-bold text-lg text-gray-700">
-                <div>Total:</div>
-                <div>Rs. {selectedOrder.total}</div>
+                <div>Total :</div>
+                <div>{selectedOrder.total} €</div>
               </div>
 
               <div className="flex justify-between items-center">

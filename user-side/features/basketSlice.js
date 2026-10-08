@@ -1,9 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { Alert } from "react-native";
 
-// const initialState = {
-//   items: [],
-// };
 const initialState = {
   restaurantId: null,
   items: [],
@@ -13,32 +9,20 @@ export const basketSlice = createSlice({
   name: "basket",
   initialState,
   reducers: {
-    // addToBasket: (state, action) => {
-    //   state.items = [...state.items, action.payload];
-    // },
+    clearBasket: (state) => {
+      state.items = [];
+      state.restaurantId = null;
+    },
+
     addToBasket: (state, action) => {
       const itemRestaurantId = action.payload.restaurantId;
 
-      if (state.restaurantId === null) {
-        // If the basket is empty, set the current restaurant id
+      if (!state.restaurantId || state.items.length === 0) {
         state.restaurantId = itemRestaurantId;
       }
 
       if (state.restaurantId === itemRestaurantId) {
-        // If the item being added belongs to the current restaurant id, add it to the basket
         state.items = [...state.items, action.payload];
-      } else {
-        Alert.alert(
-          "Oops!",
-          `You cannot add ${action.payload.name} as it's from a different restaurant.`,
-          [
-            {
-              text: "OK",
-              style: "cancel",
-            },
-          ],
-          { cancelable: true }
-        );
       }
     },
 
@@ -58,14 +42,19 @@ export const basketSlice = createSlice({
       }
 
       state.items = newBasket;
+      if (newBasket.length === 0) {
+        state.restaurantId = null;
+      }
     },
   },
 });
 
 // Action creators are generated for each case reducer function
-export const { addToBasket, removeFromBasket } = basketSlice.actions;
+export const { addToBasket, removeFromBasket, clearBasket } = basketSlice.actions;
 
 export const selectBasketItems = (state) => state.basket.items;
+
+export const selectBasketRestaurantId = (state) => state.basket.restaurantId;
 
 export const selectBasketItemsWithId = (state, id) =>
   state.basket.items.filter((item) => item.id === id);
