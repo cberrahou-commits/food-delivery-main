@@ -1,0 +1,124 @@
+name: Build Android APKs
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_app:
+        description: 'Quelle application souhaitez-vous compiler ?'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - user-side
+          - driver-app
+
+jobs:
+  build-user-apk:
+    name: Build APK Client & Cuisinier
+    if: inputs.target_app == 'all' || inputs.target_app == 'user-side'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Récupération du code
+        uses: actions/checkout@v4
+
+      - name: ☕ Configuration de Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📱 Configuration du SDK Android
+        uses: android-actions/setup-android@v3
+
+      - name: 🟢 Configuration de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: 📦 Installation des dépendances (user-side)
+        run: |
+          cd user-side
+          npm install --legacy-peer-deps
+
+      - name: ⚙️ Génération du projet natif Android (Expo Prebuild)
+        run: |
+          cd user-side
+          npx expo prebuild -p android --clean
+
+      - name: 🔨 Compilation de l'APK Android avec Gradle
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m"
+        run: |
+          cd user-side/android
+          chmod +x gradlew
+          ./gradlew assembleRelease || ./gradlew assembleDebug
+
+      - name: 📋 Préparation du fichier APK
+        run: |
+          mkdir -p output-apks
+          find user-side/android/app/build/outputs/apk/ -name "*.apk" -exec cp {} output-apks/FoodDelivery-Client-Cuisinier.apk \;
+          ls -lh output-apks/
+
+      - name: 🚀 Téléchargement de l'APK (Artifact GitHub)
+        uses: actions/upload-artifact@v4
+        with:
+          name: FoodDelivery-Client-Cuisinier-APK
+          path: output-apks/FoodDelivery-Client-Cuisinier.apk
+          retention-days: 14
+
+  build-driver-apk:
+    name: Build APK Livreur Partenaire
+    if: inputs.target_app == 'all' || inputs.target_app == 'driver-app'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Récupération du code
+        uses: actions/checkout@v4
+
+      - name: ☕ Configuration de Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📱 Configuration du SDK Android
+        uses: android-actions/setup-android@v3
+
+      - name: 🟢 Configuration de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: 📦 Installation des dépendances (driver-app)
+        run: |
+          cd driver-app
+          npm install --legacy-peer-deps
+
+      - name: ⚙️ Génération du projet natif Android (Expo Prebuild)
+        run: |
+          cd driver-app
+          npx expo prebuild -p android --clean
+
+      - name: 🔨 Compilation de l'APK Android avec Gradle
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m"
+        run: |
+          cd driver-app/android
+          chmod +x gradlew
+          ./gradlew assembleRelease || ./gradlew assembleDebug
+
+      - name: 📋 Préparation du fichier APK
+        run: |
+          mkdir -p output-apks
+          find driver-app/android/app/build/outputs/apk/ -name "*.apk" -exec cp {} output-apks/FoodDelivery-Livreur.apk \;
+          ls -lh output-apks/
+
+      - name: 🚀 Téléchargement de l'APK (Artifact GitHub)
+        uses: actions/upload-artifact@v4
+        with:
+          name: FoodDelivery-Livreur-APK
+          path: output-apks/FoodDelivery-Livreur.apk
+          retention-days: 14
+

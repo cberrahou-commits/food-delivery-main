@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: user
+    // Document ID: {userId} (Firebase Auth UID)
+    // Fields:
+    //   - firstName: string (required)
+    //   - lastName: string (required)
+    //   - email: string (optional)
+    //   - phoneNumber: string (optional)
+    //   - address: string (optional)
+    //   - latitude: float / number (optional)
+    //   - longitude: float / number (optional)
+    //   - role: string ("user" | "courier")
+    //   - createdAt: string / timestamp (optional)
+    //
+    // Collection: restaurants
+    // Document ID: {restaurantId}
+    // Fields:
+    //   - name: string (required)
+    //   - title: string (required)
+    //   - image: string (required)
+    //   - address: string (required)
+    //   - genre: string (optional)
+    //   - rating: float / number (optional)
+    //   - description: string (optional)
+    //   - lat: float / number (required)
+    //   - lng: float / number (required)
+    //   - minDeliveryTime: int / number (optional)
+    //   - maxDeliveryTime: int / number (optional)
+    //
+    // Collection: dishes
+    // Document ID: {dishId}
+    // Fields:
+    //   - name: string (required)
+    //   - price: string / number (required)
+    //   - image: string (optional)
+    //   - description: string (optional)
+    //   - restaurantId: string (required)
+    //
+    // Collection: orders
+    // Document ID: {orderId}
+    // Fields:
+    //   - restaurantId: string (required)
+    //   - restaurantName: string (optional)
+    //   - restaurantAddress: string (optional)
+    //   - restaurantImage: string (optional)
+    //   - restaurantLatitude: float / number (optional)
+    //   - restaurantLongitude: float / number (optional)
+    //   - userId: string (optional)
+    //   - userFirstName: string (optional)
+    //   - userLastName: string (optional)
+    //   - userPhoneNumber: string (optional)
+    //   - userAddress: string (optional)
+    //   - userLatitude: float / number (optional)
+    //   - userLongitude: float / number (optional)
+    //   - status: string ("PENDING" | "ACCEPTED" | "PREPARING" | "READY" | "DRIVERACCEPTED" | "DRIVERPICKEDUP" | "COMPLETE" | "DECLINED")
+    //   - total: float / number (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: orderDishes
+    // Document ID: {orderDishId} (typically "{orderId}_{dishId}")
+    // Fields:
+    //   - orderId: string (required)
+    //   - dishId: string (required)
+    //   - quantity: int / number (required)
+    //
+    // ===============================================================
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User profiles (clients and couriers)
+    match /user/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Restaurants
+    // Public read for customer apps & dashboards; write requires authenticated access
+    match /restaurants/{restaurantId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Dishes / Menu items
+    // Public read and write to allow the unauthenticated restaurant dashboard (Vercel)
+    // to view, create (AddDishModal), and remove menu items
+    match /dishes/{dishId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Orders
+    // Public read and write to allow:
+    // 1. The unauthenticated web dashboard on Vercel to query, listen via onSnapshot, and update statuses
+    // 2. Mobile client apps to place orders
+    // 3. Mobile courier/driver apps to query ready orders and update delivery progression
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    // Order dishes (items associated with orders)
+    // Public read and write to allow web dashboard and mobile apps to inspect and record order items
+    match /orderDishes/{orderDishId} {
+      allow read, write: if true;
+    }
+  }
+}
