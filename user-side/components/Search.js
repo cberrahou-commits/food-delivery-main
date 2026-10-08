@@ -3,6 +3,7 @@ import { TextInput } from "react-native";
 import {
   MagnifyingGlassIcon,
 } from "react-native-heroicons/outline";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const Search = ({
   restaurants,
@@ -10,6 +11,7 @@ const Search = ({
   setSearchInputHasValue,
   setSearchResults,
 }) => {
+  const { t } = useLanguage();
 
   const filterData = (searchTerm) => {
     if (searchTerm !==
@@ -32,8 +34,8 @@ const Search = ({
         <View className="flex-row flex-1 space-x-2 bg-gray-100 p-3 rounded-xl">
           <MagnifyingGlassIcon color="#4ade80" size={27} />
           <TextInput
-            className=" text-gray-600 font-semibold"
-            placeholder="Restaurants and dishes..."
+            className="text-gray-600 font-semibold flex-1"
+            placeholder={t("searchPlaceholder")}
             keyboardType="default"
             onChangeText={handleSearchInputChange}
           />

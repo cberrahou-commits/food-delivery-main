@@ -12,6 +12,7 @@ import BasketIcon from "../components/BasketIcon";
 import { useDispatch } from "react-redux";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { setRestaurant } from "../features/restaurantSlice";
+import { useLanguage } from "../contexts/LanguageContext";
 import { db } from "../firebase";
 import {
   collection,
@@ -26,6 +27,7 @@ import { StatusBar } from "expo-status-bar";
 const RestaurantDetails = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
+  const { t } = useLanguage();
   const [dishes, setDishes] = useState([]);
   const [restaurantInfo, setRestaurantInfo] = useState([]);
 
@@ -120,7 +122,7 @@ const RestaurantDetails = () => {
               <Text className="text-sm text-gray-500">
                 <Text className="text-green-500">{restaurantInfo.rating}</Text>{" "}
                 · {restaurantInfo.minDeliveryTime} -{" "}
-                {restaurantInfo.maxDeliveryTime} mins
+                {restaurantInfo.maxDeliveryTime} {t("mins")}
               </Text>
             </View>
 
@@ -138,7 +140,7 @@ const RestaurantDetails = () => {
         </View>
 
         <View className="pb-36">
-          <Text className="px-4 pt-2 mb-3 font-bold text-xl">Menu</Text>
+          <Text className="px-4 pt-2 mb-3 font-bold text-xl">{t("menu")}</Text>
 
           {dishes.map((dish, index) => {
             return (

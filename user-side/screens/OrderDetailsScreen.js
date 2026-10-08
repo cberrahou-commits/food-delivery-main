@@ -14,10 +14,11 @@ import {
   onSnapshot,
   orderBy,
 } from "firebase/firestore";
-import OptionsScreen from "./OptionsScreen";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const OrderDetailsScreen = () => {
   const { user } = UserAuth();
+  const { t } = useLanguage();
   const navigation = useNavigation();
 
   const [orders, setOrders] = useState([]);
@@ -57,16 +58,16 @@ const OrderDetailsScreen = () => {
             </TouchableOpacity>
 
             <View>
-              <Text className="text-xl font-bold text-center">My Orders</Text>
+              <Text className="text-xl font-bold text-center">{t("myOrders")}</Text>
             </View>
           </View>
 
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
             <View className="mb-20">
               {orders.length === 0 && (
-                <View className="flex-1 bg-white justify-center items-center">
-                  <Text className="text-xl font-bold">
-                    You have no orders 🚫
+                <View className="flex-1 bg-white justify-center items-center py-20">
+                  <Text className="text-lg font-bold text-gray-500">
+                    {t("noOrdersYet")}
                   </Text>
                 </View>
               )}

@@ -7,6 +7,8 @@ import { Entypo, MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { db } from "../../../firebase/firebase.js";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLanguage } from "../../contexts/LanguageContext";
+import LanguageSelectorModal from "../../components/LanguageSelectorModal";
 import {
   collection,
   query,
@@ -17,7 +19,9 @@ import {
 
 const OrdersScreen = () => {
   const [orders, setOrders] = useState([]);
+  const [langModalVisible, setLangModalVisible] = useState(false);
   const { signOutUser } = useAuth();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     const ordersRef = collection(db, "orders");
@@ -87,38 +91,62 @@ const OrdersScreen = () => {
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text
                 style={{
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: "700",
                   letterSpacing: 0.5,
                   paddingBottom: 2,
                 }}
               >
-                En ligne (Livreur){" "}
+                {t("driverOnline")}{" "}
               </Text>
               <View style={{ backgroundColor: "#dcfce7", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 4 }}>
-                <Text style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold" }}>Certifié ✓</Text>
+                <Text style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold" }}>{t("certified")}</Text>
               </View>
             </View>
-            <Text style={{ letterSpacing: 0.5, color: "grey" }}>
-              Commandes prêtes : {orders.length}
+            <Text style={{ letterSpacing: 0.5, color: "grey", marginTop: 2 }}>
+              {t("readyOrders")} {orders.length}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={signOutUser}
-            style={{
-              padding: 8,
-              backgroundColor: "#fee2e2",
-              borderRadius: 20,
-            }}
-          >
-            <MaterialIcons name="logout" size={20} color="#dc2626" />
-          </TouchableOpacity>
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <TouchableOpacity
+              onPress={() => setLangModalVisible(true)}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                backgroundColor: "#f0fdf4",
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: "#bbf7d0",
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "bold", color: "#16a34a" }}>
+                {language === "ar" ? "🇩🇿 عربي" : language === "en" ? "🇬🇧 EN" : "🇫🇷 FR"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={signOutUser}
+              style={{
+                padding: 8,
+                backgroundColor: "#fee2e2",
+                borderRadius: 20,
+              }}
+            >
+              <MaterialIcons name="logout" size={20} color="#dc2626" />
+            </TouchableOpacity>
+          </View>
         </View>
         <FlatList
           data={orders}
           renderItem={({ item }) => <OrderItem order={item} />}
         />
       </BottomSheet>
+
+      <LanguageSelectorModal
+        visible={langModalVisible}
+        onClose={() => setLangModalVisible(false)}
+      />
     </View>
   );
 };

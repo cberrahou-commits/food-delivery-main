@@ -1,8 +1,8 @@
 import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Currency from "react-currency-formatter";
 import React, { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
+import { useLanguage } from "../contexts/LanguageContext";
 import { selectRestaurant } from "../features/restaurantSlice";
 import { selectUser } from "../features/userSlice";
 import { useSelector, useDispatch } from "react-redux";
@@ -25,6 +25,7 @@ import {
 
 const BasketScreen = () => {
   const navigation = useNavigation();
+  const { t, formatPrice } = useLanguage();
   const basketTotal = useSelector(selectBasketTotal);
   const restaurant = useSelector(selectRestaurant);
   const dbUser = useSelector(selectUser);
@@ -33,7 +34,8 @@ const BasketScreen = () => {
   const dispatch = useDispatch();
   const { user } = UserAuth();
 
-  const deliveryFee = items.length === 0 ? 0 : 2.50;
+  // Frais de livraison standard en Algérie : 200 DA
+  const deliveryFee = items.length === 0 ? 0 : 200;
 
   useEffect(() => {
     const groupItems = items.reduce((results, item) => {
@@ -48,12 +50,12 @@ const BasketScreen = () => {
 
   const handleClearBasket = () => {
     Alert.alert(
-      "Vider le panier ?",
-      "Êtes-vous sûr de vouloir retirer tous les plats de votre panier ?",
+      t("clearBasket"),
+      t("clearBasketConfirm"),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t("cancel"), style: "cancel" },
         {
-          text: "Vider le panier",
+          text: t("clearBasket"),
           style: "destructive",
           onPress: () => dispatch(clearBasket()),
         },
@@ -63,7 +65,7 @@ const BasketScreen = () => {
 
   const createOrder = async () => {
     if (items.length === 0) {
-      Alert.alert("Panier vide", "Veuillez ajouter des plats avant de commander.");
+      Alert.alert(t("basketEmpty"), t("basketEmptyDesc"));
       return;
     }
 
@@ -83,7 +85,7 @@ const BasketScreen = () => {
         userAddress: dbUser?.address || "",
         userPhoneNumber: dbUser?.phoneNumber || "",
         status: "PENDING",
-        total: Number((basketTotal + deliveryFee).toFixed(2)),
+        total: Number(basketTotal + deliveryFee),
         createdAt: serverTimestamp(),
       });
 
@@ -103,7 +105,7 @@ const BasketScreen = () => {
       navigation.navigate("PreparingOrderScreen");
     } catch (error) {
       console.error("Erreur commande:", error);
-      Alert.alert("Erreur", "Impossible de valider la commande. Veuillez réessayer.");
+      Alert.alert(t("error"), "Impossible de valider la commande. Veuillez réessayer.");
     }
   };
 
@@ -121,9 +123,9 @@ const BasketScreen = () => {
           </View>
 
           <View className="flex-1">
-            <Text className="text-lg font-bold text-center">Mon Panier</Text>
+            <Text className="text-lg font-bold text-center">{t("viewBasket")}</Text>
             <Text className="text-center text-gray-400 text-xs">
-              {restaurant?.name || restaurant?.title || "Cuisine Sélectionnée"}
+              {restaurant?.name || restaurant?.title || t("appName")}
             </Text>
           </View>
 
@@ -139,17 +141,17 @@ const BasketScreen = () => {
           <View className="flex-1 justify-center items-center py-20 px-6">
             <Text className="text-6xl mb-4">🛒</Text>
             <Text className="text-2xl font-bold text-gray-800 text-center">
-              Votre panier est vide
+              {t("basketEmpty")}
             </Text>
             <Text className="text-gray-500 text-center mt-2 px-6">
-              Sélectionnez de délicieux plats faits maison auprès de nos cuisiniers pour commander !
+              {t("basketEmptyDesc")}
             </Text>
             <TouchableOpacity
               onPress={navigation.goBack}
               className="mt-6 bg-[#22c55e] px-8 py-3.5 rounded-2xl shadow-sm shadow-green-500/30"
             >
               <Text className="text-white font-bold text-base">
-                Découvrir le menu
+                {t("discoverMenu")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -164,7 +166,7 @@ const BasketScreen = () => {
                 className="h-7 w-7 bg-gray-300 p-4 rounded-full"
               />
               <Text className="flex-1 text-gray-700">
-                Livraison estimée : {restaurant?.minDeliveryTime || 20}-{restaurant?.maxDeliveryTime || 35} min
+                {t("deliveryEstimated")} {restaurant?.minDeliveryTime || 20}-{restaurant?.maxDeliveryTime || 35} {t("mins")}
               </Text>
             </View>
 
@@ -182,14 +184,14 @@ const BasketScreen = () => {
                   />
                   <Text className="flex-1 font-medium text-gray-800">{dishGroup[0]?.name}</Text>
                   <Text className="text-gray-700 font-semibold">
-                    <Currency quantity={dishGroup[0]?.price * dishGroup.length} currency="EUR" />
+                    {formatPrice(dishGroup[0]?.price * dishGroup.length)}
                   </Text>
                   <TouchableOpacity
                     onPress={() => dispatch(removeFromBasket({ id: key }))}
                     className="p-1"
                   >
                     <Text className="text-[#ef4444] text-xs font-semibold">
-                      Supprimer
+                      {t("remove")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -204,27 +206,27 @@ const BasketScreen = () => {
                 }}
                 className="h-7 w-7 bg-gray-300 p-4 rounded-full"
               />
-              <Text className="flex-1 text-gray-700">Paiement à la livraison (Espèces)</Text>
+              <Text className="flex-1 text-gray-700">{t("cashOnDelivery")}</Text>
             </View>
 
             {/* Résumé prix */}
             <View className="p-5 bg-white space-y-3 border-t border-gray-100">
               <View className="flex-row justify-between">
-                <Text className="text-gray-500">Sous-total</Text>
+                <Text className="text-gray-500">{t("subtotal")}</Text>
                 <Text className="text-gray-600 font-medium">
-                  <Currency quantity={basketTotal} currency="EUR" />
+                  {formatPrice(basketTotal)}
                 </Text>
               </View>
               <View className="flex-row justify-between">
-                <Text className="text-gray-500">Frais de livraison</Text>
+                <Text className="text-gray-500">{t("deliveryFee")}</Text>
                 <Text className="text-gray-600 font-medium">
-                  <Currency quantity={deliveryFee} currency="EUR" />
+                  {formatPrice(deliveryFee)}
                 </Text>
               </View>
               <View className="flex-row justify-between pt-2 border-t border-gray-100">
-                <Text className="font-bold text-base text-gray-800">Total de la commande</Text>
-                <Text className="font-extrabold text-lg text-gray-900">
-                  <Currency quantity={basketTotal + deliveryFee} currency="EUR" />
+                <Text className="font-bold text-base text-gray-800">{t("orderTotal")}</Text>
+                <Text className="font-extrabold text-lg text-emerald-800">
+                  {formatPrice(basketTotal + deliveryFee)}
                 </Text>
               </View>
 
@@ -233,7 +235,7 @@ const BasketScreen = () => {
                 className="rounded-2xl p-4 bg-[#22c55e] active:bg-[#16a34a] duration-150 shadow-md shadow-green-600/30 mt-2"
               >
                 <Text className="text-center text-white font-extrabold text-lg">
-                  Commander ({((basketTotal + deliveryFee)).toFixed(2)} €)
+                  {t("placeOrder")} ({formatPrice(basketTotal + deliveryFee)})
                 </Text>
               </TouchableOpacity>
             </View>

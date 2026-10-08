@@ -48,7 +48,7 @@ const MenuItem = ({ setIsActive, dishes, setIsRemoved }) => {
                   {item.name}
                 </span>
                 <span className="block text-lg text-gray-600">
-                  {item.price} €
+                  {item.price} DA
                 </span>
               </div>
             </div>

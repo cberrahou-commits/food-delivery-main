@@ -1,9 +1,11 @@
 import { StyleSheet, Text, View, Image, Pressable } from "react-native";
 import { Entypo } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const OrderItem = ({ order }) => {
   const navigation = useNavigation();
+  const { t, formatPrice } = useLanguage();
   return (
     <Pressable
       style={{
@@ -34,8 +36,8 @@ const OrderItem = ({ order }) => {
           {order.restaurantAddress}
         </Text>
 
-        <Text style={{ marginTop: 10, fontWeight: "600" }}>
-          Delivery Details:
+        <Text style={{ marginTop: 8, fontWeight: "600", color: "#374151" }}>
+          {t("deliveryDetails")}
         </Text>
         <Text style={{ color: "grey", fontWeight: "500" }}>
           {order.userFirstName} {order.userLastName}
@@ -43,6 +45,12 @@ const OrderItem = ({ order }) => {
         <Text style={{ color: "grey", fontWeight: "500" }}>
           {order.userAddress}
         </Text>
+
+        {order.total ? (
+          <Text style={{ color: "#16a34a", fontWeight: "bold", fontSize: 15, marginTop: 4 }}>
+            {formatPrice(order.total)}
+          </Text>
+        ) : null}
       </View>
 
       <View

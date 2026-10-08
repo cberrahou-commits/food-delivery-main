@@ -1,50 +1,53 @@
 import { View, Text, Pressable } from "react-native";
-import { ArchiveBoxIcon } from "react-native-heroicons/solid";
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import DishInfo from "./DishInfo";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const Order = ({ orderId, status, timestamp, restaurantName, total }) => {
   const [dishes, setDishes] = useState([]);
-  const [dishIds, setDishIds] = useState([]);
+  const { t, formatPrice, language } = useLanguage();
 
   let statusText, statusColor;
-  const orderTimeStamp = timestamp.toDate();
+  const orderTimeStamp = timestamp ? timestamp.toDate() : new Date();
   const options = {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
   };
-  const formattedDate = orderTimeStamp.toLocaleString("fr-FR", options);
+  const locale = language === "ar" ? "ar-DZ" : language === "en" ? "en-US" : "fr-FR";
+  const formattedDate = orderTimeStamp.toLocaleString(locale, options);
 
   if (status === "PENDING") {
-    statusText = "Commande en attente ⏳";
+    statusText = t("orderPending");
     statusColor = "text-amber-500";
   } else if (status === "ACCEPTED") {
-    statusText = "Acceptée par la cuisine 🎉";
+    statusText = t("orderAccepted");
     statusColor = "text-orange-500";
   } else if (status === "DECLINED") {
-    statusText = "Commande refusée ❌";
+    statusText = t("orderDeclined");
     statusColor = "text-red-500";
   } else if (status === "PREPARING") {
-    statusText = "En préparation en cuisine 🍲";
+    statusText = t("orderPreparing");
     statusColor = "text-yellow-600";
   } else if (status === "READY") {
-    statusText = "Prête pour le coursier 🛵";
+    statusText = t("orderReady");
     statusColor = "text-green-600";
   } else if (status === "DRIVERACCEPTED") {
-    statusText = "Livreur en route vers la cuisine 🚴🏻‍♀️";
+    statusText = t("driverAssigned");
     statusColor = "text-green-600";
   } else if (status === "DRIVERPICKEDUP") {
-    statusText = "En cours de livraison 🏍️";
+    statusText = t("driverPickedUp");
     statusColor = "text-green-600"; 
   } else if (status === "COMPLETE") {
-    statusText = "Commande livrée ✅";
+    statusText = t("orderDelivered");
     statusColor = "text-green-600"; 
+  } else {
+    statusText = status;
+    statusColor = "text-gray-600";
   }
 
   useEffect(() => {
@@ -53,7 +56,6 @@ const Order = ({ orderId, status, timestamp, restaurantName, total }) => {
       const q = query(dishesRef, where("orderId", "==", orderId));
 
       await getDocs(q).then((querySnapshot) => {
-        let dishIds = [];
         let items = [];
         querySnapshot.forEach((doc) => {
           items.push({ ...doc.data() });
@@ -63,7 +65,7 @@ const Order = ({ orderId, status, timestamp, restaurantName, total }) => {
     };
 
     getDishId();
-  }, []);
+  }, [orderId]);
 
   return (
     <View className="flex items-center justify-center">
@@ -73,8 +75,8 @@ const Order = ({ orderId, status, timestamp, restaurantName, total }) => {
             {statusText}
           </Text>
           <Text className="text-sm pt-1 text-gray-700">{formattedDate}</Text>
-          <Text className="text-sm pt-1 text-gray-700">
-            Commande N° #{orderId}
+          <Text className="text-sm pt-1 text-gray-700 font-medium">
+            {t("orderNumber")} #{orderId}
           </Text>
           <View>
             {dishes.map((dish) => {
@@ -88,20 +90,20 @@ const Order = ({ orderId, status, timestamp, restaurantName, total }) => {
             })}
           </View>
 
-          <View className="flex-row justify-between mt-2">
-            <Text className="font-semibold text-lg pt-1 text-gray-700">
-              Total :
+          <View className="flex-row justify-between mt-2 pt-2 border-t border-gray-100">
+            <Text className="font-semibold text-lg text-gray-700">
+              {t("orderTotal")} :
             </Text>
-            <Text className="font-semibold text-lg pt-1 text-gray-700">
-              {Number(total).toFixed(2)} €
+            <Text className="font-bold text-lg text-emerald-800">
+              {formatPrice(total)}
             </Text>
           </View>
 
-          <View className="flex-row justify-between">
-            <Text className="font-semibold text-lg pt-1 text-gray-700">
-              Cuisine :
+          <View className="flex-row justify-between mt-1">
+            <Text className="font-semibold text-base text-gray-600">
+              {t("fromKitchen")}
             </Text>
-            <Text className="font-semibold text-lg pt-1 text-gray-700">
+            <Text className="font-semibold text-base text-gray-800">
               {restaurantName}
             </Text>
           </View>

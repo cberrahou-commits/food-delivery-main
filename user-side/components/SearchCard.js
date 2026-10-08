@@ -1,16 +1,17 @@
 import { View, Text, Image, Pressable } from "react-native";
 import React from "react";
 import {
-  CurrencyEuroIcon,
   ArrowRightIcon,
   StarIcon,
   MapPinIcon,
   SparklesIcon,
 } from "react-native-heroicons/solid";
 import { useNavigation } from "@react-navigation/native";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const SearchCard = ({ results }) => {
   const navigation = useNavigation();
+  const { t, formatPrice } = useLanguage();
   const id = results.restaurantId ? results.restaurantId : results.id;
 
   return (
@@ -36,16 +37,13 @@ const SearchCard = ({ results }) => {
         {results.price ? (
           <>
             <View className="flex-row items-center space-x-1">
-              <CurrencyEuroIcon color="#16a34a" opacity={0.8} size={22} />
-              <Text className="text-sm text-gray-500">
-                <Text className="text-gray-800 font-semibold text-base">
-                  {results.price} €
-                </Text>
+              <Text className="text-emerald-700 font-bold text-base">
+                {formatPrice(results.price)}
               </Text>
             </View>
             <View className="mt-2 flex-row items-center space-x-1">
               <ArrowRightIcon color="#16a34a" opacity={0.8} size={20} />
-              <Text className="mt-4 my-auto text-xs text-gray-500">Voir le restaurant</Text>
+              <Text className="mt-4 my-auto text-xs text-gray-500">{t("discoverMenu")}</Text>
             </View>
           </>
         ) : (

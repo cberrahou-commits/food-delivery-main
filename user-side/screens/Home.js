@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { UserAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
+import LanguageSelectorModal from "../components/LanguageSelectorModal";
 import {
   View,
   Text,
@@ -28,11 +30,13 @@ import SearchCard from "../components/SearchCard";
 
 const Home = () => {
   const { user, dbUser } = UserAuth();
+  const { t, language } = useLanguage();
   const dispatch = useDispatch();
   const navigation = useNavigation();
 
   const [restaurant, setRestaurant] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [langModalVisible, setLangModalVisible] = useState(false);
   const [dishes, setDishes] = useState([]);
   const [searchInputHasValue, setSearchInputHasValue] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -92,11 +96,16 @@ const Home = () => {
       setDishes(dishes);
     });
   };
-  console.log("Results in Home:", searchResults);
+
   return (
     <SafeAreaView className="bg-white pt-4">
       {/* Header */}
       <StatusBar style="auto" />
+      <LanguageSelectorModal
+        visible={langModalVisible}
+        onClose={() => setLangModalVisible(false)}
+      />
+
       <View className="flex-row pb-3 items-center mx-4 space-x-2">
         <Image
           source={{
@@ -106,21 +115,31 @@ const Home = () => {
         />
 
         <View className="flex-1">
-          <Text className="font-bold  text-gray-400 text-sm">Deliver Now!</Text>
+          <Text className="font-bold text-gray-400 text-xs">{t("deliverNow")}</Text>
           <TouchableOpacity onPress={() => setModalVisible(!modalVisible)}>
-            <Text className="font-bold text-xl">
-              Current Location
-              <ChevronDownIcon size={20} color="#48bb78" />
+            <Text className="font-bold text-lg">
+              {t("currentLocation")}
+              <ChevronDownIcon size={18} color="#48bb78" />
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Bouton Choix de Langue */}
+        <TouchableOpacity
+          onPress={() => setLangModalVisible(true)}
+          className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full flex-row items-center mr-1"
+        >
+          <Text className="text-xs font-bold text-emerald-800">
+            {language === "ar" ? "🇩🇿 عربي" : language === "en" ? "🇬🇧 EN" : "🇫🇷 FR"}
+          </Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => {
             navigation.navigate("Options");
           }}
         >
-          <UserIcon size={35} color="#48bb78" />
+          <UserIcon size={34} color="#48bb78" />
         </TouchableOpacity>
       </View>
 
@@ -161,16 +180,16 @@ const Home = () => {
                 <Text className="text-2xl">🍳</Text>
                 <View className="flex-1">
                   <Text className="text-white font-bold text-sm">
-                    {dbUser?.isCook ? "Gérer ma Cuisine Fait Maison" : "Vous cuisinez avec amour ?"}
+                    {dbUser?.isCook ? t("manageKitchen") : t("homeCookBannerTitle")}
                   </Text>
                   <Text className="text-emerald-100 text-xs">
-                    {dbUser?.isCook ? "Voir mes plats et commandes reçues" : "Proposez vos plats faits maison aux gourmets"}
+                    {dbUser?.isCook ? t("viewCookDishes") : t("homeCookBannerSub")}
                   </Text>
                 </View>
               </View>
               <View className="bg-white px-3 py-1.5 rounded-xl ml-2">
                 <Text className="text-emerald-800 font-extrabold text-xs">
-                  {dbUser?.isCook ? "Ma Cuisine" : "Devenir Chef"}
+                  {dbUser?.isCook ? t("myKitchen") : t("becomeChef")}
                 </Text>
               </View>
             </TouchableOpacity>

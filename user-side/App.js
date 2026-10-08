@@ -7,18 +7,21 @@ import RootNavigator from "./navigation/RootNavigator";
 import { store } from "./store.js";
 import { Provider } from "react-redux";
 import { AuthContextProvder } from "./contexts/AuthContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <AuthContextProvder>
-          <Provider store={store}>
-            <RootNavigator />
-          </Provider>
-        </AuthContextProvder>
-        <StatusBar style="auto" />
-      </NavigationContainer>
+      <LanguageProvider>
+        <NavigationContainer>
+          <AuthContextProvder>
+            <Provider store={store}>
+              <RootNavigator />
+            </Provider>
+          </AuthContextProvder>
+          <StatusBar style="auto" />
+        </NavigationContainer>
+      </LanguageProvider>
     </GestureHandlerRootView>
   );
 }

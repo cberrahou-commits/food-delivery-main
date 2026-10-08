@@ -1,7 +1,7 @@
 import { View, Text, Pressable, Image, TouchableOpacity, Alert } from "react-native";
 import { MinusCircleIcon, PlusCircleIcon } from "react-native-heroicons/solid";
 import React, { useState } from "react";
-import Currency from "react-currency-formatter";
+import { useLanguage } from "../contexts/LanguageContext";
 import {
   addToBasket,
   clearBasket,
@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 const DishRow = ({ id, name, description, price, image, restaurantId }) => {
   const [isPressed, setIsPressed] = useState(false);
+  const { t, formatPrice } = useLanguage();
 
   const dispatch = useDispatch();
   const items = useSelector((state) => selectBasketItemsWithId(state, id));
@@ -28,15 +29,15 @@ const DishRow = ({ id, name, description, price, image, restaurantId }) => {
       basketRestaurantId !== restaurantId
     ) {
       Alert.alert(
-        "Changer de cuisinier / restaurant ?",
-        "Votre panier contient déjà des plats d'un autre cuisinier.\n\nVoulez-vous vider votre panier actuel pour commander auprès de cette cuisine ?",
+        t("changeRestaurantTitle"),
+        t("changeRestaurantMsg"),
         [
           {
-            text: "Annuler",
+            text: t("keepBasket"),
             style: "cancel",
           },
           {
-            text: "Vider et ajouter",
+            text: t("clearAndAdd"),
             style: "destructive",
             onPress: () => {
               dispatch(clearBasket());
@@ -71,8 +72,8 @@ const DishRow = ({ id, name, description, price, image, restaurantId }) => {
           <View className="flex-1 pr-2 justify-center">
             <Text className="text-xl mb-1 font-semibold">{name}</Text>
             <Text className="text-gray-400">{description}</Text>
-            <Text className="text-gray-600 mt-3 text-base font-medium">
-              <Currency quantity={price} currency="EUR" />
+            <Text className="text-emerald-700 mt-3 text-base font-bold">
+              {formatPrice(price)}
             </Text>
           </View>
 

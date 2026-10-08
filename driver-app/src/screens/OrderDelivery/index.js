@@ -24,10 +24,12 @@ import {
 } from "firebase/firestore";
 import { db } from "../../../firebase/firebase";
 import DishInfo from "../../components/DishInfo";
+import { useLanguage } from "../../contexts/LanguageContext";
 import styles from "./styles.js";
 
 const OrderDelivery = ({ route }) => {
   const { order } = route.params;
+  const { t, formatPrice } = useLanguage();
   const [driverLocation, setDriverLocation] = useState(null);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [totalKm, setTotalKm] = useState(0);
@@ -127,19 +129,20 @@ const OrderDelivery = ({ route }) => {
 
   const renderButtonTitle = () => {
     if (deliveryStatus === "READY") {
-      return "Accept Order ✅";
+      return t("acceptOrder");
     }
     if (deliveryStatus === "DRIVERACCEPTED") {
-      return "Pick-Up Order 🛵";
+      return t("pickupOrder");
     }
     if (deliveryStatus === "DRIVERPICKEDUP") {
-      return "Payment Received 💵";
+      return t("paymentReceived");
     }
     if (deliveryStatus === "COMPLETE") {
-      return "Complete Delivery 🎉";
+      return t("completeDelivery");
     }
+    return t("acceptOrder");
   };
-  console.log(deliveryStatus);
+
   const onButtonpressed = () => {
     if (deliveryStatus === "READY") {
       bottomSheetRef.current?.collapse();
@@ -164,8 +167,8 @@ const OrderDelivery = ({ route }) => {
       setDeliveryStatus("COMPLETE");
       navigation.goBack();
       Alert.alert(
-        "Order Delivered 🎉",
-        "You delivered the order successfully!",
+        t("orderDeliveredTitle"),
+        t("orderDeliveredMsg"),
         [
           {
             text: "OK",
@@ -248,7 +251,7 @@ const OrderDelivery = ({ route }) => {
       >
         <View style={styles.handleIndicatorContainer}>
           <Text style={styles.routeDetailsText}>
-            {totalMinutes.toFixed(0)} min
+            {totalMinutes.toFixed(0)} {t("mins")}
           </Text>
           <FontAwesome5
             name="shopping-bag"
@@ -256,7 +259,9 @@ const OrderDelivery = ({ route }) => {
             color="#3FC060"
             style={{ marginHorizontal: 10 }}
           />
-          <Text style={styles.routeDetailsText}>{totalKm.toFixed(2)} km</Text>
+          <Text style={styles.routeDetailsText}>
+            {totalKm.toFixed(2)} {t("km")}
+          </Text>
         </View>
         <View style={styles.deliveryDetailsContainer}>
           <Text style={styles.restaurantName}>{order.restaurantName}</Text>
@@ -301,7 +306,7 @@ const OrderDelivery = ({ route }) => {
             }}
             onPress={() => navigation.navigate("OrdersScreen")}
           >
-            <Text style={styles.buttonText}>Back</Text>
+            <Text style={styles.buttonText}>{t("back")}</Text>
           </Pressable>
         )}
 

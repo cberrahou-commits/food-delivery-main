@@ -220,13 +220,13 @@ const AddCookDishScreen = () => {
           <View className="flex-row gap-3 mb-4">
             <View className="flex-1">
               <Text className="text-sm font-bold text-gray-800 mb-1">
-                Prix par part (€) *
+                Prix par part (DA / د.ج) *
               </Text>
               <TextInput
                 value={price}
                 onChangeText={setPrice}
                 keyboardType="numeric"
-                placeholder="Ex: 14.50"
+                placeholder="Ex: 850"
                 className="border border-gray-300 rounded-xl p-3 text-base bg-gray-50 font-bold text-green-700"
               />
             </View>

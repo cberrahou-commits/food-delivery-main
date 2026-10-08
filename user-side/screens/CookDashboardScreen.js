@@ -32,11 +32,13 @@ import {
   SparklesIcon,
 } from "react-native-heroicons/solid";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const CookDashboardScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user, dbUser } = UserAuth();
+  const { t, formatPrice } = useLanguage();
 
   const uid = user?.uid || auth.currentUser?.uid;
   const kitchenId = route.params?.kitchenId || dbUser?.kitchenId || `kitchen_${uid}`;
@@ -270,7 +272,7 @@ const CookDashboardScreen = () => {
                     </View>
                     <View className="flex-row items-center justify-between mt-2">
                       <Text className="text-base font-extrabold text-green-700">
-                        {Number(dish.price).toFixed(2)} €
+                        {formatPrice(dish.price)}
                       </Text>
                       <TouchableOpacity
                         onPress={() => handleDeleteDish(dish.id, dish.name)}
@@ -359,7 +361,7 @@ const CookDashboardScreen = () => {
                     </View>
 
                     <Text className="text-base font-extrabold text-green-700 my-2">
-                      Total : {Number(order.total).toFixed(2)} €
+                      Total : {formatPrice(order.total)}
                     </Text>
 
                     {/* Actions sur la commande */}
