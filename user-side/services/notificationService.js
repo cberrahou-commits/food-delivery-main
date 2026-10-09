@@ -17,14 +17,64 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-// Configuration du gestionnaire de notifications pour afficher les alertes même quand l'app est ouverte
+export const ORDER_NOTIFICATION_CHANNEL_ID = "orders_alerts_loud_v1";
+export const COURIER_NOTIFICATION_CHANNEL_ID = "courier_alerts_loud_v1";
+
+// Configuration du gestionnaire de notifications pour afficher les alertes avec son et badge
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
   }),
 });
+
+/**
+ * Configure les canaux Android en priorité MAX avec sonnerie et vibration forcées
+ */
+export const configureNotificationChannelAsync = async () => {
+  if (Platform.OS === "android") {
+    try {
+      // 1. Canal dédié aux commandes clients & alertes cuisinier
+      await Notifications.setNotificationChannelAsync(ORDER_NOTIFICATION_CHANNEL_ID, {
+        name: "Alertes Commandes (Sonnerie & Vibreur)",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 250, 500, 250, 500],
+        lightColor: "#3FC060",
+        sound: "default",
+        enableVibrate: true,
+        enableLights: true,
+        showBadge: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+        },
+      });
+
+      // 2. Canal dédié aux livreurs
+      await Notifications.setNotificationChannelAsync(COURIER_NOTIFICATION_CHANNEL_ID, {
+        name: "Alertes Courses & Livraisons (Sonnerie & Vibreur)",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 250, 500, 250, 500],
+        lightColor: "#3FC060",
+        sound: "default",
+        enableVibrate: true,
+        enableLights: true,
+        showBadge: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+        },
+      });
+
+      console.log("Canaux de notification sonores MAX configurés (user-side)");
+    } catch (err) {
+      console.warn("Erreur configuration canaux sonores :", err);
+    }
+  }
+};
 
 /**
  * Déclenche une notification système locale immédiate (avec son et vibration)
@@ -32,19 +82,20 @@ Notifications.setNotificationHandler({
  */
 export const triggerLocalNotification = async (title, body, data = {}) => {
   try {
+    await configureNotificationChannelAsync();
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
         body,
         sound: "default",
         priority: Notifications.AndroidNotificationPriority.MAX,
-        vibrate: [0, 250, 250, 250],
-        channelId: "default",
+        vibrate: [0, 500, 250, 500, 250, 500],
+        channelId: ORDER_NOTIFICATION_CHANNEL_ID,
         data,
       },
       trigger: null, // Immédiat !
     });
-    console.log("Notification locale déclenchée :", title);
+    console.log("Notification locale sonore déclenchée :", title);
   } catch (err) {
     console.warn("Erreur déclenchement notification locale :", err);
   }
@@ -59,17 +110,7 @@ export const registerForPushNotificationsAsync = async (userId) => {
   let token = null;
 
   try {
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "Commandes & Livraisons",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#3FC060",
-        sound: "default",
-        enableVibrate: true,
-        showBadge: true,
-      });
-    }
+    await configureNotificationChannelAsync();
 
     // Demande de permission native directe (affiche le prompt système)
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -121,17 +162,7 @@ export const registerForPushNotificationsAsync = async (userId) => {
  */
 export const requestNotificationPermissionDirectly = async () => {
   try {
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "Commandes & Livraisons",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#3FC060",
-        sound: "default",
-        enableVibrate: true,
-        showBadge: true,
-      });
-    }
+    await configureNotificationChannelAsync();
     const { status } = await Notifications.requestPermissionsAsync();
     console.log("Demande directe permission notifications, statut obtenu :", status);
     return status === "granted";
@@ -144,7 +175,7 @@ export const requestNotificationPermissionDirectly = async () => {
 /**
  * Envoie une ou plusieurs notifications via l'API officielle Expo Push Service
  */
-export const sendPushNotification = async (tokens, title, body, data = {}) => {
+export const sendPushNotification = async (tokens, title, body, data = {}, customChannelId = null) => {
   if (!tokens) return;
 
   const tokenList = Array.isArray(tokens) ? tokens : [tokens];
@@ -157,6 +188,8 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
     return;
   }
 
+  const channelId = customChannelId || ORDER_NOTIFICATION_CHANNEL_ID;
+
   const messages = validTokens.map((to) => ({
     to,
     sound: "default",
@@ -164,7 +197,7 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
     body,
     data,
     priority: "high",
-    channelId: "default",
+    channelId,
   }));
 
   try {
@@ -303,7 +336,8 @@ export const broadcastOrderReadyToDrivers = async (orderId, restaurantName, rest
         tokens,
         "Nouvelle course disponible ! 🛵⚡",
         `Plat prêt chez "${restaurantName || "Cuisine"}". 1er arrivé, 1er servi !`,
-        { orderId, type: "ORDER_READY_FOR_PICKUP" }
+        { orderId, type: "ORDER_READY_FOR_PICKUP" },
+        COURIER_NOTIFICATION_CHANNEL_ID
       );
     } else {
       console.log("Aucun livreur avec token push trouvé pour le broadcast.");

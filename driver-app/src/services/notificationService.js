@@ -13,33 +13,85 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
+export const COURIER_NOTIFICATION_CHANNEL_ID = "courier_alerts_loud_v1";
+export const ORDER_NOTIFICATION_CHANNEL_ID = "orders_alerts_loud_v1";
+
+// Configuration du gestionnaire de notifications pour forcer l'affichage avec sonnerie et badge
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
   }),
 });
 
 /**
- * Déclenche une notification système locale immédiate (avec son et vibration)
+ * Configure les canaux Android en priorité MAX avec sonnerie et vibration forcées
+ */
+export const configureNotificationChannelsAsync = async () => {
+  if (Platform.OS === "android") {
+    try {
+      // 1. Canal dédié aux courses et livraisons (Livreur)
+      await Notifications.setNotificationChannelAsync(COURIER_NOTIFICATION_CHANNEL_ID, {
+        name: "Alertes Courses & Livraisons (Sonnerie & Vibreur)",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 250, 500, 250, 500],
+        lightColor: "#3FC060",
+        sound: "default",
+        enableVibrate: true,
+        enableLights: true,
+        showBadge: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+        },
+      });
+
+      // 2. Canal de compatibilité alertes commandes
+      await Notifications.setNotificationChannelAsync(ORDER_NOTIFICATION_CHANNEL_ID, {
+        name: "Alertes Commandes (Sonnerie & Vibreur)",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 250, 500, 250, 500],
+        lightColor: "#3FC060",
+        sound: "default",
+        enableVibrate: true,
+        enableLights: true,
+        showBadge: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        audioAttributes: {
+          usage: Notifications.AndroidAudioUsage.NOTIFICATION_RINGTONE,
+          contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+        },
+      });
+
+      console.log("Canaux de notification sonores MAX configurés (driver-app)");
+    } catch (err) {
+      console.warn("Erreur configuration canaux sonores driver :", err);
+    }
+  }
+};
+
+/**
+ * Déclenche une notification système locale immédiate (avec sonnerie et vibration)
  * Fonctionne à 100% sur mobile Android/iOS sans aucune dépendance serveur ni clé FCM !
  */
 export const triggerLocalNotification = async (title, body, data = {}) => {
   try {
+    await configureNotificationChannelsAsync();
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
         body,
         sound: "default",
         priority: Notifications.AndroidNotificationPriority.MAX,
-        vibrate: [0, 250, 250, 250],
-        channelId: "default",
+        vibrate: [0, 500, 250, 500, 250, 500],
+        channelId: COURIER_NOTIFICATION_CHANNEL_ID,
         data,
       },
       trigger: null,
     });
-    console.log("Notification locale coursier déclenchée :", title);
+    console.log("Notification locale coursier sonore déclenchée :", title);
   } catch (err) {
     console.warn("Erreur déclenchement notification locale coursier :", err);
   }
@@ -54,17 +106,7 @@ export const registerForPushNotificationsAsync = async (userId) => {
   let token = null;
 
   try {
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "Courses & Livraisons",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#3FC060",
-        sound: "default",
-        enableVibrate: true,
-        showBadge: true,
-      });
-    }
+    await configureNotificationChannelsAsync();
 
     // Demande de permission native directe (affiche le prompt système)
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -112,9 +154,24 @@ export const registerForPushNotificationsAsync = async (userId) => {
 };
 
 /**
+ * Déclenche manuellement la demande native de permission (débloque ColorOS sur clic livreur)
+ */
+export const requestNotificationPermissionDirectly = async () => {
+  try {
+    await configureNotificationChannelsAsync();
+    const { status } = await Notifications.requestPermissionsAsync();
+    console.log("Demande directe permission notifications livreur, statut :", status);
+    return status === "granted";
+  } catch (err) {
+    console.warn("Erreur requestNotificationPermissionDirectly livreur:", err);
+    return false;
+  }
+};
+
+/**
  * Envoie une notification via l'API officielle Expo Push Service
  */
-export const sendPushNotification = async (tokens, title, body, data = {}) => {
+export const sendPushNotification = async (tokens, title, body, data = {}, customChannelId = null) => {
   if (!tokens) return;
 
   const tokenList = Array.isArray(tokens) ? tokens : [tokens];
@@ -127,6 +184,8 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
     return;
   }
 
+  const channelId = customChannelId || ORDER_NOTIFICATION_CHANNEL_ID;
+
   const messages = validTokens.map((to) => ({
     to,
     sound: "default",
@@ -134,7 +193,7 @@ export const sendPushNotification = async (tokens, title, body, data = {}) => {
     body,
     data,
     priority: "high",
-    channelId: "default",
+    channelId,
   }));
 
   try {
@@ -170,7 +229,8 @@ export const notifyClientDriverAssigned = async (userId, driverName, orderId) =>
           token,
           "Livreur en route ! 🛵",
           `${driverName || "Un livreur"} a accepté votre commande et se rend au restaurant.`,
-          { orderId, type: "DRIVER_ASSIGNED" }
+          { orderId, type: "DRIVER_ASSIGNED" },
+          ORDER_NOTIFICATION_CHANNEL_ID
         );
       }
     }
@@ -193,7 +253,8 @@ export const notifyClientOrderDelivered = async (userId, orderId) => {
           token,
           "Commande livrée ! 🎉",
           "Votre repas vous a été remis en mains propres. Bon appétit !",
-          { orderId, type: "ORDER_DELIVERED" }
+          { orderId, type: "ORDER_DELIVERED" },
+          ORDER_NOTIFICATION_CHANNEL_ID
         );
       }
     }
@@ -201,4 +262,3 @@ export const notifyClientOrderDelivered = async (userId, orderId) => {
     console.warn("Erreur notification client (commande livrée):", e);
   }
 };
-

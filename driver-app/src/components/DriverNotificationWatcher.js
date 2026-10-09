@@ -17,6 +17,7 @@ import { useAuth } from "../contexts/AuthContext";
 import {
   triggerLocalNotification,
   registerForPushNotificationsAsync,
+  requestNotificationPermissionDirectly,
 } from "../services/notificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -261,7 +262,32 @@ const DriverNotificationWatcher = () => {
             Les alertes vibrent et s'affichent dans l'application. Pour les recevoir aussi écran éteint, débloquez ColorOS.
           </Text>
 
-          <View style={{ flexDirection: "row", marginTop: 8, gap: 8 }}>
+          <View style={{ flexDirection: "row", marginTop: 8, gap: 8, flexWrap: "wrap" }}>
+            <TouchableOpacity
+              onPress={async () => {
+                const granted = await requestNotificationPermissionDirectly();
+                if (granted) {
+                  setHasPermission(true);
+                  setShowHelperBanner(false);
+                  if (user?.uid) registerForPushNotificationsAsync(user.uid);
+                } else {
+                  setModalDetailsVisible(true);
+                }
+              }}
+              style={{
+                backgroundColor: "#2563EB",
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>
+                Autoriser les alertes 🔔
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => setModalDetailsVisible(true)}
               style={{
@@ -274,7 +300,7 @@ const DriverNotificationWatcher = () => {
               }}
             >
               <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>
-                Débloquer ColorOS 📖
+                Guide ColorOS 📖
               </Text>
             </TouchableOpacity>
 
