@@ -117,6 +117,31 @@ export const registerForPushNotificationsAsync = async (userId) => {
 };
 
 /**
+ * Déclenche manuellement la demande native de permission (débloque ColorOS sur clic utilisateur)
+ */
+export const requestNotificationPermissionDirectly = async () => {
+  try {
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "Commandes & Livraisons",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#3FC060",
+        sound: "default",
+        enableVibrate: true,
+        showBadge: true,
+      });
+    }
+    const { status } = await Notifications.requestPermissionsAsync();
+    console.log("Demande directe permission notifications, statut obtenu :", status);
+    return status === "granted";
+  } catch (err) {
+    console.warn("Erreur requestNotificationPermissionDirectly:", err);
+    return false;
+  }
+};
+
+/**
  * Envoie une ou plusieurs notifications via l'API officielle Expo Push Service
  */
 export const sendPushNotification = async (tokens, title, body, data = {}) => {

@@ -18,6 +18,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import {
   triggerLocalNotification,
   registerForPushNotificationsAsync,
+  requestNotificationPermissionDirectly,
 } from "../services/notificationService";
 import { BellAlertIcon, XMarkIcon, ChevronRightIcon } from "react-native-heroicons/solid";
 import { useNavigation } from "@react-navigation/native";
@@ -347,7 +348,30 @@ const NotificationWatcher = () => {
             Les alertes s'affichent et vibrent dans l'application. Pour les recevoir aussi téléphone verrouillé, débloquez ColorOS.
           </Text>
 
-          <View style={{ flexDirection: "row", marginTop: 8, gap: 8 }}>
+          <View style={{ flexDirection: "row", marginTop: 8, gap: 8, flexWrap: "wrap" }}>
+            <TouchableOpacity
+              onPress={async () => {
+                const granted = await requestNotificationPermissionDirectly();
+                if (granted) {
+                  setHasPermission(true);
+                  setShowHelperBanner(false);
+                  if (user?.uid) registerForPushNotificationsAsync(user.uid);
+                }
+              }}
+              style={{
+                backgroundColor: "#10B981",
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>
+                Autoriser maintenant 🔔
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => setModalDetailsVisible(true)}
               style={{
@@ -367,7 +391,7 @@ const NotificationWatcher = () => {
             <TouchableOpacity
               onPress={() => Linking.openSettings()}
               style={{
-                backgroundColor: "#3FC060",
+                backgroundColor: "#4B5563",
                 paddingVertical: 6,
                 paddingHorizontal: 12,
                 borderRadius: 8,

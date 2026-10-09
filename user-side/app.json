@@ -4,7 +4,7 @@
     "slug": "food-delivery-user",
     "scheme": "fooddeliveryuser",
     "owner": "chaouki.b",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -40,10 +40,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fooddelivery.userapp"
+      "bundleIdentifier": "com.fooddelivery.clientapp"
     },
     "android": {
-      "package": "com.fooddelivery.userapp",
+      "package": "com.fooddelivery.clientapp",
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyCi-MWuhMrs1DfJqTycPWS8N9KorPuAs-0"
