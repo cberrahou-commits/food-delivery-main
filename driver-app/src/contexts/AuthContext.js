@@ -13,6 +13,7 @@ import {
 import { auth, db } from "../../firebase/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { Platform, Alert } from "react-native";
+import { registerForPushNotificationsAsync } from "../services/notificationService";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -71,6 +72,7 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       if (currentUser?.uid) {
         await ensureDriverProfile(currentUser);
+        registerForPushNotificationsAsync(currentUser.uid);
       }
       setLoading(false);
     });

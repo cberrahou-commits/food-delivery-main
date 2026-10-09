@@ -13,6 +13,7 @@ import {
 import { auth, db } from "../firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { Platform, Alert } from "react-native";
+import { registerForPushNotificationsAsync } from "../services/notificationService";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -74,6 +75,7 @@ export const AuthContextProvder = ({ children }) => {
       }
 
       if (currentUser?.uid) {
+        registerForPushNotificationsAsync(currentUser.uid);
         const userRef = doc(db, "user", currentUser.uid);
         unsubscribeSnapshot = onSnapshot(
           userRef,

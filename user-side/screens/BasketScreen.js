@@ -22,6 +22,7 @@ import {
   setDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { notifyCookForNewOrder } from "../services/notificationService";
 
 const BasketScreen = () => {
   const navigation = useNavigation();
@@ -107,6 +108,9 @@ const BasketScreen = () => {
 
       // Vider le panier après commande réussie
       dispatch(clearBasket());
+
+      // Notifier le cuisinier en push notification
+      notifyCookForNewOrder(restaurant?.id, newOrderRef.id);
 
       navigation.navigate("PreparingOrderScreen");
     } catch (error) {

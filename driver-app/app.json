@@ -20,6 +20,13 @@
           "photosPermission": "L'application a besoin d'accéder à vos photos pour vos pièces justificatives.",
           "cameraPermission": "L'application a besoin d'accéder à votre appareil photo pour photographier votre pièce d'identité et permis."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#3FC060"
+        }
       ]
     ],
     "splash": {
@@ -54,6 +61,7 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
+        "android.permission.POST_NOTIFICATIONS",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"

@@ -4,6 +4,7 @@ import { db } from "../firebase";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import DishInfo from "./DishInfo";
 import { useLanguage } from "../contexts/LanguageContext";
+import { notifyCookClientConfirmed } from "../services/notificationService";
 
 const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => {
   const [dishes, setDishes] = useState([]);
@@ -100,6 +101,10 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
         status: "IN_PREPARATION",
         clientConfirmedAt: new Date(),
       });
+
+      // Notification Push au cuisinier pour lancer la préparation
+      notifyCookClientConfirmed(order?.restaurantId, orderId);
+
       Alert.alert(t("success"), t("clientConfirmedSuccess"));
     } catch (e) {
       console.error(e);

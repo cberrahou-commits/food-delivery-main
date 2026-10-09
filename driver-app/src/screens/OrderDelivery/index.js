@@ -27,6 +27,10 @@ import { db } from "../../../firebase/firebase";
 import DishInfo from "../../components/DishInfo";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
+import {
+  notifyClientDriverAssigned,
+  notifyClientOrderDelivered,
+} from "../../services/notificationService";
 import styles from "./styles.js";
 
 const OrderDelivery = ({ route }) => {
@@ -225,6 +229,11 @@ const OrderDelivery = ({ route }) => {
       // Assignation réussie
       setDeliveryStatus("ASSIGNED_TO_DELIVERY");
 
+      // Notification Push au client : Livreur assigné et en route !
+      if (order?.userId) {
+        notifyClientDriverAssigned(order.userId, driverDisplayName, order?.id);
+      }
+
       try {
         bottomSheetRef.current?.snapToIndex(0);
       } catch (e) {
@@ -279,10 +288,13 @@ const OrderDelivery = ({ route }) => {
         deliveredAt: serverTimestamp(),
       });
       setDeliveryStatus("DELIVERED");
-      Alert.alert(
-        t("orderDeliveredTitle"),
-        t("orderDeliveredMsg"),
-        [
+
+      // Notification Push au client : Commande livrée !
+      if (order?.userId) {
+        notifyClientOrderDelivered(order.userId, order?.id);
+      }
+
+      Alert.alert(t("orderDeliveredTitle"), t("orderDeliveredMsg"), [
           {
             text: "OK",
             onPress: () => navigation.goBack(),

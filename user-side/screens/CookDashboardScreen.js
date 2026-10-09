@@ -36,6 +36,11 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useLanguage } from "../contexts/LanguageContext";
 import DishInfo from "../components/DishInfo";
+import {
+  notifyClientForCookEstimate,
+  broadcastOrderReadyToDrivers,
+  notifyClientOrderReady,
+} from "../services/notificationService";
 
 const CookOrderDishes = ({ orderId }) => {
   const [items, setItems] = useState([]);
@@ -185,6 +190,11 @@ const CookDashboardScreen = () => {
         cookEstimatedAt: new Date(),
       });
 
+      // Notification Push au client pour validation du délai
+      if (order.userId) {
+        notifyClientForCookEstimate(order.userId, prepMin, timeStr, order.id);
+      }
+
       Alert.alert(t("success"), t("estimationSent"));
     } catch (e) {
       console.error(e);
@@ -218,10 +228,24 @@ const CookDashboardScreen = () => {
 
   const markOrderReady = async (orderId) => {
     try {
+      const order = orders.find((o) => o.id === orderId);
       await updateDoc(doc(db, "orders", orderId), {
         status: "READY_FOR_PICKUP",
         readyAt: new Date(),
       });
+
+      // 1. Broadcast Notification Push aux livreurs (Premier arrivé, premier servi !)
+      broadcastOrderReadyToDrivers(
+        orderId,
+        order?.restaurantName || kitchenName,
+        order?.restaurantAddress
+      );
+
+      // 2. Notification Push au client (Son repas est prêt)
+      if (order?.userId) {
+        notifyClientOrderReady(order.userId, order?.restaurantName || kitchenName);
+      }
+
       Alert.alert(t("success"), t("mealReadyAlert"));
     } catch (e) {
       console.error(e);
