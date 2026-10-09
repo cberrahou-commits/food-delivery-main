@@ -1,7 +1,11 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
-import { Platform } from "react-native";
+import { Platform, Linking } from "react-native";
 import { db } from "../../firebase/firebase";
+
+export const openAppSettings = () => {
+  Linking.openSettings();
+};
 import {
   doc,
   getDoc,
@@ -28,44 +32,53 @@ export const registerForPushNotificationsAsync = async (userId) => {
   try {
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("default", {
-        name: "default",
+        name: "Courses & Livraisons",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#3FC060",
         sound: "default",
+        enableVibrate: true,
+        showBadge: true,
       });
     }
 
-    if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
+    // Demande de permission native directe (affiche le prompt système)
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-      if (existingStatus !== "granted") {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+        },
+      });
+      finalStatus = status;
+    }
 
-      if (finalStatus !== "granted") {
-        console.log("Permission de notification push refusée pour le livreur");
-        return null;
-      }
+    if (finalStatus !== "granted") {
+      console.log("Permission de notification push refusée pour le livreur (status:", finalStatus, ")");
+      return null;
+    }
 
+    try {
       const tokenData = await Notifications.getExpoPushTokenAsync({
         projectId: EAS_PROJECT_ID,
       });
-      token = tokenData.data;
+      token = tokenData?.data;
       console.log("Expo Push Token obtenu (Livreur):", token);
+    } catch (tokenErr) {
+      console.log("Note: Expo Push Token nécessite un build EAS / appareil réel:", tokenErr?.message);
+    }
 
-      if (userId && token) {
-        const userRef = doc(db, "user", userId);
-        await updateDoc(userRef, {
-          pushToken: token,
-          pushTokenUpdatedAt: serverTimestamp(),
-        });
-        console.log("Token push du coursier enregistré dans Firestore");
-      }
-    } else {
-      console.log("Notifications push physiques requièrent un appareil réel");
+    if (userId && token) {
+      const userRef = doc(db, "user", userId);
+      await updateDoc(userRef, {
+        pushToken: token,
+        pushTokenUpdatedAt: serverTimestamp(),
+      });
+      console.log("Token push du coursier enregistré dans Firestore");
     }
   } catch (error) {
     console.warn("Erreur enregistrement token push livreur:", error);
