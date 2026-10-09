@@ -7,6 +7,8 @@ import {
   AppState,
   Linking,
   Modal,
+  Vibration,
+  Animated,
 } from "react-native";
 import * as Notifications from "expo-notifications";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
@@ -17,16 +19,63 @@ import {
   registerForPushNotificationsAsync,
 } from "../services/notificationService";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 const DriverNotificationWatcher = () => {
   const { user } = useAuth();
+  const navigation = useNavigation();
 
   const [hasPermission, setHasPermission] = useState(true);
   const [showHelperBanner, setShowHelperBanner] = useState(false);
   const [modalDetailsVisible, setModalDetailsVisible] = useState(false);
 
+  // Alerte In-App visuelle et vibration
+  const [inAppAlert, setInAppAlert] = useState(null);
+  const slideAnim = useRef(new Animated.Value(-120)).current;
+
   const initialLoadRef = useRef(true);
   const knownReadyOrdersRef = useRef(new Set());
+
+  const notifyDriver = (title, body, data = {}) => {
+    // 1. Notification locale système (si autorisée)
+    triggerLocalNotification(title, body, data);
+
+    // 2. Vibration matérielle (infaillible sur OnePlus / ColorOS)
+    try {
+      Vibration.vibrate([0, 600, 200, 600]);
+    } catch (e) {
+      console.warn("Vibration error:", e);
+    }
+
+    // 3. Bannière In-App en temps réel
+    setInAppAlert({
+      id: Date.now(),
+      title,
+      body,
+      data,
+    });
+
+    Animated.spring(slideAnim, {
+      toValue: Platform.OS === "ios" ? 50 : 35,
+      useNativeDriver: true,
+      tension: 60,
+      friction: 8,
+    }).start();
+
+    setTimeout(() => {
+      dismissInAppAlert();
+    }, 8000);
+  };
+
+  const dismissInAppAlert = () => {
+    Animated.timing(slideAnim, {
+      toValue: -120,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setInAppAlert(null);
+    });
+  };
 
   // 1. Vérification des permissions au démarrage et lors du retour dans l'application
   const checkPermissions = async () => {
@@ -72,7 +121,6 @@ const DriverNotificationWatcher = () => {
       q,
       (snapshot) => {
         if (initialLoadRef.current) {
-          // Premier chargement : stocker les commandes déjà prêtes sans spammer de sons
           snapshot.forEach((docSnap) => {
             knownReadyOrdersRef.current.add(docSnap.id);
           });
@@ -92,10 +140,10 @@ const DriverNotificationWatcher = () => {
           ) {
             knownReadyOrdersRef.current.add(orderId);
 
-            triggerLocalNotification(
+            notifyDriver(
               "🛵 Nouvelle livraison disponible !",
               `Plat prêt chez ${order.restaurantName || "le chef"}. Premier arrivé, premier servi !`,
-              { orderId, type: "NEW_DELIVERY_AVAILABLE" }
+              { orderId, order, type: "NEW_DELIVERY_AVAILABLE" }
             );
           } else if (change.type === "removed") {
             knownReadyOrdersRef.current.delete(orderId);
@@ -110,85 +158,146 @@ const DriverNotificationWatcher = () => {
     return () => unsubscribe();
   }, []);
 
-  // Si les notifications sont déjà autorisées ou si la bannière a été masquée manuellement
-  if (hasPermission || !showHelperBanner) {
-    return null;
-  }
-
   return (
     <>
-      {/* Bannière d'alerte pour livreur */}
-      <View
-        style={{
-          position: "absolute",
-          top: Platform.OS === "ios" ? 50 : 35,
-          left: 12,
-          right: 12,
-          zIndex: 9999,
-          elevation: 10,
-          backgroundColor: "#FEF3C7",
-          borderColor: "#F59E0B",
-          borderWidth: 1,
-          borderRadius: 12,
-          padding: 12,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.15,
-          shadowRadius: 4,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}>
-            <Ionicons name="notifications-outline" size={24} color="#D97706" />
-            <Text style={{ fontWeight: "700", color: "#92400E", marginLeft: 8, fontSize: 13, flex: 1 }}>
-              Notifications inactives (Android 13+)
-            </Text>
+      {/* 1. Alerte In-App Flottante pour Livreur */}
+      {inAppAlert && (
+        <Animated.View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 12,
+            right: 12,
+            transform: [{ translateY: slideAnim }],
+            zIndex: 99999,
+            elevation: 20,
+            backgroundColor: "#1E293B",
+            borderRadius: 16,
+            padding: 14,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.35,
+            shadowRadius: 8,
+            borderLeftWidth: 5,
+            borderLeftColor: "#3FC060",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={{ color: "#3FC060", fontWeight: "bold", fontSize: 14, marginBottom: 2 }}>
+                {inAppAlert.title}
+              </Text>
+              <Text style={{ color: "#E2E8F0", fontSize: 13, lineHeight: 17 }}>
+                {inAppAlert.body}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={dismissInAppAlert} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close" size={20} color="#94A3B8" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={() => setShowHelperBanner(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close" size={20} color="#92400E" />
-          </TouchableOpacity>
+
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 8 }}>
+            <TouchableOpacity
+              onPress={() => {
+                dismissInAppAlert();
+                if (inAppAlert.data?.order) {
+                  try {
+                    navigation.navigate("OrderDelivery", { order: inAppAlert.data.order });
+                  } catch (e) {
+                    try { navigation.navigate("Orders"); } catch(err){}
+                  }
+                }
+              }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#3FC060",
+                paddingVertical: 5,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>Prendre la course</Text>
+              <Ionicons name="chevron-forward" size={14} color="white" style={{ marginLeft: 2 }} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* 2. Bannière d'alerte pour livreur si notifications système restreintes */}
+      {!hasPermission && showHelperBanner && (
+        <View
+          style={{
+            position: "absolute",
+            top: Platform.OS === "ios" ? 50 : 35,
+            left: 12,
+            right: 12,
+            zIndex: 9998,
+            elevation: 10,
+            backgroundColor: "#FEF3C7",
+            borderColor: "#F59E0B",
+            borderWidth: 1,
+            borderRadius: 12,
+            padding: 12,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}>
+              <Ionicons name="notifications-outline" size={24} color="#D97706" />
+              <Text style={{ fontWeight: "700", color: "#92400E", marginLeft: 8, fontSize: 13, flex: 1 }}>
+                Alertes système restreintes (ColorOS)
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowHelperBanner(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close" size={20} color="#92400E" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={{ fontSize: 12, color: "#78350F", marginTop: 4, lineHeight: 16 }}>
+            Les alertes vibrent et s'affichent dans l'application. Pour les recevoir aussi écran éteint, débloquez ColorOS.
+          </Text>
+
+          <View style={{ flexDirection: "row", marginTop: 8, gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => setModalDetailsVisible(true)}
+              style={{
+                backgroundColor: "#D97706",
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>
+                Débloquer ColorOS 📖
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => Linking.openSettings()}
+              style={{
+                backgroundColor: "#3FC060",
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>
+                Paramètres ⚙️
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
+      )}
 
-        <Text style={{ fontSize: 12, color: "#78350F", marginTop: 4, lineHeight: 16 }}>
-          Pour être averti dès qu'un plat est prêt à être livré (sonnerie & vibreur), activez les notifications. Si grisé, débloquez les paramètres restreints.
-        </Text>
-
-        <View style={{ flexDirection: "row", marginTop: 8, gap: 8 }}>
-          <TouchableOpacity
-            onPress={() => setModalDetailsVisible(true)}
-            style={{
-              backgroundColor: "#D97706",
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 8,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>
-              Guide pas-à-pas 📖
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => Linking.openSettings()}
-            style={{
-              backgroundColor: "#3FC060",
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 8,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>
-              Ouvrir Paramètres ⚙️
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Modal explicatif clair Android 13/14/15 */}
+      {/* 3. Modal explicatif clair ColorOS / OnePlus */}
       <Modal
         visible={modalDetailsVisible}
         transparent
@@ -219,28 +328,25 @@ const DriverNotificationWatcher = () => {
             }}
           >
             <Text style={{ fontSize: 18, fontWeight: "bold", color: "#1F2937", marginBottom: 12, textAlign: "center" }}>
-              🔔 Activer les alertes courses
+              📱 Déblocage ColorOS / OnePlus
             </Text>
 
             <Text style={{ fontSize: 13, color: "#4B5563", marginBottom: 10, lineHeight: 18 }}>
-              Sur Android 13, 14 et 15, les notifications des APK installés manuellement sont bloquées par défaut ("Paramètres restreints").
+              Sur ColorOS, le système bloque les interrupteurs par défaut pour les APKs. Voici comment le déverrouiller :
             </Text>
 
             <View style={{ backgroundColor: "#F3F4F6", padding: 12, borderRadius: 10, marginBottom: 14 }}>
-              <Text style={{ fontSize: 13, fontWeight: "600", color: "#111827", marginBottom: 4 }}>
-                Procédure de déblocage rapide :
+              <Text style={{ fontSize: 12, color: "#374151", marginVertical: 3 }}>
+                1️⃣ Allez dans <Text style={{ fontWeight: "700" }}>Paramètres &gt; Applications &gt; Gestion des applications</Text>.
               </Text>
-              <Text style={{ fontSize: 12, color: "#374151", marginVertical: 2 }}>
-                1️⃣ Cliquez sur <Text style={{ fontWeight: "700" }}>"Ouvrir Paramètres"</Text> ci-dessous.
+              <Text style={{ fontSize: 12, color: "#374151", marginVertical: 3 }}>
+                2️⃣ En haut à droite, appuyez sur les <Text style={{ fontWeight: "700" }}>3 petits points (⋮)</Text>.
               </Text>
-              <Text style={{ fontSize: 12, color: "#374151", marginVertical: 2 }}>
-                2️⃣ Appuyez sur les <Text style={{ fontWeight: "700" }}>3 petits points (⋮)</Text> en haut à droite.
+              <Text style={{ fontSize: 12, color: "#374151", marginVertical: 3 }}>
+                3️⃣ Cliquez sur <Text style={{ fontWeight: "700", color: "#D97706" }}>"Réinitialiser les préférences des applications"</Text>. (Cela débloque immédiatement les interrupteurs grisés !).
               </Text>
-              <Text style={{ fontSize: 12, color: "#374151", marginVertical: 2 }}>
-                3️⃣ Appuyez sur <Text style={{ fontWeight: "700", color: "#D97706" }}>"Autoriser les paramètres restreints"</Text> (code/empreinte).
-              </Text>
-              <Text style={{ fontSize: 12, color: "#374151", marginVertical: 2 }}>
-                4️⃣ Activez l'interrupteur <Text style={{ fontWeight: "700", color: "#10B981" }}>Notifications</Text> !
+              <Text style={{ fontSize: 12, color: "#374151", marginVertical: 3 }}>
+                4️⃣ Dans <Text style={{ fontWeight: "700" }}>Gestion de la batterie</Text>, autorisez <Text style={{ fontWeight: "700", color: "#10B981" }}>"Activité en arrière-plan"</Text>.
               </Text>
             </View>
 

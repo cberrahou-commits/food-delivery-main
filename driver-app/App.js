@@ -17,8 +17,8 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <LanguageProvider>
         <AuthProvider>
-          <DriverNotificationWatcher />
           <NavigationContainer>
+            <DriverNotificationWatcher />
             <Navigation />
             <StatusBar style="auto" />
           </NavigationContainer>
