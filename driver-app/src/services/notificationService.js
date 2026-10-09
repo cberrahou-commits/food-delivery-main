@@ -21,6 +21,30 @@ Notifications.setNotificationHandler({
   }),
 });
 
+/**
+ * Déclenche une notification système locale immédiate (avec son et vibration)
+ * Fonctionne à 100% sur mobile Android/iOS sans aucune dépendance serveur ni clé FCM !
+ */
+export const triggerLocalNotification = async (title, body, data = {}) => {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        sound: "default",
+        priority: Notifications.AndroidNotificationPriority.MAX,
+        vibrate: [0, 250, 250, 250],
+        channelId: "default",
+        data,
+      },
+      trigger: null,
+    });
+    console.log("Notification locale coursier déclenchée :", title);
+  } catch (err) {
+    console.warn("Erreur déclenchement notification locale coursier :", err);
+  }
+};
+
 const EAS_PROJECT_ID = "6289e5fd-cb5b-409e-843d-072b21e4a9e1";
 
 /**

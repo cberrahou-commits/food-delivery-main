@@ -9,6 +9,7 @@ import { Provider } from "react-redux";
 import { AuthContextProvder } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { registerForPushNotificationsAsync } from "./services/notificationService";
+import NotificationWatcher from "./components/NotificationWatcher";
 
 export default function App() {
   useEffect(() => {
@@ -19,6 +20,7 @@ export default function App() {
       <LanguageProvider>
         <NavigationContainer>
           <AuthContextProvder>
+            <NotificationWatcher />
             <Provider store={store}>
               <RootNavigator />
             </Provider>

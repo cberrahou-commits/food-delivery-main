@@ -7,6 +7,7 @@ import Navigation from "./src/navigation";
 import { AuthProvider } from "./src/contexts/AuthContext";
 import { LanguageProvider } from "./src/contexts/LanguageContext";
 import { registerForPushNotificationsAsync } from "./src/services/notificationService";
+import DriverNotificationWatcher from "./src/components/DriverNotificationWatcher";
 
 export default function App() {
   useEffect(() => {
@@ -16,6 +17,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <LanguageProvider>
         <AuthProvider>
+          <DriverNotificationWatcher />
           <NavigationContainer>
             <Navigation />
             <StatusBar style="auto" />
