@@ -273,3 +273,4 @@ export const notifyClientOrderReady = async (userId, restaurantName) => {
     console.warn("Erreur notification client (plat prêt):", e);
   }
 };
+

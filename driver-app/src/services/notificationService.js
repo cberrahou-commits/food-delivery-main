@@ -164,3 +164,4 @@ export const notifyClientOrderDelivered = async (userId, orderId) => {
     console.warn("Erreur notification client (commande livrée):", e);
   }
 };
+
