@@ -49,6 +49,7 @@ export const translations = {
     dossierPendingTitle: "Dossier en cours d'examen ⏳",
     dossierPendingMsg: "Nos équipes valident vos documents sous 24h.",
     refreshStatus: "Actualiser le statut",
+    error: "Erreur",
   },
 
   ar: {
@@ -96,6 +97,7 @@ export const translations = {
     dossierPendingTitle: "الملف قيد المراجعة والتدقيق ⏳",
     dossierPendingMsg: "يقوم فريقنا بمراجعة وثائقك خلال 24 ساعة.",
     refreshStatus: "تحديث الحالة",
+    error: "خطأ",
   },
 
   en: {
@@ -143,6 +145,7 @@ export const translations = {
     dossierPendingTitle: "Verification Under Review ⏳",
     dossierPendingMsg: "Our team verifies your documents within 24 hours.",
     refreshStatus: "Refresh Status",
+    error: "Error",
   },
 };
 

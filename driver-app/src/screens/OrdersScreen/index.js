@@ -58,24 +58,30 @@ const OrdersScreen = () => {
         showsUserLocation
         followsUserLocation
       >
-        {orders.map((order, index) => (
-          <Marker
-            key={index + 1}
-            id={order.id}
-            title={order.restaurantName}
-            description={order.restaurantAddress}
-            coordinate={{
-              latitude: order.restaurantLatitude,
-              longitude: order.restaurantLongitude,
-            }}
-          >
-            <View
-              style={{ backgroundColor: "green", padding: 5, borderRadius: 20 }}
+        {orders.map((order, index) => {
+          const lat = Number(order.restaurantLatitude);
+          const lng = Number(order.restaurantLongitude);
+          if (!lat || !lng || isNaN(lat) || isNaN(lng)) return null;
+
+          return (
+            <Marker
+              key={order.id || `order-${index}`}
+              id={order.id}
+              title={order.restaurantName || "Restaurant"}
+              description={order.restaurantAddress || ""}
+              coordinate={{
+                latitude: lat,
+                longitude: lng,
+              }}
             >
-              <Entypo name="shop" size={24} color="white" />
-            </View>
-          </Marker>
-        ))}
+              <View
+                style={{ backgroundColor: "green", padding: 5, borderRadius: 20 }}
+              >
+                <Entypo name="shop" size={24} color="white" />
+              </View>
+            </Marker>
+          );
+        })}
       </MapView>
       <BottomSheet ref={bottomSheetRef} snapPoints={snapPoints}>
         <View

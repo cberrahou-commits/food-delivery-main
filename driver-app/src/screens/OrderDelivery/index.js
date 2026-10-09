@@ -8,20 +8,19 @@ import {
   Alert,
 } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
-import { FontAwesome5, Fontisto } from "@expo/vector-icons";
+import { FontAwesome5, Fontisto, MaterialIcons, Entypo, Ionicons } from "@expo/vector-icons";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
-import { Entypo, MaterialIcons, Ionicons } from "@expo/vector-icons";
 import MapViewDirections from "react-native-maps-directions";
 import { useNavigation } from "@react-navigation/native";
 import {
   updateDoc,
   doc,
+  getDoc,
   collection,
   where,
   query,
   getDocs,
-  runTransaction,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../../firebase/firebase";
@@ -31,7 +30,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import styles from "./styles.js";
 
 const OrderDelivery = ({ route }) => {
-  const { order } = route.params;
+  const { order } = route.params || {};
   const { user } = useAuth();
   const { t, formatPrice } = useLanguage();
   const [driverLocation, setDriverLocation] = useState(null);
@@ -39,7 +38,7 @@ const OrderDelivery = ({ route }) => {
   const [totalKm, setTotalKm] = useState(0);
   const [dishInfo, setDishInfo] = useState([]);
   const [deliveryStatus, setDeliveryStatus] = useState(
-    order.status || "READY_FOR_PICKUP"
+    order?.status || "READY_FOR_PICKUP"
   );
   const [isAccepting, setIsAccepting] = useState(false);
   const navigation = useNavigation();
@@ -49,14 +48,33 @@ const OrderDelivery = ({ route }) => {
   const snapPoints = useMemo(() => ["14%", "95%"], []);
   const mapRef = useRef(null);
 
-  const restaurantLocation = {
-    latitude: order.restaurantLatitude,
-    longitude: order.restaurantLongitude,
-  };
-  const deliveryLocation = {
-    latitude: order.userLatitude,
-    longitude: order.userLongitude,
-  };
+  // Validation robuste des coordonnées
+  const restaurantLat = Number(order?.restaurantLatitude);
+  const restaurantLng = Number(order?.restaurantLongitude);
+  const userLat = Number(order?.userLatitude);
+  const userLng = Number(order?.userLongitude);
+
+  const isRestaurantCoordValid =
+    !isNaN(restaurantLat) && !isNaN(restaurantLng) && restaurantLat !== 0 && restaurantLng !== 0;
+
+  const isUserCoordValid =
+    !isNaN(userLat) && !isNaN(userLng) && userLat !== 0 && userLng !== 0;
+
+  const restaurantLocation = useMemo(
+    () =>
+      isRestaurantCoordValid
+        ? { latitude: restaurantLat, longitude: restaurantLng }
+        : null,
+    [restaurantLat, restaurantLng, isRestaurantCoordValid]
+  );
+
+  const deliveryLocation = useMemo(
+    () =>
+      isUserCoordValid
+        ? { latitude: userLat, longitude: userLng }
+        : null,
+    [userLat, userLng, isUserCoordValid]
+  );
 
   const isAvailableInPool =
     deliveryStatus === "READY_FOR_PICKUP" || deliveryStatus === "READY";
@@ -67,6 +85,26 @@ const OrderDelivery = ({ route }) => {
   const isDelivered =
     deliveryStatus === "DELIVERED" || deliveryStatus === "COMPLETE";
 
+  // Région initiale sécurisée pour MapView (jamais d'accès null)
+  const initialRegion = useMemo(() => {
+    const lat =
+      driverLocation?.latitude ||
+      restaurantLocation?.latitude ||
+      deliveryLocation?.latitude ||
+      36.75;
+    const lng =
+      driverLocation?.longitude ||
+      restaurantLocation?.longitude ||
+      deliveryLocation?.longitude ||
+      3.05;
+    return {
+      latitude: lat,
+      longitude: lng,
+      latitudeDelta: 0.07,
+      longitudeDelta: 0.07,
+    };
+  }, [driverLocation, restaurantLocation, deliveryLocation]);
+
   useEffect(() => {
     getDriverLocation();
     getDishId();
@@ -74,107 +112,142 @@ const OrderDelivery = ({ route }) => {
     let foregroundSubscription;
     (async () => {
       try {
-        foregroundSubscription = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.High,
-            distanceInterval: 100,
-          },
-          (updatedLocation) => {
-            setDriverLocation({
-              latitude: updatedLocation.coords.latitude,
-              longitude: updatedLocation.coords.longitude,
-            });
-          }
-        );
+        let { status } = await Location.getForegroundPermissionsAsync();
+        if (status === "granted") {
+          foregroundSubscription = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.High,
+              distanceInterval: 100,
+            },
+            (updatedLocation) => {
+              if (updatedLocation?.coords) {
+                setDriverLocation({
+                  latitude: updatedLocation.coords.latitude,
+                  longitude: updatedLocation.coords.longitude,
+                });
+              }
+            }
+          );
+        }
       } catch (e) {
-        console.log(e);
+        console.log("watchPositionAsync error:", e);
       }
     })();
 
     return () => {
       if (foregroundSubscription) {
-        foregroundSubscription.remove();
+        try {
+          foregroundSubscription.remove();
+        } catch (e) {
+          console.log("Error removing subscription:", e);
+        }
       }
     };
   }, []);
 
   const getDriverLocation = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (!status === "granted") {
-      console.log("Location permission not granted");
-      return;
-    }
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("Location permission not granted");
+        return;
+      }
 
-    let location = await Location.getCurrentPositionAsync();
-    setDriverLocation({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-    });
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      if (location?.coords) {
+        setDriverLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+      }
+    } catch (e) {
+      console.log("Error getting driver location:", e);
+    }
   };
 
   const getDishId = async () => {
-    const dishesRef = collection(db, "orderDishes");
-    const q = query(dishesRef, where("orderId", "==", order.id));
+    if (!order?.id) return;
+    try {
+      const dishesRef = collection(db, "orderDishes");
+      const q = query(dishesRef, where("orderId", "==", order.id));
 
-    await getDocs(q).then((querySnapshot) => {
+      const querySnapshot = await getDocs(q);
       let items = [];
-      querySnapshot.forEach((doc) => {
-        items.push({ ...doc.data() });
+      querySnapshot.forEach((docSnap) => {
+        items.push({ ...docSnap.data() });
       });
       setDishInfo(items);
-    });
+    } catch (e) {
+      console.log("Error getting order dishes:", e);
+    }
   };
 
   // Attribution exclusive selon la règle « Premier arrivé, premier servi »
-  // avec prévention atomique de la concurrence (Race Condition)
+  // Résolution robuste et sans crash de la concurrence
   const handleAcceptOrder = async () => {
     if (isAccepting) return;
     setIsAccepting(true);
 
     try {
-      await runTransaction(db, async (transaction) => {
-        const orderRef = doc(db, "orders", order.id);
-        const orderDoc = await transaction.get(orderRef);
-        if (!orderDoc.exists()) {
-          throw new Error("ORDER_NOT_FOUND");
-        }
+      if (!order?.id) {
+        throw new Error("Identifiant de commande introuvable.");
+      }
 
-        const data = orderDoc.data();
-        const currentStatus = data.status;
+      const orderRef = doc(db, "orders", order.id);
+      const orderDoc = await getDoc(orderRef);
+      if (!orderDoc.exists()) {
+        throw new Error("ORDER_NOT_FOUND");
+      }
 
-        // Vérification de disponibilité dans le pool
-        if (currentStatus !== "READY_FOR_PICKUP" && currentStatus !== "READY") {
-          // Un autre coursier vient de verrouiller la commande une fraction de seconde plus tôt !
-          throw new Error("ALREADY_ASSIGNED");
-        }
+      const data = orderDoc.data();
+      const currentStatus = data?.status;
 
-        const driverDisplayName =
-          user?.displayName || user?.email?.split("@")[0] || "Livreur Partenaire";
+      // Vérification de disponibilité dans le pool (Premier arrivé, premier servi)
+      if (currentStatus !== "READY_FOR_PICKUP" && currentStatus !== "READY") {
+        // Un autre coursier vient de verrouiller la commande une fraction de seconde plus tôt !
+        throw new Error("ALREADY_ASSIGNED");
+      }
 
-        // Verrouillage exclusif
-        transaction.update(orderRef, {
-          status: "ASSIGNED_TO_DELIVERY",
-          assignedDriverId: user?.uid || "driver_uid",
-          driverName: driverDisplayName,
-          driverPhone: user?.phoneNumber || "",
-          assignedAt: serverTimestamp(),
-        });
+      const driverDisplayName =
+        user?.displayName || user?.email?.split("@")[0] || "Livreur Partenaire";
+
+      // Verrouillage exclusif
+      await updateDoc(orderRef, {
+        status: "ASSIGNED_TO_DELIVERY",
+        assignedDriverId: user?.uid || "driver_uid",
+        driverName: driverDisplayName,
+        driverPhone: user?.phoneNumber || "",
+        assignedAt: serverTimestamp(),
       });
 
       // Assignation réussie
       setDeliveryStatus("ASSIGNED_TO_DELIVERY");
-      bottomSheetRef.current?.collapse();
-      if (driverLocation && mapRef.current) {
-        mapRef.current.animateToRegion({
-          latitude: driverLocation.latitude,
-          longitude: driverLocation.longitude,
-          latitudeDelta: 0.02,
-          longitudeDelta: 0.02,
-        });
+
+      try {
+        bottomSheetRef.current?.snapToIndex(0);
+      } catch (e) {
+        console.log("BottomSheet snap error:", e);
       }
+
+      if (driverLocation && mapRef.current) {
+        try {
+          mapRef.current.animateToRegion({
+            latitude: Number(driverLocation.latitude),
+            longitude: Number(driverLocation.longitude),
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          });
+        } catch (e) {
+          console.log("Map animate error:", e);
+        }
+      }
+
       Alert.alert(t("assignedSuccessTitle"), t("assignedSuccessMsg"));
     } catch (error) {
-      if (error.message === "ALREADY_ASSIGNED") {
+      console.error("Erreur acceptation commande:", error);
+      if (error?.message === "ALREADY_ASSIGNED") {
         Alert.alert(
           t("alreadyAssignedTitle"),
           t("alreadyAssignedMsg"),
@@ -186,7 +259,10 @@ const OrderDelivery = ({ route }) => {
           ]
         );
       } else {
-        Alert.alert(t("error"), "Impossible de verrouiller la commande : " + error.message);
+        Alert.alert(
+          t("error") || "Erreur",
+          "Impossible de verrouiller la commande : " + (error?.message || "Erreur inconnue")
+        );
       }
     } finally {
       setIsAccepting(false);
@@ -196,6 +272,7 @@ const OrderDelivery = ({ route }) => {
   // Remise effective au client -> Statut DELIVERED
   const handleCompleteDelivery = async () => {
     try {
+      if (!order?.id) return;
       const orderRef = doc(db, "orders", order.id);
       await updateDoc(orderRef, {
         status: "DELIVERED",
@@ -214,7 +291,7 @@ const OrderDelivery = ({ route }) => {
       );
     } catch (e) {
       console.error(e);
-      Alert.alert(t("error"), "Impossible de finaliser la remise.");
+      Alert.alert(t("error") || "Erreur", "Impossible de finaliser la remise.");
     }
   };
 
@@ -241,6 +318,20 @@ const OrderDelivery = ({ route }) => {
     }
   };
 
+  // Validation des coordonnées pour le tracé MapViewDirections
+  const isDriverCoordValid =
+    driverLocation &&
+    typeof driverLocation.latitude === "number" &&
+    !isNaN(driverLocation.latitude) &&
+    typeof driverLocation.longitude === "number" &&
+    !isNaN(driverLocation.longitude);
+
+  const targetDestination = isAvailableInPool
+    ? (restaurantLocation || deliveryLocation)
+    : (deliveryLocation || restaurantLocation);
+
+  const canRenderDirections = isDriverCoordValid && targetDestination;
+
   return (
     <View style={styles.container}>
       <MapView
@@ -249,58 +340,62 @@ const OrderDelivery = ({ route }) => {
         provider="google"
         showsUserLocation
         followsUserLocation
-        initialRegion={{
-          latitude: driverLocation.latitude,
-          longitude: driverLocation.longitude,
-          latitudeDelta: 0.07,
-          longitudeDelta: 0.07,
-        }}
+        initialRegion={initialRegion}
       >
-        <MapViewDirections
-          origin={driverLocation}
-          destination={
-            isAvailableInPool ? restaurantLocation : deliveryLocation
-          }
-          strokeWidth={5}
-          waypoints={isAssignedToMe ? [restaurantLocation] : []}
-          strokeColor="green"
-          apikey={
-            process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
-            "AIzaSyCi-MWuhMrs1DfJqTycPWS8N9KorPuAs-0"
-          }
-          onReady={(result) => {
-            setTotalMinutes(result.duration);
-            setTotalKm(result.distance);
-          }}
-        />
-        <Marker
-          coordinate={{
-            latitude: order.restaurantLatitude,
-            longitude: order.restaurantLongitude,
-          }}
-          title={order.restaurantName}
-          description={order.restaurantAddress}
-        >
-          <View
-            style={{ backgroundColor: "green", padding: 5, borderRadius: 20 }}
-          >
-            <MaterialIcons name="restaurant" size={30} color="white" />
-          </View>
-        </Marker>
+        {canRenderDirections && (
+          <MapViewDirections
+            origin={driverLocation}
+            destination={targetDestination}
+            strokeWidth={5}
+            waypoints={
+              isAssignedToMe && restaurantLocation && deliveryLocation
+                ? [restaurantLocation]
+                : []
+            }
+            strokeColor="#3FC060"
+            apikey={
+              process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+              "AIzaSyCi-MWuhMrs1DfJqTycPWS8N9KorPuAs-0"
+            }
+            onError={(errorMessage) => {
+              console.log("MapViewDirections info/error:", errorMessage);
+            }}
+            onReady={(result) => {
+              if (result) {
+                setTotalMinutes(Number(result.duration) || 0);
+                setTotalKm(Number(result.distance) || 0);
+              }
+            }}
+          />
+        )}
 
-        <Marker
-          coordinate={{
-            latitude: order.userLatitude,
-            longitude: order.userLongitude,
-          }}
-          title={`${order.userFirstName || ""} ${order.userLastName || ""}`.trim() || "Client"}
-        >
-          <View
-            style={{ backgroundColor: "green", padding: 7, borderRadius: 20 }}
+        {restaurantLocation && (
+          <Marker
+            coordinate={restaurantLocation}
+            title={order?.restaurantName || "Restaurant"}
+            description={order?.restaurantAddress || ""}
           >
-            <FontAwesome5 name="user" size={28} color="white" />
-          </View>
-        </Marker>
+            <View
+              style={{ backgroundColor: "green", padding: 5, borderRadius: 20 }}
+            >
+              <MaterialIcons name="restaurant" size={30} color="white" />
+            </View>
+          </Marker>
+        )}
+
+        {deliveryLocation && (
+          <Marker
+            coordinate={deliveryLocation}
+            title={`${order?.userFirstName || ""} ${order?.userLastName || ""}`.trim() || "Client"}
+            description={order?.userAddress || ""}
+          >
+            <View
+              style={{ backgroundColor: "green", padding: 7, borderRadius: 20 }}
+            >
+              <FontAwesome5 name="user" size={28} color="white" />
+            </View>
+          </Marker>
+        )}
       </MapView>
 
       <BottomSheet
@@ -310,7 +405,7 @@ const OrderDelivery = ({ route }) => {
       >
         <View style={styles.handleIndicatorContainer}>
           <Text style={styles.routeDetailsText}>
-            {totalMinutes.toFixed(0)} {t("mins")}
+            {(Number(totalMinutes) || 0).toFixed(0)} {t("mins")}
           </Text>
           <FontAwesome5
             name="shopping-bag"
@@ -319,7 +414,7 @@ const OrderDelivery = ({ route }) => {
             style={{ marginHorizontal: 10 }}
           />
           <Text style={styles.routeDetailsText}>
-            {totalKm.toFixed(2)} {t("km")}
+            {(Number(totalKm) || 0).toFixed(2)} {t("km")}
           </Text>
         </View>
 
@@ -358,22 +453,22 @@ const OrderDelivery = ({ route }) => {
         </View>
 
         <View style={styles.deliveryDetailsContainer}>
-          <Text style={styles.restaurantName}>{order.restaurantName}</Text>
+          <Text style={styles.restaurantName}>{order?.restaurantName}</Text>
           <View style={styles.adressContainer}>
             <Fontisto name="shopping-store" size={22} color="grey" />
-            <Text style={styles.adressText}>{order.restaurantAddress}</Text>
+            <Text style={styles.adressText}>{order?.restaurantAddress}</Text>
           </View>
 
           <View style={styles.adressContainer}>
             <FontAwesome5 name="user" size={28} color="grey" />
             <Text style={styles.adressText}>
-              {order.userFirstName} {order.userLastName}
+              {order?.userFirstName} {order?.userLastName}
             </Text>
           </View>
 
           <View style={styles.adressContainer}>
             <FontAwesome5 name="map-marker-alt" size={30} color="grey" />
-            <Text style={styles.adressText}>{order.userAddress}</Text>
+            <Text style={styles.adressText}>{order?.userAddress}</Text>
           </View>
 
           <View style={styles.orderDetailsContainer}>
