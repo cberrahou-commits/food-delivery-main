@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
   Image,
@@ -18,6 +19,7 @@ import {
   doc,
   updateDoc,
   getDoc,
+  getDocs,
   deleteDoc,
   orderBy,
 } from "firebase/firestore";
@@ -33,6 +35,34 @@ import {
 } from "react-native-heroicons/solid";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useLanguage } from "../contexts/LanguageContext";
+import DishInfo from "../components/DishInfo";
+
+const CookOrderDishes = ({ orderId }) => {
+  const [items, setItems] = useState([]);
+  useEffect(() => {
+    const q = query(
+      collection(db, "orderDishes"),
+      where("orderId", "==", orderId)
+    );
+    getDocs(q)
+      .then((snap) => {
+        const list = [];
+        snap.forEach((d) => list.push(d.data()));
+        setItems(list);
+      })
+      .catch(console.error);
+  }, [orderId]);
+
+  if (items.length === 0) return null;
+
+  return (
+    <View className="my-2 border-t border-b border-gray-100 py-2">
+      {items.map((dish) => (
+        <DishInfo key={dish.dishId} id={dish.dishId} quantity={dish.quantity} />
+      ))}
+    </View>
+  );
+};
 
 const CookDashboardScreen = () => {
   const navigation = useNavigation();
@@ -47,6 +77,7 @@ const CookDashboardScreen = () => {
   const [kitchenInfo, setKitchenInfo] = useState(null);
   const [dishes, setDishes] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [prepTimes, setPrepTimes] = useState({});
   const [loading, setLoading] = useState(true);
 
   // Charger les infos de la cuisine
@@ -113,20 +144,88 @@ const CookDashboardScreen = () => {
     return unsubscribe;
   }, [kitchenId]);
 
-  const updateOrderStatus = async (orderId, newStatus) => {
+  const handlePrepTimeChange = (orderId, value) => {
+    setPrepTimes((prev) => ({
+      ...prev,
+      [orderId]: value,
+    }));
+  };
+
+  const getCalculatedTime = (prepMin) => {
+    const m = parseInt(prepMin) || 0;
+    const now = new Date();
+    const finish = new Date(now.getTime() + m * 60000);
+    const hours = String(finish.getHours()).padStart(2, "0");
+    const mins = String(finish.getMinutes()).padStart(2, "0");
+    return `${hours}:${mins}`;
+  };
+
+  const validateCookEstimation = async (order) => {
+    const rawVal =
+      prepTimes[order.id] !== undefined
+        ? prepTimes[order.id]
+        : order.initialEstimatedMinutes || 25;
+    const prepMin = parseInt(rawVal);
+    if (!prepMin || isNaN(prepMin) || prepMin <= 0) {
+      Alert.alert(t("error"), t("prepTimeRequired"));
+      return;
+    }
+
     try {
-      await updateDoc(doc(db, "orders", orderId), {
-        status: newStatus,
+      const readyDate = new Date(Date.now() + prepMin * 60000);
+      const hours = String(readyDate.getHours()).padStart(2, "0");
+      const mins = String(readyDate.getMinutes()).padStart(2, "0");
+      const timeStr = `${hours}:${mins}`;
+
+      await updateDoc(doc(db, "orders", order.id), {
+        status: "WAITING_CLIENT_CONFIRMATION",
+        prepTimeMinutes: prepMin,
+        estimatedReadyAt: readyDate,
+        estimatedReadyTimeStr: timeStr,
+        cookEstimatedAt: new Date(),
       });
-      Alert.alert(
-        "Statut mis à jour",
-        newStatus === "READY"
-          ? "La commande est prête ! Les livreurs ont été prévenus pour la récupérer 🛵"
-          : "Commande passée en préparation 🍲"
-      );
+
+      Alert.alert(t("success"), t("estimationSent"));
     } catch (e) {
       console.error(e);
-      Alert.alert("Erreur", "Impossible de mettre à jour le statut.");
+      Alert.alert(t("error"), "Impossible d'enregistrer l'estimation.");
+    }
+  };
+
+  const declineOrderByCook = async (orderId) => {
+    Alert.alert(
+      t("declineOrder"),
+      "Êtes-vous sûr de vouloir refuser cette commande ?",
+      [
+        { text: t("cancel"), style: "cancel" },
+        {
+          text: t("declineOrder"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await updateDoc(doc(db, "orders", orderId), {
+                status: "DECLINED_BY_COOK",
+                declinedAt: new Date(),
+              });
+            } catch (e) {
+              console.error(e);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const markOrderReady = async (orderId) => {
+    try {
+      await updateDoc(doc(db, "orders", orderId), {
+        status: "READY_FOR_PICKUP",
+        readyAt: new Date(),
+      });
+      Alert.alert(t("success"), t("mealReadyAlert"));
+    } catch (e) {
+      console.error(e);
+      Alert.alert(t("error"), "Impossible de marquer le plat comme prêt.");
     }
   };
 
@@ -305,97 +404,286 @@ const CookDashboardScreen = () => {
           ) : (
             <View className="gap-4">
               {orders.map((order) => {
-                const isPending = order.status === "PENDING";
-                const isPreparing = order.status === "PREPARING";
-                const isReady = order.status === "READY";
-                const isComplete = order.status === "COMPLETE";
+                const isPendingCook =
+                  order.status === "PENDING_COOK_APPROVAL" ||
+                  order.status === "PENDING";
+                const isWaitingClient =
+                  order.status === "WAITING_CLIENT_CONFIRMATION";
+                const isPreparing =
+                  order.status === "IN_PREPARATION" ||
+                  order.status === "PREPARING";
+                const isReady =
+                  order.status === "READY_FOR_PICKUP" ||
+                  order.status === "READY";
+                const isAssigned =
+                  order.status === "ASSIGNED_TO_DELIVERY";
+                const isDelivered =
+                  order.status === "DELIVERED" ||
+                  order.status === "COMPLETE";
+                const isDeclined =
+                  order.status === "DECLINED_BY_COOK" ||
+                  order.status === "DECLINED";
+                const isCancelled =
+                  order.status === "CANCELLED_BY_CLIENT";
+
+                // Estimation values
+                const currentPrepMin = parseInt(
+                  prepTimes[order.id] !== undefined
+                    ? prepTimes[order.id]
+                    : order.initialEstimatedMinutes || 25
+                ) || 0;
+                const calculatedEndStr = getCalculatedTime(currentPrepMin);
+
+                // Status text and badge styling
+                let statusLabel = order.status;
+                let badgeBg = "bg-gray-100";
+                let badgeText = "text-gray-800";
+
+                if (isPendingCook) {
+                  statusLabel = t("statusPendingApproval");
+                  badgeBg = "bg-amber-100";
+                  badgeText = "text-amber-800";
+                } else if (isWaitingClient) {
+                  statusLabel = t("statusWaitingClient");
+                  badgeBg = "bg-purple-100";
+                  badgeText = "text-purple-800";
+                } else if (isPreparing) {
+                  statusLabel = t("statusInPreparation");
+                  badgeBg = "bg-orange-100";
+                  badgeText = "text-orange-800";
+                } else if (isReady) {
+                  statusLabel = t("statusReadyForPickup");
+                  badgeBg = "bg-blue-100";
+                  badgeText = "text-blue-800";
+                } else if (isAssigned) {
+                  statusLabel = t("statusAssignedDelivery");
+                  badgeBg = "bg-indigo-100";
+                  badgeText = "text-indigo-800";
+                } else if (isDelivered) {
+                  statusLabel = t("statusDelivered");
+                  badgeBg = "bg-green-100";
+                  badgeText = "text-green-800";
+                } else if (isDeclined) {
+                  statusLabel = t("statusDeclinedCook");
+                  badgeBg = "bg-red-100";
+                  badgeText = "text-red-800";
+                } else if (isCancelled) {
+                  statusLabel = t("statusCancelledClient");
+                  badgeBg = "bg-red-100";
+                  badgeText = "text-red-800";
+                }
 
                 return (
                   <View
                     key={order.id}
-                    className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs"
+                    className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs mb-4"
                   >
+                    {/* En-tête commande */}
                     <View className="flex-row justify-between items-start mb-2">
-                      <View>
+                      <View className="flex-1 pr-2">
                         <Text className="text-xs text-gray-400 font-mono">
                           #{order.id.slice(0, 8)}
                         </Text>
                         <Text className="text-base font-bold text-gray-900">
-                          Client : {order.userFirstName} {order.userLastName}
+                          {order.userFirstName} {order.userLastName}
                         </Text>
-                        <Text className="text-xs text-gray-500">
-                          {order.userAddress}
+                        {order.userPhoneNumber ? (
+                          <Text className="text-xs text-gray-600 font-medium">
+                            📞 {order.userPhoneNumber}
+                          </Text>
+                        ) : null}
+                        <Text className="text-xs text-gray-500 mt-0.5">
+                          📍 {order.userAddress}
                         </Text>
                       </View>
-                      <View
-                        className={`px-3 py-1 rounded-full ${
-                          isPending
-                            ? "bg-yellow-100"
-                            : isPreparing
-                            ? "bg-orange-100"
-                            : isReady
-                            ? "bg-blue-100"
-                            : "bg-green-100"
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs font-bold ${
-                            isPending
-                              ? "text-yellow-800"
-                              : isPreparing
-                              ? "text-orange-800"
-                              : isReady
-                              ? "text-blue-800"
-                              : "text-green-800"
-                          }`}
-                        >
-                          {isPending
-                            ? "⏳ En attente"
-                            : isPreparing
-                            ? "🍲 En préparation"
-                            : isReady
-                            ? "🛵 Prête pour livreur"
-                            : "✅ Livrée"}
+                      <View className={`px-3 py-1.5 rounded-full ${badgeBg}`}>
+                        <Text className={`text-xs font-bold ${badgeText}`}>
+                          {statusLabel}
                         </Text>
                       </View>
                     </View>
 
-                    <Text className="text-base font-extrabold text-green-700 my-2">
-                      Total : {formatPrice(order.total)}
-                    </Text>
+                    {/* Plats commandés */}
+                    <CookOrderDishes orderId={order.id} />
 
-                    {/* Actions sur la commande */}
-                    <View className="mt-3 gap-2">
-                      {isPending && (
-                        <TouchableOpacity
-                          onPress={() => updateOrderStatus(order.id, "PREPARING")}
-                          className="bg-green-600 p-3 rounded-xl items-center"
-                        >
-                          <Text className="text-white font-bold text-sm">
-                            Accepter & Commencer à cuisiner 🍲
-                          </Text>
-                        </TouchableOpacity>
-                      )}
+                    <View className="flex-row justify-between items-center my-2">
+                      <Text className="text-sm font-semibold text-gray-600">
+                        {t("orderTotal")} :
+                      </Text>
+                      <Text className="text-lg font-extrabold text-green-700">
+                        {formatPrice(order.total)}
+                      </Text>
+                    </View>
 
-                      {isPreparing && (
-                        <TouchableOpacity
-                          onPress={() => updateOrderStatus(order.id, "READY")}
-                          className="bg-blue-600 p-3 rounded-xl items-center"
-                        >
-                          <Text className="text-white font-bold text-sm">
-                            Prêt pour le livreur 🛵 (Alerter les coursiers)
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-
-                      {isReady && (
-                        <View className="bg-gray-100 p-3 rounded-xl items-center">
-                          <Text className="text-gray-600 text-xs font-semibold">
-                            Visible sur la carte GPS des livreurs...
+                    {/* ETAPE 1 : PENDING_COOK_APPROVAL -> Saisie obligatoire du délai de préparation */}
+                    {isPendingCook && (
+                      <View className="mt-3 p-4 bg-amber-50/70 border border-amber-200 rounded-2xl">
+                        <View className="flex-row items-center gap-2 mb-2">
+                          <Text className="text-base">⏱️</Text>
+                          <Text className="text-sm font-bold text-amber-900">
+                            {t("cookEstimatingTitle")}
                           </Text>
                         </View>
-                      )}
-                    </View>
+                        <Text className="text-xs text-amber-800 mb-2">
+                          {t("prepTimeLabel")}
+                        </Text>
+
+                        {/* Champ saisie minutes */}
+                        <View className="flex-row items-center gap-2 mb-3">
+                          <TextInput
+                            keyboardType="numeric"
+                            value={String(currentPrepMin)}
+                            onChangeText={(val) =>
+                              handlePrepTimeChange(order.id, val)
+                            }
+                            placeholder={t("enterPrepTime")}
+                            className="bg-white border border-amber-300 rounded-xl px-4 py-2.5 text-lg font-bold text-gray-800 w-24 text-center"
+                          />
+                          <Text className="text-sm font-semibold text-amber-900">
+                            {t("mins")}
+                          </Text>
+
+                          {/* Boutons rapides */}
+                          <View className="flex-row flex-1 justify-end gap-1.5 flex-wrap">
+                            {[15, 25, 35, 45].map((preset) => (
+                              <TouchableOpacity
+                                key={preset}
+                                onPress={() =>
+                                  handlePrepTimeChange(order.id, String(preset))
+                                }
+                                className={`px-2.5 py-1.5 rounded-lg border ${
+                                  currentPrepMin === preset
+                                    ? "bg-amber-600 border-amber-600"
+                                    : "bg-white border-amber-300"
+                                }`}
+                              >
+                                <Text
+                                  className={`text-xs font-bold ${
+                                    currentPrepMin === preset
+                                      ? "text-white"
+                                      : "text-amber-800"
+                                  }`}
+                                >
+                                  {preset}m
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </View>
+
+                        {/* Calcul heure exacte de fin : Heure actuelle + Temps de préparation */}
+                        <View className="bg-white/80 p-3 rounded-xl border border-amber-200/80 mb-3">
+                          <Text className="text-xs text-gray-600">
+                            {t("calculatedEndTime")}
+                          </Text>
+                          <Text className="text-base font-extrabold text-green-700">
+                            🏁 {calculatedEndStr} ({currentPrepMin} {t("mins")})
+                          </Text>
+                        </View>
+
+                        {/* Boutons d'action */}
+                        <View className="gap-2">
+                          <TouchableOpacity
+                            onPress={() => validateCookEstimation(order)}
+                            className="bg-green-600 p-3.5 rounded-xl items-center shadow-xs"
+                          >
+                            <Text className="text-white font-bold text-sm">
+                              {t("validateEstimation")}
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            onPress={() => declineOrderByCook(order.id)}
+                            className="bg-red-50 p-2.5 rounded-xl items-center border border-red-200"
+                          >
+                            <Text className="text-red-700 font-bold text-xs">
+                              {t("declineOrder")}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* ETAPE 2 : WAITING_CLIENT_CONFIRMATION */}
+                    {isWaitingClient && (
+                      <View className="mt-3 p-3.5 bg-purple-50 border border-purple-200 rounded-xl">
+                        <Text className="text-xs font-bold text-purple-900 mb-1">
+                          ⏰ Estimation transmise au client
+                        </Text>
+                        <Text className="text-xs text-purple-700">
+                          Délai : {order.prepTimeMinutes} {t("mins")} · Fin prévue à :{" "}
+                          <Text className="font-bold">
+                            {order.estimatedReadyTimeStr || getCalculatedTime(order.prepTimeMinutes)}
+                          </Text>
+                        </Text>
+                        <Text className="text-xs text-purple-600 mt-1 italic">
+                          En attente de l'accord du client pour commencer la préparation.
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* ETAPE 3 : IN_PREPARATION -> Bouton « Fin de la préparation » */}
+                    {isPreparing && (
+                      <View className="mt-3 gap-2">
+                        <View className="p-3 bg-orange-50 border border-orange-200 rounded-xl mb-1">
+                          <Text className="text-xs font-bold text-orange-900">
+                            🍲 Accord client reçu ! Cuisson en cours
+                          </Text>
+                          <Text className="text-xs text-orange-700">
+                            Heure de fin estimée :{" "}
+                            <Text className="font-bold">
+                              {order.estimatedReadyTimeStr || "..."}
+                            </Text>
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => markOrderReady(order.id)}
+                          className="bg-green-600 p-3.5 rounded-xl items-center shadow-sm"
+                        >
+                          <Text className="text-white font-bold text-sm">
+                            {t("finishPreparation")}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {/* ETAPE 4 : READY_FOR_PICKUP */}
+                    {isReady && (
+                      <View className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                        <Text className="text-xs font-bold text-blue-900">
+                          🛵 Repas prêt et emballé !
+                        </Text>
+                        <Text className="text-xs text-blue-700 mt-0.5">
+                          Notification envoyée à tous les livreurs disponibles. Dès qu'un livreur accepte, il sera assigné en exclusivité.
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* ETAPE 5 : ASSIGNED_TO_DELIVERY */}
+                    {isAssigned && (
+                      <View className="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-xl">
+                        <Text className="text-xs font-bold text-indigo-900">
+                          🚴🏻‍♀️ Livreur en route vers votre cuisine !
+                        </Text>
+                        <Text className="text-xs text-indigo-800 font-semibold mt-1">
+                          Livreur : {order.driverName || "Livreur Partenaire"}
+                        </Text>
+                        {order.driverPhone ? (
+                          <Text className="text-xs text-indigo-700">
+                            Téléphone : {order.driverPhone}
+                          </Text>
+                        ) : null}
+                      </View>
+                    )}
+
+                    {/* ETAPE 6 : DELIVERED */}
+                    {isDelivered && (
+                      <View className="mt-3 p-3 bg-green-50 border border-green-200 rounded-xl">
+                        <Text className="text-xs font-bold text-green-800">
+                          ✅ Repas remis au client avec succès !
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 );
               })}

@@ -2,28 +2,29 @@ import { useEffect, useState } from "react";
 import { db } from "../../firebase/firebase";
 import {
   collection,
-  getDocs,
   query,
   where,
   orderBy,
   onSnapshot,
 } from "firebase/firestore";
 import OrdersList from "./OrdersList";
-import { DEFAULT_RESTAURANT_ID } from "../../config/constants";
 
-const Orders = ({ restaurantId = DEFAULT_RESTAURANT_ID }) => {
+const Orders = ({ restaurantId }) => {
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!restaurantId) return;
-
     const ordersRef = collection(db, "orders");
-    const q = query(
-      ordersRef,
-      where("restaurantId", "==", restaurantId),
-      where("status", "==", "PENDING"),
-      orderBy("createdAt", "desc")
-    );
+    let q;
+    if (restaurantId && restaurantId !== "ALL") {
+      q = query(
+        ordersRef,
+        where("restaurantId", "==", restaurantId),
+        orderBy("createdAt", "desc")
+      );
+    } else {
+      q = query(ordersRef, orderBy("createdAt", "desc"));
+    }
 
     const unsubscribe = onSnapshot(
       q,
@@ -33,9 +34,11 @@ const Orders = ({ restaurantId = DEFAULT_RESTAURANT_ID }) => {
           item.push({ ...doc.data(), id: doc.id });
         });
         setOrders(item);
+        setLoading(false);
       },
       (error) => {
         console.error("Firestore Orders listener error:", error);
+        setLoading(false);
       }
     );
 
@@ -44,7 +47,7 @@ const Orders = ({ restaurantId = DEFAULT_RESTAURANT_ID }) => {
 
   return (
     <>
-      <OrdersList orders={orders} />
+      <OrdersList orders={orders} loading={loading} />
     </>
   );
 };

@@ -70,6 +70,11 @@ const BasketScreen = () => {
     }
 
     try {
+      const maxPrepTime = items.reduce((max, item) => {
+        const p = Number(item.prepTimeMinutes || item.prepTime || 25);
+        return p > max ? p : max;
+      }, 25);
+
       const newOrderRef = await addDoc(ordersCollection, {
         restaurantName: restaurant?.name || "Cuisine Partenaire",
         restaurantId: restaurant?.id || "",
@@ -84,7 +89,8 @@ const BasketScreen = () => {
         userLongitude: dbUser?.longitude || 0,
         userAddress: dbUser?.address || "",
         userPhoneNumber: dbUser?.phoneNumber || "",
-        status: "PENDING",
+        status: "PENDING_COOK_APPROVAL",
+        initialEstimatedMinutes: maxPrepTime,
         total: Number(basketTotal + deliveryFee),
         createdAt: serverTimestamp(),
       });

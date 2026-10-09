@@ -27,7 +27,7 @@ const OrdersScreen = () => {
     const ordersRef = collection(db, "orders");
     const q = query(
       ordersRef,
-      where("status", "==", "READY"),
+      where("status", "in", ["READY_FOR_PICKUP", "READY"]),
       orderBy("createdAt", "desc")
     );
 

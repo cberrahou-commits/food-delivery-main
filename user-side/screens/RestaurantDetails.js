@@ -152,6 +152,7 @@ const RestaurantDetails = () => {
                 description={dish.description}
                 price={dish.price}
                 image={dish.image}
+                prepTimeMinutes={dish.prepTimeMinutes || dish.prepTime || 25}
               />
             );
           })}

@@ -89,6 +89,40 @@ export const translations = {
     orderNumber: "Commande N°",
     fromKitchen: "Cuisine / Restaurant :",
 
+    // Nouveau cycle de commande
+    statusPendingApproval: "En attente approbation cuisinier ⏳",
+    statusWaitingClient: "En attente de votre accord ⏰",
+    statusInPreparation: "En cours de préparation 🍲",
+    statusReadyForPickup: "Prête pour le coursier 🛵",
+    statusAssignedDelivery: "Livreur en route vers la cuisine 🚴🏻‍♀️",
+    statusDelivered: "Commande livrée ✅",
+    statusDeclinedCook: "Refusée par le cuisinier ❌",
+    statusCancelledClient: "Annulée par le client ❌",
+
+    // Cuisinier - Estimation et cycle
+    cookEstimatingTitle: "Estimation du délai de préparation",
+    prepTimeLabel: "Délai effectif en minutes :",
+    enterPrepTime: "Ex: 25",
+    calculatedEndTime: "Heure exacte de fin prévue :",
+    validateEstimation: "Valider et envoyer au client ⏱️",
+    declineOrder: "Refuser la commande ❌",
+    finishPreparation: "Fin de la préparation (Repas prêt 🛵)",
+    prepTimeRequired: "Veuillez saisir un délai de préparation valide en minutes.",
+    estimationSent: "Estimation envoyée au client avec succès ! En attente de son accord.",
+    mealReadyAlert: "Le repas est prêt ! Tous les livreurs disponibles ont été notifiés 🛵",
+    indicativePrepTime: "Temps estimé :",
+    indicativeTag: "(indicatif)",
+
+    // Client - Validation accord
+    cookProposedTime: "Heure estimée de disponibilité :",
+    prepDurationProposed: "Délai de préparation :",
+    clientAgreeBtn: "Confirmer mon accord 👍",
+    clientCancelBtn: "Refuser / Annuler ❌",
+    clientConfirmedSuccess: "Votre accord a été confirmé ! La cuisine prépare votre repas 🍲",
+    orderCancelledSuccess: "La commande a été annulée.",
+    waitingCookEstimation: "Le cuisinier vérifie votre commande et estime le temps...",
+    waitingYourConfirmationNotice: "Veuillez confirmer l'heure de disponibilité estimée par le chef pour lancer la cuisson.",
+
     // Catégories
     categories: "Catégories",
     seeAll: "Voir tout",
@@ -179,6 +213,40 @@ export const translations = {
     orderNumber: "رقم الطلب",
     fromKitchen: "المطبخ / المطعم:",
 
+    // دورة حياة الطلب الجديدة
+    statusPendingApproval: "في انتظار موافقة الطباخ ⏳",
+    statusWaitingClient: "في انتظار موافقتك على الوقت ⏰",
+    statusInPreparation: "قيد التحضير في المطبخ 🍲",
+    statusReadyForPickup: "جاهز لاستلام المندوب 🛵",
+    statusAssignedDelivery: "المندوب في الطريق إلى المطبخ 🚴🏻‍♀️",
+    statusDelivered: "تم تسليم الطلب بنجاح ✅",
+    statusDeclinedCook: "تم الرفض من قبل الطباخ ❌",
+    statusCancelledClient: "تم الإلغاء من قبل الزبون ❌",
+
+    // الطباخ - التقدير والتحضير
+    cookEstimatingTitle: "تقدير مدة التحضير",
+    prepTimeLabel: "مدة التحضير الفعلية (بالدقائق):",
+    enterPrepTime: "مثال: 25",
+    calculatedEndTime: "وقت الانتهاء المتوقع بالضبط:",
+    validateEstimation: "تأكيد المدة وإرسالها للزبون ⏱️",
+    declineOrder: "رفض الطلب ❌",
+    finishPreparation: "انتهاء التحضير (الوجبة جاهزة 🛵)",
+    prepTimeRequired: "يرجى إدخال مدة تحضير صحيحة بالدقائق.",
+    estimationSent: "تم إرسال التقدير للزبون بنجاح! في انتظار موافقته.",
+    mealReadyAlert: "الوجبة جاهزة! تم إشعار جميع عمال التوصيل المتاحين 🛵",
+    indicativePrepTime: "الوقت المقدر:",
+    indicativeTag: "(تقريبي)",
+
+    // الزبون - الموافقة المزدوجة
+    cookProposedTime: "الوقت المقترح لجاهزية الوجبة:",
+    prepDurationProposed: "مدة التحضير المقدرة:",
+    clientAgreeBtn: "تأكيد موافقتي 👍",
+    clientCancelBtn: "رفض / إلغاء ❌",
+    clientConfirmedSuccess: "تم تأكيد موافقتك! بدأ تحضير الوجبة في المطبخ 🍲",
+    orderCancelledSuccess: "تم إلغاء الطلب بنجاح.",
+    waitingCookEstimation: "يقوم الطباخ بمراجعة طلبك وتقدير وقت التحضير...",
+    waitingYourConfirmationNotice: "يرجى تأكيد موعد الجاهزية المقترح من الطباخ لبدء عملية الطهي.",
+
     // Catégories
     categories: "التصنيفات",
     seeAll: "عرض الكل",
@@ -268,6 +336,40 @@ export const translations = {
     orderDelivered: "Delivered ✅",
     orderNumber: "Order #",
     fromKitchen: "Kitchen / Restaurant:",
+
+    // New order lifecycle
+    statusPendingApproval: "Pending Cook Approval ⏳",
+    statusWaitingClient: "Awaiting Your Confirmation ⏰",
+    statusInPreparation: "In Preparation in Kitchen 🍲",
+    statusReadyForPickup: "Ready for Pickup 🛵",
+    statusAssignedDelivery: "Driver on the way to kitchen 🚴🏻‍♀️",
+    statusDelivered: "Delivered Successfully ✅",
+    statusDeclinedCook: "Declined by Cook ❌",
+    statusCancelledClient: "Cancelled by Customer ❌",
+
+    // Cook - Estimation and cycle
+    cookEstimatingTitle: "Preparation Time Estimation",
+    prepTimeLabel: "Effective prep time (in minutes):",
+    enterPrepTime: "Ex: 25",
+    calculatedEndTime: "Exact Calculated Finish Time:",
+    validateEstimation: "Confirm & Send to Customer ⏱️",
+    declineOrder: "Decline Order ❌",
+    finishPreparation: "Finish Preparation (Meal Ready 🛵)",
+    prepTimeRequired: "Please enter a valid preparation time in minutes.",
+    estimationSent: "Estimation sent to customer! Awaiting confirmation.",
+    mealReadyAlert: "Meal is ready! All available drivers have been notified 🛵",
+    indicativePrepTime: "Estimated prep:",
+    indicativeTag: "(indicative)",
+
+    // Customer - Agreement
+    cookProposedTime: "Cook estimated ready time:",
+    prepDurationProposed: "Estimated prep duration:",
+    clientAgreeBtn: "Confirm Agreement 👍",
+    clientCancelBtn: "Decline / Cancel ❌",
+    clientConfirmedSuccess: "Your agreement was confirmed! Kitchen started cooking 🍲",
+    orderCancelledSuccess: "Order was cancelled.",
+    waitingCookEstimation: "The cook is checking your order and estimating prep time...",
+    waitingYourConfirmationNotice: "Please confirm the ready time estimated by the chef to begin cooking.",
 
     // Catégories
     categories: "Categories",

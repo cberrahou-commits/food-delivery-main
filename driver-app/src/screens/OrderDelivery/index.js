@@ -21,25 +21,32 @@ import {
   where,
   query,
   getDocs,
+  runTransaction,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../../../firebase/firebase";
 import DishInfo from "../../components/DishInfo";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { useAuth } from "../../contexts/AuthContext";
 import styles from "./styles.js";
 
 const OrderDelivery = ({ route }) => {
   const { order } = route.params;
+  const { user } = useAuth();
   const { t, formatPrice } = useLanguage();
   const [driverLocation, setDriverLocation] = useState(null);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [totalKm, setTotalKm] = useState(0);
   const [dishInfo, setDishInfo] = useState([]);
-  const [deliveryStatus, setDeliveryStatus] = useState("READY");
+  const [deliveryStatus, setDeliveryStatus] = useState(
+    order.status || "READY_FOR_PICKUP"
+  );
+  const [isAccepting, setIsAccepting] = useState(false);
   const navigation = useNavigation();
 
   const bottomSheetRef = useRef(null);
   const { width, height } = useWindowDimensions();
-  const snapPoints = useMemo(() => ["12%", "95%"], []);
+  const snapPoints = useMemo(() => ["14%", "95%"], []);
   const mapRef = useRef(null);
 
   const restaurantLocation = {
@@ -51,12 +58,14 @@ const OrderDelivery = ({ route }) => {
     longitude: order.userLongitude,
   };
 
-  // const STATUS = {
-  //   READY_FOR_PICKUP: "READY_FOR_PICKUP",
-  //   ACCEPTED: "DRIVERACCEPTED",
-  //   PICKED_UP: "DRIVERPICKEDUP",
-  //   COMPLETE: "COMPLETE",
-  // };
+  const isAvailableInPool =
+    deliveryStatus === "READY_FOR_PICKUP" || deliveryStatus === "READY";
+  const isAssignedToMe =
+    deliveryStatus === "ASSIGNED_TO_DELIVERY" ||
+    deliveryStatus === "DRIVERACCEPTED" ||
+    deliveryStatus === "DRIVERPICKEDUP";
+  const isDelivered =
+    deliveryStatus === "DELIVERED" || deliveryStatus === "COMPLETE";
 
   useEffect(() => {
     getDriverLocation();
@@ -82,22 +91,17 @@ const OrderDelivery = ({ route }) => {
       }
     })();
 
-    const orderRef = doc(db, "orders", order.id);
-    updateDoc(orderRef, {
-      status: deliveryStatus,
-    });
-
     return () => {
       if (foregroundSubscription) {
         foregroundSubscription.remove();
       }
     };
-  }, [deliveryStatus]);
+  }, []);
 
   const getDriverLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (!status === "granted") {
-      console.log("Nonono");
+      console.log("Location permission not granted");
       return;
     }
 
@@ -121,60 +125,119 @@ const OrderDelivery = ({ route }) => {
     });
   };
 
-  console.log(dishInfo);
+  // Attribution exclusive selon la règle « Premier arrivé, premier servi »
+  // avec prévention atomique de la concurrence (Race Condition)
+  const handleAcceptOrder = async () => {
+    if (isAccepting) return;
+    setIsAccepting(true);
 
-  if (!driverLocation) {
-    return <ActivityIndicator size={"large"} />;
-  }
+    try {
+      await runTransaction(db, async (transaction) => {
+        const orderRef = doc(db, "orders", order.id);
+        const orderDoc = await transaction.get(orderRef);
+        if (!orderDoc.exists()) {
+          throw new Error("ORDER_NOT_FOUND");
+        }
 
-  const renderButtonTitle = () => {
-    if (deliveryStatus === "READY") {
-      return t("acceptOrder");
+        const data = orderDoc.data();
+        const currentStatus = data.status;
+
+        // Vérification de disponibilité dans le pool
+        if (currentStatus !== "READY_FOR_PICKUP" && currentStatus !== "READY") {
+          // Un autre coursier vient de verrouiller la commande une fraction de seconde plus tôt !
+          throw new Error("ALREADY_ASSIGNED");
+        }
+
+        const driverDisplayName =
+          user?.displayName || user?.email?.split("@")[0] || "Livreur Partenaire";
+
+        // Verrouillage exclusif
+        transaction.update(orderRef, {
+          status: "ASSIGNED_TO_DELIVERY",
+          assignedDriverId: user?.uid || "driver_uid",
+          driverName: driverDisplayName,
+          driverPhone: user?.phoneNumber || "",
+          assignedAt: serverTimestamp(),
+        });
+      });
+
+      // Assignation réussie
+      setDeliveryStatus("ASSIGNED_TO_DELIVERY");
+      bottomSheetRef.current?.collapse();
+      if (driverLocation && mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: driverLocation.latitude,
+          longitude: driverLocation.longitude,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
+        });
+      }
+      Alert.alert(t("assignedSuccessTitle"), t("assignedSuccessMsg"));
+    } catch (error) {
+      if (error.message === "ALREADY_ASSIGNED") {
+        Alert.alert(
+          t("alreadyAssignedTitle"),
+          t("alreadyAssignedMsg"),
+          [
+            {
+              text: "OK",
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(t("error"), "Impossible de verrouiller la commande : " + error.message);
+      }
+    } finally {
+      setIsAccepting(false);
     }
-    if (deliveryStatus === "DRIVERACCEPTED") {
-      return t("pickupOrder");
-    }
-    if (deliveryStatus === "DRIVERPICKEDUP") {
-      return t("paymentReceived");
-    }
-    if (deliveryStatus === "COMPLETE") {
-      return t("completeDelivery");
-    }
-    return t("acceptOrder");
   };
 
-  const onButtonpressed = () => {
-    if (deliveryStatus === "READY") {
-      bottomSheetRef.current?.collapse();
-      mapRef.current.animateToRegion({
-        latitude: driverLocation.latitude,
-        longitude: driverLocation.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
+  // Remise effective au client -> Statut DELIVERED
+  const handleCompleteDelivery = async () => {
+    try {
+      const orderRef = doc(db, "orders", order.id);
+      await updateDoc(orderRef, {
+        status: "DELIVERED",
+        deliveredAt: serverTimestamp(),
       });
-      setDeliveryStatus("DRIVERACCEPTED");
-    }
-    if (deliveryStatus === "DRIVERACCEPTED") {
-      bottomSheetRef.current?.collapse();
-      setDeliveryStatus("DRIVERPICKEDUP");
-    }
-    if (deliveryStatus === "DRIVERPICKEDUP") {
-      bottomSheetRef.current?.collapse();
-      setDeliveryStatus("COMPLETE");
-    }
-    if (deliveryStatus === "COMPLETE") {
-      bottomSheetRef.current?.collapse();
-      setDeliveryStatus("COMPLETE");
-      navigation.goBack();
+      setDeliveryStatus("DELIVERED");
       Alert.alert(
         t("orderDeliveredTitle"),
         t("orderDeliveredMsg"),
         [
           {
             text: "OK",
+            onPress: () => navigation.goBack(),
           },
         ]
       );
+    } catch (e) {
+      console.error(e);
+      Alert.alert(t("error"), "Impossible de finaliser la remise.");
+    }
+  };
+
+  const renderButtonTitle = () => {
+    if (isAvailableInPool) {
+      return isAccepting ? "Verrouillage..." : t("lockOrderBtn");
+    }
+    if (isAssignedToMe) {
+      return t("confirmHandover");
+    }
+    if (isDelivered) {
+      return t("orderDeliveredTitle");
+    }
+    return t("lockOrderBtn");
+  };
+
+  const onButtonpressed = () => {
+    if (isAvailableInPool) {
+      handleAcceptOrder();
+    } else if (isAssignedToMe) {
+      handleCompleteDelivery();
+    } else if (isDelivered) {
+      navigation.goBack();
     }
   };
 
@@ -196,19 +259,16 @@ const OrderDelivery = ({ route }) => {
         <MapViewDirections
           origin={driverLocation}
           destination={
-            deliveryStatus === "DRIVERACCEPTED"
-              ? restaurantLocation
-              : deliveryLocation
+            isAvailableInPool ? restaurantLocation : deliveryLocation
           }
           strokeWidth={5}
-          waypoints={deliveryStatus === "READY" ? [restaurantLocation] : []}
+          waypoints={isAssignedToMe ? [restaurantLocation] : []}
           strokeColor="green"
           apikey={
             process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
             "AIzaSyCi-MWuhMrs1DfJqTycPWS8N9KorPuAs-0"
           }
           onReady={(result) => {
-            // setIsDriverClose(result.distance <= 0.1);
             setTotalMinutes(result.duration);
             setTotalKm(result.distance);
           }}
@@ -233,8 +293,7 @@ const OrderDelivery = ({ route }) => {
             latitude: order.userLatitude,
             longitude: order.userLongitude,
           }}
-          title={order.UserName}
-          // description={order.User.address}
+          title={`${order.userFirstName || ""} ${order.userLastName || ""}`.trim() || "Client"}
         >
           <View
             style={{ backgroundColor: "green", padding: 7, borderRadius: 20 }}
@@ -263,6 +322,41 @@ const OrderDelivery = ({ route }) => {
             {totalKm.toFixed(2)} {t("km")}
           </Text>
         </View>
+
+        {/* Indicateur de Concurrence & Statut */}
+        <View
+          style={{
+            marginHorizontal: 20,
+            marginBottom: 8,
+            padding: 8,
+            borderRadius: 10,
+            backgroundColor: isAvailableInPool
+              ? "#fef3c7"
+              : isAssignedToMe
+              ? "#e0e7ff"
+              : "#dcfce7",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "bold",
+              color: isAvailableInPool
+                ? "#b45309"
+                : isAssignedToMe
+                ? "#3730a3"
+                : "#166534",
+              textAlign: "center",
+            }}
+          >
+            {isAvailableInPool
+              ? "⚡ Pool disponible : 1er arrivé, 1er servi !"
+              : isAssignedToMe
+              ? "🔒 Course verrouillée à votre nom"
+              : "✅ Course terminée avec succès"}
+          </Text>
+        </View>
+
         <View style={styles.deliveryDetailsContainer}>
           <Text style={styles.restaurantName}>{order.restaurantName}</Text>
           <View style={styles.adressContainer}>
@@ -295,7 +389,7 @@ const OrderDelivery = ({ route }) => {
           </View>
         </View>
 
-        {deliveryStatus === "READY" && (
+        {isAvailableInPool && (
           <Pressable
             style={{
               ...styles.buttonContainer,
@@ -304,7 +398,7 @@ const OrderDelivery = ({ route }) => {
               bottom: 80,
               width: "95%",
             }}
-            onPress={() => navigation.navigate("OrdersScreen")}
+            onPress={() => navigation.goBack()}
           >
             <Text style={styles.buttonText}>{t("back")}</Text>
           </Pressable>
@@ -313,7 +407,7 @@ const OrderDelivery = ({ route }) => {
         <Pressable
           style={{
             ...styles.buttonContainer,
-            backgroundColor: "#3FC060",
+            backgroundColor: isDelivered ? "#16a34a" : "#3FC060",
           }}
           onPress={onButtonpressed}
         >

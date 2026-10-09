@@ -12,7 +12,15 @@ import {
 } from "../features/basketSlice";
 import { useDispatch, useSelector } from "react-redux";
 
-const DishRow = ({ id, name, description, price, image, restaurantId }) => {
+const DishRow = ({
+  id,
+  name,
+  description,
+  price,
+  image,
+  restaurantId,
+  prepTimeMinutes,
+}) => {
   const [isPressed, setIsPressed] = useState(false);
   const { t, formatPrice } = useLanguage();
 
@@ -42,7 +50,7 @@ const DishRow = ({ id, name, description, price, image, restaurantId }) => {
             onPress: () => {
               dispatch(clearBasket());
               dispatch(
-                addToBasket({ id, restaurantId, name, description, price, image })
+                addToBasket({ id, restaurantId, name, description, price, image, prepTimeMinutes })
               );
             },
           },
@@ -52,7 +60,7 @@ const DishRow = ({ id, name, description, price, image, restaurantId }) => {
     }
 
     dispatch(
-      addToBasket({ id, restaurantId, name, description, price, image })
+      addToBasket({ id, restaurantId, name, description, price, image, prepTimeMinutes })
     );
   };
 
@@ -72,9 +80,18 @@ const DishRow = ({ id, name, description, price, image, restaurantId }) => {
           <View className="flex-1 pr-2 justify-center">
             <Text className="text-xl mb-1 font-semibold">{name}</Text>
             <Text className="text-gray-400">{description}</Text>
-            <Text className="text-emerald-700 mt-3 text-base font-bold">
-              {formatPrice(price)}
-            </Text>
+            <View className="flex-row items-center flex-wrap gap-2 mt-2">
+              <Text className="text-emerald-700 text-base font-bold">
+                {formatPrice(price)}
+              </Text>
+              {prepTimeMinutes ? (
+                <View className="bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                  <Text className="text-amber-700 text-xs font-semibold">
+                    ⏱️ ~{prepTimeMinutes} {t("mins")} {t("indicativeTag")}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
 
           <View>

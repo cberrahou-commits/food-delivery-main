@@ -77,6 +77,7 @@ const OrderDetailsScreen = () => {
                   <Order
                     key={index}
                     orderId={order.id}
+                    order={order}
                     status={order.status}
                     restaurantId={order.restaurantId}
                     restaurantName={order.restaurantName}
