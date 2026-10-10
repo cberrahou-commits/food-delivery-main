@@ -9,6 +9,7 @@ import { db } from "../../../firebase/firebase.js";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLanguage } from "../../contexts/LanguageContext";
 import LanguageSelectorModal from "../../components/LanguageSelectorModal";
+import WilayaSelectorModal from "../../components/WilayaSelectorModal";
 import {
   collection,
   query,
@@ -20,6 +21,8 @@ import {
 
 const OrdersScreen = () => {
   const [orders, setOrders] = useState([]);
+  const [selectedWilaya, setSelectedWilaya] = useState(null);
+  const [wilayaModalVisible, setWilayaModalVisible] = useState(false);
   const [langModalVisible, setLangModalVisible] = useState(false);
   const [driverRating, setDriverRating] = useState(5.0);
   const [driverRatingCount, setDriverRatingCount] = useState(0);
@@ -63,6 +66,27 @@ const OrdersScreen = () => {
 
   const snapPoints = useMemo(() => ["12%", "90%"], []);
 
+  const filteredOrders = useMemo(() => {
+    if (!selectedWilaya) return orders;
+    const wCode = selectedWilaya.code;
+    const wName = selectedWilaya.name.toLowerCase();
+    return orders.filter((o) => {
+      if (o.restaurantWilayaCode === wCode) return true;
+      if (
+        o.restaurantWilaya &&
+        (o.restaurantWilaya.includes(wCode) ||
+          o.restaurantWilaya.toLowerCase().includes(wName))
+      )
+        return true;
+      if (
+        o.restaurantAddress &&
+        o.restaurantAddress.toLowerCase().includes(wName)
+      )
+        return true;
+      return false;
+    });
+  }, [orders, selectedWilaya]);
+
   return (
     <View style={{ backgroundColor: "white", flex: 1 }}>
       <MapView
@@ -73,7 +97,7 @@ const OrdersScreen = () => {
         showsUserLocation
         followsUserLocation
       >
-        {orders.map((order, index) => {
+        {filteredOrders.map((order, index) => {
           const lat = Number(order.restaurantLatitude);
           const lng = Number(order.restaurantLongitude);
           if (!lat || !lng || isNaN(lat) || isNaN(lng)) return null;
@@ -128,8 +152,28 @@ const OrdersScreen = () => {
               </View>
             </View>
             <Text style={{ letterSpacing: 0.5, color: "grey", marginTop: 2 }}>
-              {t("readyOrders")} {orders.length}
+              {t("readyOrders")} {filteredOrders.length}
             </Text>
+            <TouchableOpacity
+              onPress={() => setWilayaModalVisible(true)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#f0fdf4",
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: "#bbf7d0",
+                marginTop: 4,
+                alignSelf: "flex-start",
+              }}
+            >
+              <Entypo name="location-pin" size={13} color="#16a34a" />
+              <Text style={{ fontSize: 11, fontWeight: "bold", color: "#166534", marginLeft: 2 }}>
+                {selectedWilaya ? `${selectedWilaya.code} - ${selectedWilaya.name}` : "Toutes les Wilayas 🇩🇿"}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -162,7 +206,7 @@ const OrdersScreen = () => {
           </View>
         </View>
         <FlatList
-          data={orders}
+          data={filteredOrders}
           renderItem={({ item }) => <OrderItem order={item} />}
         />
       </BottomSheet>
@@ -170,6 +214,14 @@ const OrdersScreen = () => {
       <LanguageSelectorModal
         visible={langModalVisible}
         onClose={() => setLangModalVisible(false)}
+      />
+
+      <WilayaSelectorModal
+        visible={wilayaModalVisible}
+        onClose={() => setWilayaModalVisible(false)}
+        selectedWilaya={selectedWilaya}
+        onSelectWilaya={setSelectedWilaya}
+        title="Filtrer les commandes par Wilaya"
       />
     </View>
   );

@@ -7,6 +7,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { notifyCookClientConfirmed } from "../services/notificationService";
 import { StarIcon } from "react-native-heroicons/solid";
 import OrderRatingModal from "./OrderRatingModal";
+import { openWhatsApp } from "../constants/wilayas";
 
 const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => {
   const [dishes, setDishes] = useState([]);
@@ -330,6 +331,47 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
                   </TouchableOpacity>
                 </View>
               )}
+            </View>
+          )}
+
+          {/* BOUTONS WHATSAPP / CONTACT CUISINIER & LIVREUR */}
+          {(order?.restaurantPhone || order?.driverPhone) && !isCancelled && !isDeclined && (
+            <View className="mt-3 pt-2.5 border-t border-gray-100 flex-row flex-wrap gap-2">
+              {order?.restaurantPhone ? (
+                <TouchableOpacity
+                  onPress={() =>
+                    openWhatsApp({
+                      phone: order.restaurantPhone,
+                      message: `Bonjour Chef ! Je vous contacte au sujet de ma commande #${orderId.slice(0, 6)} (${restaurantName}).`,
+                    })
+                  }
+                  activeOpacity={0.8}
+                  className="flex-1 min-w-[130px] flex-row items-center justify-center bg-emerald-50 border border-emerald-300 py-2.5 px-3 rounded-xl shadow-xs"
+                >
+                  <Text className="text-sm mr-1.5">💬</Text>
+                  <Text className="text-xs font-bold text-emerald-800">
+                    WhatsApp Chef
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {order?.driverPhone ? (
+                <TouchableOpacity
+                  onPress={() =>
+                    openWhatsApp({
+                      phone: order.driverPhone,
+                      message: `Bonjour ! Je vous contacte au sujet de ma livraison #${orderId.slice(0, 6)}. Mon adresse est : ${order?.userAddress || ""}`,
+                    })
+                  }
+                  activeOpacity={0.8}
+                  className="flex-1 min-w-[130px] flex-row items-center justify-center bg-blue-50 border border-blue-300 py-2.5 px-3 rounded-xl shadow-xs"
+                >
+                  <Text className="text-sm mr-1.5">🛵</Text>
+                  <Text className="text-xs font-bold text-blue-800">
+                    WhatsApp Livreur
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           )}
 

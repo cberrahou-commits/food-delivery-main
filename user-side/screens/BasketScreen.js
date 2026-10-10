@@ -77,9 +77,12 @@ const BasketScreen = () => {
       }, 25);
 
       const newOrderRef = await addDoc(ordersCollection, {
-        restaurantName: restaurant?.name || "Cuisine Partenaire",
+        restaurantName: restaurant?.name || restaurant?.title || "Cuisine Partenaire",
         restaurantId: restaurant?.id || "",
         restaurantAddress: restaurant?.address || "",
+        restaurantWilaya: restaurant?.wilaya || "",
+        restaurantWilayaCode: restaurant?.wilayaCode || "",
+        restaurantPhone: restaurant?.phone || restaurant?.phoneNumber || "",
         restaurantImage: restaurant?.image || "",
         restaurantLatitude: restaurant?.lat || 0,
         restaurantLongitude: restaurant?.lng || 0,
@@ -89,6 +92,8 @@ const BasketScreen = () => {
         userLatitude: dbUser?.latitude || 0,
         userLongitude: dbUser?.longitude || 0,
         userAddress: dbUser?.address || "",
+        userWilaya: dbUser?.wilaya || "",
+        userWilayaCode: dbUser?.wilayaCode || "",
         userPhoneNumber: dbUser?.phoneNumber || "",
         status: "PENDING_COOK_APPROVAL",
         initialEstimatedMinutes: maxPrepTime,

@@ -14,8 +14,10 @@ import * as ImagePicker from "expo-image-picker";
 import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { UserAuth } from "../contexts/AuthContext";
-import { ArrowLeftIcon, CameraIcon, PhotoIcon, CheckBadgeIcon } from "react-native-heroicons/solid";
+import { ArrowLeftIcon, CameraIcon, PhotoIcon, CheckBadgeIcon, MapPinIcon, PhoneIcon } from "react-native-heroicons/solid";
 import { useNavigation } from "@react-navigation/native";
+import WilayaSelectorModal from "../components/WilayaSelectorModal";
+import { ALGERIA_WILAYAS } from "../constants/wilayas";
 
 const SPECIALITIES = [
   "Cuisine Orientale & Maghreb",
@@ -39,8 +41,13 @@ const CookOnboardingScreen = () => {
     "Plats familiaux et authentiques préparés chaque jour avec des ingrédients frais du marché."
   );
   const [address, setAddress] = useState(
-    dbUser?.address || "15 Rue de Rivoli, 75001 Paris"
+    dbUser?.address || "Didouche Mourad, Alger"
   );
+  const [selectedWilaya, setSelectedWilaya] = useState(
+    ALGERIA_WILAYAS.find((w) => w.code === "16") || ALGERIA_WILAYAS[0]
+  );
+  const [phone, setPhone] = useState(dbUser?.phoneNumber || "");
+  const [wilayaModalVisible, setWilayaModalVisible] = useState(false);
   const [idCardUri, setIdCardUri] = useState(null);
   const [kitchenPhotoUri, setKitchenPhotoUri] = useState(
     "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&auto=format&fit=crop&q=80"
@@ -117,15 +124,19 @@ const CookOnboardingScreen = () => {
       await setDoc(doc(db, "restaurants", kitchenId), {
         id: kitchenId,
         ownerId: uid,
-        name: kitchenName,
-        title: kitchenName,
+        name: kitchenName.trim(),
+        title: kitchenName.trim(),
         genre: speciality,
-        description: description,
-        address: address,
+        description: description.trim(),
+        address: address.trim(),
+        wilaya: selectedWilaya?.name || "Alger",
+        wilayaCode: selectedWilaya?.code || "16",
+        phone: phone.trim(),
+        phoneNumber: phone.trim(),
         image: kitchenPhotoUri,
         rating: 5.0,
-        lat: dbUser?.latitude || 48.8566,
-        lng: dbUser?.longitude || 2.3522,
+        lat: selectedWilaya?.lat || dbUser?.latitude || 36.7538,
+        lng: selectedWilaya?.lng || dbUser?.longitude || 3.0588,
         minDeliveryTime: 25,
         maxDeliveryTime: 40,
         isHomeCook: true,
@@ -137,6 +148,9 @@ const CookOnboardingScreen = () => {
         isCook: true,
         kitchenId: kitchenId,
         cookStatus: "APPROVED",
+        wilaya: selectedWilaya?.name || "Alger",
+        wilayaCode: selectedWilaya?.code || "16",
+        phoneNumber: phone.trim() || dbUser?.phoneNumber || "",
         updatedAt: serverTimestamp(),
       });
 
@@ -231,12 +245,46 @@ const CookOnboardingScreen = () => {
           />
 
           <Text className="text-base font-bold text-gray-800 mb-1">
-            4. Adresse de préparation (lieu de retrait livreur)
+            4. Wilaya en Algérie 🇩🇿 *
+          </Text>
+          <TouchableOpacity
+            onPress={() => setWilayaModalVisible(true)}
+            activeOpacity={0.8}
+            className="border border-gray-300 rounded-xl p-3 bg-gray-50 flex-row items-center justify-between mb-4"
+          >
+            <View className="flex-row items-center flex-1 mr-2">
+              <MapPinIcon size={20} color="#16a34a" />
+              <Text className="text-sm font-semibold text-gray-800 ml-2">
+                {selectedWilaya
+                  ? `${selectedWilaya.code} - ${selectedWilaya.name} (${selectedWilaya.arabicName})`
+                  : "Sélectionnez votre Wilaya"}
+              </Text>
+            </View>
+            <Text className="text-xs text-green-700 font-bold">Modifier</Text>
+          </TouchableOpacity>
+
+          <Text className="text-base font-bold text-gray-800 mb-1">
+            5. Téléphone / WhatsApp 📱 *
+          </Text>
+          <View className="flex-row items-center border border-gray-300 rounded-xl px-3 bg-gray-50 mb-4 h-12">
+            <PhoneIcon size={20} color="#16a34a" />
+            <Text className="text-sm text-gray-700 font-bold ml-2 mr-2">🇩🇿 +213</Text>
+            <TextInput
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="05 / 06 / 07 XX XX XX"
+              keyboardType="phone-pad"
+              className="flex-1 text-sm text-gray-900"
+            />
+          </View>
+
+          <Text className="text-base font-bold text-gray-800 mb-1">
+            6. Adresse de préparation (lieu de retrait livreur)
           </Text>
           <TextInput
             value={address}
             onChangeText={setAddress}
-            placeholder="Adresse complète"
+            placeholder="Rue, quartier, bâtiment..."
             className="border border-gray-300 rounded-xl p-3 text-sm bg-gray-50"
           />
         </View>
@@ -244,7 +292,7 @@ const CookOnboardingScreen = () => {
         {/* Photo de profil de la cuisine */}
         <View className="bg-white p-5 rounded-2xl border border-gray-200 mb-4 shadow-sm">
           <Text className="text-base font-bold text-gray-800 mb-1">
-            5. Photo de votre cuisine / chef
+            7. Photo de votre cuisine / chef
           </Text>
           <Text className="text-xs text-gray-500 mb-3">
             Une belle photo donne envie aux clients de commander chez vous.
@@ -279,7 +327,7 @@ const CookOnboardingScreen = () => {
         {/* Pièce d'identité (Dossier KYC cuisinier) */}
         <View className="bg-white p-5 rounded-2xl border border-gray-200 mb-6 shadow-sm">
           <Text className="text-base font-bold text-gray-800 mb-1">
-            6. Pièce d'identité (Vérification légale)
+            8. Pièce d'identité (Vérification légale)
           </Text>
           <Text className="text-xs text-gray-500 mb-3">
             Scan ou photo de votre CNI/Passeport pour certifier votre profil cuisinier.
@@ -327,6 +375,18 @@ const CookOnboardingScreen = () => {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal de sélection de la Wilaya */}
+      <WilayaSelectorModal
+        visible={wilayaModalVisible}
+        onClose={() => setWilayaModalVisible(false)}
+        onSelectWilaya={(w) => {
+          setSelectedWilaya(w);
+          setWilayaModalVisible(false);
+        }}
+        selectedWilaya={selectedWilaya}
+        allowAll={false}
+      />
     </SafeAreaView>
   );
 };

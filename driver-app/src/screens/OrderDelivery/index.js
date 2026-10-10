@@ -5,6 +5,7 @@ import {
   useWindowDimensions,
   ActivityIndicator,
   Pressable,
+  TouchableOpacity,
   Alert,
 } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
@@ -13,6 +14,7 @@ import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import MapViewDirections from "react-native-maps-directions";
 import { useNavigation } from "@react-navigation/native";
+import { openGpsNavigation, openWhatsApp } from "../../constants/wilayas";
 import {
   updateDoc,
   doc,
@@ -307,6 +309,37 @@ const OrderDelivery = ({ route }) => {
     }
   };
 
+  const handleNavToCook = () => {
+    openGpsNavigation(
+      restaurantLat,
+      restaurantLng,
+      order?.restaurantAddress,
+      order?.restaurantName || "Cuisine"
+    );
+  };
+
+  const handleNavToClient = () => {
+    openGpsNavigation(
+      userLat,
+      userLng,
+      order?.userAddress,
+      `${order?.userFirstName || ""} ${order?.userLastName || ""}`.trim() || "Client"
+    );
+  };
+
+  const handleWhatsAppCook = () => {
+    const phone = order?.restaurantPhone || order?.cookPhone;
+    const msg = `Bonjour Chef ${order?.restaurantName || ""}, je suis votre livreur Food Delivery pour la commande #${order?.id?.slice(0, 8)}. J'arrive pour récupérer les plats ! 🛵`;
+    openWhatsApp({ phone, message: msg });
+  };
+
+  const handleWhatsAppClient = () => {
+    const phone = order?.userPhoneNumber || order?.userPhone;
+    const clientName = `${order?.userFirstName || ""} ${order?.userLastName || ""}`.trim() || "Client";
+    const msg = `Bonjour ${clientName}, je suis votre livreur Food Delivery pour votre commande chez ${order?.restaurantName || "le chef"} (Commande #${order?.id?.slice(0, 8)}). Je suis en route pour vous livrer ! 🛵`;
+    openWhatsApp({ phone, message: msg });
+  };
+
   const renderButtonTitle = () => {
     if (isAvailableInPool) {
       return isAccepting ? "Verrouillage..." : t("lockOrderBtn");
@@ -471,6 +504,48 @@ const OrderDelivery = ({ route }) => {
             <Text style={styles.adressText}>{order?.restaurantAddress}</Text>
           </View>
 
+          {/* Action GPS & WhatsApp Cuisinier */}
+          <View style={{ flexDirection: "row", gap: 8, marginVertical: 8 }}>
+            <TouchableOpacity
+              onPress={handleNavToCook}
+              activeOpacity={0.8}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#2563eb",
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 12,
+              }}
+            >
+              <MaterialIcons name="navigation" size={18} color="white" />
+              <Text style={{ color: "white", fontWeight: "bold", fontSize: 12, marginLeft: 6 }}>
+                Itinéraire Chef 🗺️
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleWhatsAppCook}
+              activeOpacity={0.8}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#25D366",
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+              }}
+            >
+              <Ionicons name="logo-whatsapp" size={18} color="white" />
+              <Text style={{ color: "white", fontWeight: "bold", fontSize: 12, marginLeft: 4 }}>
+                WhatsApp
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.adressContainer}>
             <FontAwesome5 name="user" size={28} color="grey" />
             <Text style={styles.adressText}>
@@ -481,6 +556,48 @@ const OrderDelivery = ({ route }) => {
           <View style={styles.adressContainer}>
             <FontAwesome5 name="map-marker-alt" size={30} color="grey" />
             <Text style={styles.adressText}>{order?.userAddress}</Text>
+          </View>
+
+          {/* Action GPS & WhatsApp Client */}
+          <View style={{ flexDirection: "row", gap: 8, marginVertical: 8 }}>
+            <TouchableOpacity
+              onPress={handleNavToClient}
+              activeOpacity={0.8}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#16a34a",
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 12,
+              }}
+            >
+              <MaterialIcons name="navigation" size={18} color="white" />
+              <Text style={{ color: "white", fontWeight: "bold", fontSize: 12, marginLeft: 6 }}>
+                Itinéraire Client 🗺️
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleWhatsAppClient}
+              activeOpacity={0.8}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#25D366",
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 12,
+              }}
+            >
+              <Ionicons name="logo-whatsapp" size={18} color="white" />
+              <Text style={{ color: "white", fontWeight: "bold", fontSize: 12, marginLeft: 4 }}>
+                WhatsApp
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.orderDetailsContainer}>

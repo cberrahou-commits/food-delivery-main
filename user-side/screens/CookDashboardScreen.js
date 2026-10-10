@@ -45,6 +45,12 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useLanguage } from "../contexts/LanguageContext";
 import DishInfo from "../components/DishInfo";
+import WilayaSelectorModal from "../components/WilayaSelectorModal";
+import { ALGERIA_WILAYAS } from "../constants/wilayas";
+import {
+  MapPinIcon,
+  PhoneIcon,
+} from "react-native-heroicons/solid";
 import {
   notifyClientForCookEstimate,
   broadcastOrderReadyToDrivers,
@@ -200,6 +206,9 @@ const CookDashboardScreen = () => {
   const [editKitchenGenre, setEditKitchenGenre] = useState("");
   const [editKitchenDesc, setEditKitchenDesc] = useState("");
   const [editKitchenAddress, setEditKitchenAddress] = useState("");
+  const [editKitchenWilaya, setEditKitchenWilaya] = useState(null);
+  const [editKitchenPhone, setEditKitchenPhone] = useState("");
+  const [wilayaModalVisible, setWilayaModalVisible] = useState(false);
   const [editKitchenMinTime, setEditKitchenMinTime] = useState("");
   const [editKitchenMaxTime, setEditKitchenMaxTime] = useState("");
   const [editKitchenImageUri, setEditKitchenImageUri] = useState(null);
@@ -211,6 +220,11 @@ const CookDashboardScreen = () => {
       setEditKitchenGenre(kitchenInfo.genre || "");
       setEditKitchenDesc(kitchenInfo.description || "");
       setEditKitchenAddress(kitchenInfo.address || "");
+      const foundWilaya = ALGERIA_WILAYAS.find(
+        (w) => w.code === kitchenInfo.wilayaCode || w.name === kitchenInfo.wilaya
+      ) || null;
+      setEditKitchenWilaya(foundWilaya);
+      setEditKitchenPhone(kitchenInfo.phone || kitchenInfo.phoneNumber || "");
       setEditKitchenMinTime(String(kitchenInfo.minDeliveryTime || 25));
       setEditKitchenMaxTime(String(kitchenInfo.maxDeliveryTime || 40));
       setEditKitchenImageUri(kitchenInfo.image || null);
@@ -277,10 +291,18 @@ const CookDashboardScreen = () => {
         genre: editKitchenGenre.trim(),
         description: editKitchenDesc.trim(),
         address: editKitchenAddress.trim(),
+        wilaya: editKitchenWilaya?.name || "",
+        wilayaCode: editKitchenWilaya?.code || "",
+        phone: editKitchenPhone.trim(),
+        phoneNumber: editKitchenPhone.trim(),
         minDeliveryTime: parseInt(editKitchenMinTime) || 20,
         maxDeliveryTime: parseInt(editKitchenMaxTime) || 40,
         updatedAt: new Date(),
       };
+      if (editKitchenWilaya?.lat && editKitchenWilaya?.lng) {
+        updateData.lat = editKitchenWilaya.lat;
+        updateData.lng = editKitchenWilaya.lng;
+      }
       if (editKitchenImageUri) {
         updateData.image = editKitchenImageUri;
       }
@@ -1337,6 +1359,52 @@ const CookDashboardScreen = () => {
                   />
                 </View>
 
+                {/* Wilaya en Algérie */}
+                <View>
+                  <Text className="text-xs font-bold text-gray-700 mb-1">
+                    Wilaya en Algérie 🇩🇿 *
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setWilayaModalVisible(true)}
+                    activeOpacity={0.8}
+                    className="bg-gray-50 border border-gray-300 h-12 px-3 rounded-xl flex-row items-center justify-between"
+                  >
+                    <View className="flex-row items-center flex-1 mr-2">
+                      <MapPinIcon size={18} color="#16a34a" />
+                      <Text className="text-sm font-semibold text-gray-800 ml-2" numberOfLines={1}>
+                        {editKitchenWilaya
+                          ? `${editKitchenWilaya.code} - ${editKitchenWilaya.name} (${editKitchenWilaya.arabicName})`
+                          : "Sélectionner la Wilaya (ex: 16 - Alger)"}
+                      </Text>
+                    </View>
+                    <Text className="text-xs text-green-700 font-bold">Changer</Text>
+                  </TouchableOpacity>
+                  <Text className="text-[10px] text-gray-500 mt-1">
+                    Les clients et livreurs de cette Wilaya verront automatiquement votre cuisine.
+                  </Text>
+                </View>
+
+                {/* Téléphone / WhatsApp */}
+                <View>
+                  <Text className="text-xs font-bold text-gray-700 mb-1">
+                    Numéro de Téléphone / WhatsApp 📱 *
+                  </Text>
+                  <View className="flex-row items-center bg-gray-50 border border-gray-300 rounded-xl px-3 h-12">
+                    <PhoneIcon size={18} color="#16a34a" />
+                    <Text className="text-sm text-gray-700 font-bold ml-1.5 mr-2">🇩🇿 +213</Text>
+                    <TextInput
+                      className="flex-1 text-sm text-gray-900"
+                      value={editKitchenPhone}
+                      onChangeText={setEditKitchenPhone}
+                      placeholder="05 / 06 / 07 XX XX XX"
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+                  <Text className="text-[10px] text-gray-500 mt-1">
+                    Permet aux clients et livreurs de vous contacter directement en 1 clic sur WhatsApp.
+                  </Text>
+                </View>
+
                 <View className="flex-row gap-3">
                   <View className="flex-1">
                     <Text className="text-xs font-bold text-gray-700 mb-1">
@@ -1380,6 +1448,18 @@ const CookDashboardScreen = () => {
               </TouchableOpacity>
             </ScrollView>
           </KeyboardAvoidingView>
+
+          {/* Modal de sélection de la Wilaya */}
+          <WilayaSelectorModal
+            visible={wilayaModalVisible}
+            onClose={() => setWilayaModalVisible(false)}
+            onSelectWilaya={(w) => {
+              setEditKitchenWilaya(w);
+              setWilayaModalVisible(false);
+            }}
+            selectedWilaya={editKitchenWilaya}
+            allowAll={false}
+          />
         </SafeAreaView>
       </Modal>
     </SafeAreaView>

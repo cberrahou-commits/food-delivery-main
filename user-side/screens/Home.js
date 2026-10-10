@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { UserAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import LanguageSelectorModal from "../components/LanguageSelectorModal";
+import WilayaSelectorModal from "../components/WilayaSelectorModal";
 import {
   View,
   Text,
@@ -35,7 +36,8 @@ const Home = () => {
   const navigation = useNavigation();
 
   const [restaurant, setRestaurant] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedWilaya, setSelectedWilaya] = useState(null);
+  const [wilayaModalVisible, setWilayaModalVisible] = useState(false);
   const [langModalVisible, setLangModalVisible] = useState(false);
   const [dishes, setDishes] = useState([]);
   const [searchInputHasValue, setSearchInputHasValue] = useState(false);
@@ -97,6 +99,22 @@ const Home = () => {
     });
   };
 
+  const filteredRestaurants = useMemo(() => {
+    if (!selectedWilaya) return restaurant;
+    const wCode = selectedWilaya.code;
+    const wName = selectedWilaya.name.toLowerCase();
+    return restaurant.filter((r) => {
+      if (r.wilayaCode === wCode) return true;
+      if (
+        r.wilaya &&
+        (r.wilaya.includes(wCode) || r.wilaya.toLowerCase().includes(wName))
+      )
+        return true;
+      if (r.address && r.address.toLowerCase().includes(wName)) return true;
+      return false;
+    });
+  }, [restaurant, selectedWilaya]);
+
   return (
     <SafeAreaView className="bg-white pt-4">
       {/* Header */}
@@ -116,11 +134,16 @@ const Home = () => {
 
         <View className="flex-1">
           <Text className="font-bold text-gray-400 text-xs">{t("deliverNow")}</Text>
-          <TouchableOpacity onPress={() => setModalVisible(!modalVisible)}>
-            <Text className="font-bold text-lg">
-              {t("currentLocation")}
-              <ChevronDownIcon size={18} color="#48bb78" />
+          <TouchableOpacity
+            onPress={() => setWilayaModalVisible(true)}
+            className="flex-row items-center space-x-1"
+          >
+            <Text className="font-bold text-base text-gray-900" numberOfLines={1}>
+              {selectedWilaya
+                ? `📍 ${selectedWilaya.code} - ${selectedWilaya.name}`
+                : "📍 Toute l'Algérie 🇩🇿"}
             </Text>
+            <ChevronDownIcon size={16} color="#16a34a" />
           </TouchableOpacity>
         </View>
 
@@ -194,39 +217,13 @@ const Home = () => {
               </View>
             </TouchableOpacity>
 
-            {/* Categories */}
-            <Categories />
-
-            <Modal
-              animationType="slide"
-              transparent={true}
-              visible={modalVisible}
-              onRequestClose={() => {
-                setModalVisible(!modalVisible);
-              }}
-            >
-              <View className="flex-1 justify-center items-center rounded-t-3xl mt-96 bg-white z-30 border-2 border-gray-200 space-y-4">
-                <View className=" w-full flex-row justify-between items-center ">
-                  <Text className="ml-4 text-2xl font-bold text-center text-gray-700">
-                    Current Location
-                  </Text>
-
-                  <TouchableOpacity
-                    onPress={() => setModalVisible(!modalVisible)}
-                    className="rounded-full mr-4"
-                  >
-                    <XCircleIcon color="#00CCBB" height={48} width={48} />
-                  </TouchableOpacity>
-                </View>
-                <View className="w-full h-80 rounded-2xl overflow-hidden border border-gray-300">
-                  <MapView
-                    className="w-full h-full"
-                    provider="google"
-                    showsUserLocation
-                  />
-                </View>
-              </View>
-            </Modal>
+            <WilayaSelectorModal
+              visible={wilayaModalVisible}
+              onClose={() => setWilayaModalVisible(false)}
+              selectedWilaya={selectedWilaya}
+              onSelectWilaya={setSelectedWilaya}
+              title="Choisissez votre Wilaya"
+            />
 
             {/* Featured Rows */}
             {featuredData.map((item, index) => {
@@ -242,26 +239,43 @@ const Home = () => {
             })}
             <View className="px-4">
               <Text className="my-4 font-bold text-2xl">
-                Explore all restaurants
+                {selectedWilaya
+                  ? `Cuisines à ${selectedWilaya.name} (${filteredRestaurants.length})`
+                  : `Toutes les cuisines (${filteredRestaurants.length})`}
               </Text>
-              {restaurant.map((item, index) => {
-                return (
-                  <RestaurantItem
-                    key={index}
-                    id={item.id}
-                    title={item.name}
-                    rating={item.rating}
-                    description={item.description}
-                    address={item.address}
-                    genre={item.genre}
-                    image={item.image}
-                    lat={item.lat}
-                    lng={item.lng}
-                    minDeliveryTime={item.minDeliveryTime}
-                    maxDeliveryTime={item.maxDeliveryTime}
-                  />
-                );
-              })}
+
+              {filteredRestaurants.length === 0 ? (
+                <View className="bg-gray-50 p-6 rounded-2xl items-center border border-gray-200 my-4">
+                  <Text className="text-3xl mb-2">📍</Text>
+                  <Text className="font-bold text-gray-800 text-base text-center">
+                    Aucune cuisine pour le moment
+                  </Text>
+                  <Text className="text-gray-500 text-xs text-center mt-1">
+                    {selectedWilaya
+                      ? `Aucune cuisine enregistrée dans la Wilaya de ${selectedWilaya.name}. Choisissez "Toutes les Wilayas" pour explorer toute l'Algérie.`
+                      : "Aucun restaurant n'est disponible pour le moment."}
+                  </Text>
+                </View>
+              ) : (
+                filteredRestaurants.map((item, index) => {
+                  return (
+                    <RestaurantItem
+                      key={index}
+                      id={item.id}
+                      title={item.name}
+                      rating={item.rating}
+                      description={item.description}
+                      address={item.address}
+                      genre={item.genre}
+                      image={item.image}
+                      lat={item.lat}
+                      lng={item.lng}
+                      minDeliveryTime={item.minDeliveryTime}
+                      maxDeliveryTime={item.maxDeliveryTime}
+                    />
+                  );
+                })
+              )}
             </View>
 
             {/* <Text className="mt-4 text-center font-light text-xs">
