@@ -38,9 +38,8 @@ const AddCookDishScreen = () => {
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.4,
+        allowsEditing: false,
+        quality: 0.35,
         base64: true,
       });
 
@@ -67,9 +66,8 @@ const AddCookDishScreen = () => {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.4,
+        allowsEditing: false,
+        quality: 0.35,
         base64: true,
       });
 

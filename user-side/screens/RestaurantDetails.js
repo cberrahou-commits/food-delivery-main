@@ -120,8 +120,8 @@ const RestaurantDetails = () => {
             <View className="flex-row my-1 space-x-2">
               <StarIcon color="green" opacity={0.5} size={22} />
               <Text className="text-sm text-gray-500">
-                <Text className="text-green-500">{restaurantInfo.rating}</Text>{" "}
-                · {restaurantInfo.minDeliveryTime} -{" "}
+                <Text className="text-green-500 font-bold">{restaurantInfo.rating || 5.0}</Text>{" "}
+                {restaurantInfo.reviewCount ? `(${restaurantInfo.reviewCount} avis) ` : ""}· {restaurantInfo.minDeliveryTime} -{" "}
                 {restaurantInfo.maxDeliveryTime} {t("mins")}
               </Text>
             </View>
@@ -153,6 +153,8 @@ const RestaurantDetails = () => {
                 price={dish.price}
                 image={dish.image}
                 prepTimeMinutes={dish.prepTimeMinutes || dish.prepTime || 25}
+                rating={dish.rating}
+                reviewCount={dish.reviewCount}
               />
             );
           })}

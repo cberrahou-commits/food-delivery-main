@@ -55,8 +55,8 @@ const CookOnboardingScreen = () => {
         return;
       }
       const res = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        quality: 0.4,
+        allowsEditing: false,
+        quality: 0.35,
         base64: true,
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {
@@ -80,8 +80,8 @@ const CookOnboardingScreen = () => {
       }
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.4,
+        allowsEditing: false,
+        quality: 0.35,
         base64: true,
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {

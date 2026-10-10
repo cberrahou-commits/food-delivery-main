@@ -40,6 +40,7 @@ import {
   XMarkIcon,
   CameraIcon,
   PhotoIcon,
+  StarIcon,
 } from "react-native-heroicons/solid";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -90,6 +91,7 @@ const CookDashboardScreen = () => {
   const [kitchenInfo, setKitchenInfo] = useState(null);
   const [dishes, setDishes] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [prepTimes, setPrepTimes] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -123,9 +125,8 @@ const CookDashboardScreen = () => {
         return;
       }
       const res = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.4,
+        allowsEditing: false,
+        quality: 0.35,
         base64: true,
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {
@@ -147,9 +148,8 @@ const CookDashboardScreen = () => {
       }
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.4,
+        allowsEditing: false,
+        quality: 0.35,
         base64: true,
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {
@@ -226,9 +226,8 @@ const CookDashboardScreen = () => {
         return;
       }
       const res = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.4,
+        allowsEditing: false,
+        quality: 0.35,
         base64: true,
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {
@@ -250,9 +249,8 @@ const CookDashboardScreen = () => {
       }
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.4,
+        allowsEditing: false,
+        quality: 0.35,
         base64: true,
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {
@@ -357,6 +355,35 @@ const CookDashboardScreen = () => {
       },
       (err) => {
         console.error("Error fetching orders:", err);
+      }
+    );
+
+    return unsubscribe;
+  }, [kitchenId]);
+
+  // Écouter les avis clients reçus pour cette cuisine
+  useEffect(() => {
+    if (!kitchenId) return;
+
+    const q = query(
+      collection(db, "reviews"),
+      where("restaurantId", "==", kitchenId)
+    );
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list = [];
+        snapshot.forEach((docSnap) => list.push({ id: docSnap.id, ...docSnap.data() }));
+        // Trier par date décroissante
+        list.sort((a, b) => {
+          const tA = a.createdAt?.seconds || 0;
+          const tB = b.createdAt?.seconds || 0;
+          return tB - tA;
+        });
+        setReviews(list);
+      },
+      (err) => {
+        console.warn("Error fetching reviews:", err);
       }
     );
 
@@ -508,9 +535,15 @@ const CookDashboardScreen = () => {
               <Text className="text-base font-bold text-gray-900" numberOfLines={1}>
                 {kitchenInfo?.name || kitchenInfo?.title || "Ma Cuisine Maison"}
               </Text>
+              <View className="flex-row items-center gap-1 mt-0.5">
+                <StarIcon size={14} color="#F59E0B" />
+                <Text className="text-xs text-amber-700 font-bold">
+                  {kitchenInfo?.rating ? Number(kitchenInfo.rating).toFixed(1) : "5.0"} ({kitchenInfo?.reviewCount || 0} avis)
+                </Text>
+              </View>
               <TouchableOpacity
                 onPress={handleOpenEditKitchen}
-                className="flex-row items-center gap-1 mt-0.5"
+                className="flex-row items-center gap-1 mt-1"
               >
                 <PencilSquareIcon size={14} color="#16a34a" />
                 <Text className="text-xs text-green-700 font-bold">
@@ -529,35 +562,50 @@ const CookDashboardScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Onglets Plats / Commandes */}
+        {/* Onglets Plats / Commandes / Avis */}
         <View className="flex-row bg-gray-100 p-1 rounded-xl">
           <TouchableOpacity
             onPress={() => setActiveTab("dishes")}
-            className={`flex-1 py-2.5 rounded-lg items-center ${
+            className={`flex-1 py-2 rounded-lg items-center ${
               activeTab === "dishes" ? "bg-white shadow-xs" : ""
             }`}
           >
             <Text
-              className={`text-sm font-bold ${
+              className={`text-xs font-bold ${
                 activeTab === "dishes" ? "text-green-700" : "text-gray-500"
               }`}
             >
-              Mes Plats ({dishes.length})
+              Plats ({dishes.length})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => setActiveTab("orders")}
-            className={`flex-1 py-2.5 rounded-lg items-center ${
+            className={`flex-1 py-2 rounded-lg items-center ${
               activeTab === "orders" ? "bg-white shadow-xs" : ""
             }`}
           >
             <Text
-              className={`text-sm font-bold ${
+              className={`text-xs font-bold ${
                 activeTab === "orders" ? "text-green-700" : "text-gray-500"
               }`}
             >
-              Commandes Reçues ({orders.length})
+              Commandes ({orders.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveTab("reviews")}
+            className={`flex-1 py-2 rounded-lg items-center ${
+              activeTab === "reviews" ? "bg-white shadow-xs" : ""
+            }`}
+          >
+            <Text
+              className={`text-xs font-bold ${
+                activeTab === "reviews" ? "text-green-700" : "text-gray-500"
+              }`}
+            >
+              Avis ⭐ ({reviews.length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -610,9 +658,17 @@ const CookDashboardScreen = () => {
                   />
                   <View className="flex-1 justify-between">
                     <View>
-                      <Text className="text-base font-bold text-gray-900">
-                        {dish.name}
-                      </Text>
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-base font-bold text-gray-900 flex-1 mr-2" numberOfLines={1}>
+                          {dish.name}
+                        </Text>
+                        <View className="flex-row items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                          <StarIcon size={12} color="#F59E0B" />
+                          <Text className="text-amber-800 text-xs font-bold">
+                            {dish.rating ? Number(dish.rating).toFixed(1) : "5.0"} {dish.reviewCount ? `(${dish.reviewCount})` : ""}
+                          </Text>
+                        </View>
+                      </View>
                       <Text
                         className="text-xs text-gray-500 mt-1"
                         numberOfLines={2}
@@ -946,6 +1002,79 @@ const CookDashboardScreen = () => {
                   </View>
                 );
               })}
+            </View>
+          )}
+        </ScrollView>
+      )}
+
+      {/* CONTENU ONGLET 3 : AVIS CLIENTS */}
+      {activeTab === "reviews" && (
+        <ScrollView contentContainerStyle={{ padding: 20 }}>
+          {reviews.length === 0 ? (
+            <View className="bg-white p-8 rounded-2xl items-center border border-gray-200">
+              <Text className="text-4xl mb-2">⭐</Text>
+              <Text className="text-base font-bold text-gray-800 text-center">
+                Aucun avis pour le moment
+              </Text>
+              <Text className="text-xs text-gray-500 text-center mt-1">
+                Les évaluations et commentaires de vos clients apparaîtront ici après chaque commande livrée.
+              </Text>
+            </View>
+          ) : (
+            <View className="gap-3">
+              {reviews.map((rev) => (
+                <View
+                  key={rev.id}
+                  className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs"
+                >
+                  <View className="flex-row items-center justify-between mb-2">
+                    <View>
+                      <Text className="font-bold text-sm text-gray-900">
+                        👤 {rev.userName || "Client"}
+                      </Text>
+                      <Text className="text-xs text-gray-400">
+                        Commande #{rev.orderId?.slice(0, 8)}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+                      <StarIcon size={14} color="#F59E0B" />
+                      <Text className="text-amber-800 font-bold text-xs ml-1">
+                        {rev.cookRating || 5}/5
+                      </Text>
+                    </View>
+                  </View>
+
+                  {rev.cookComment ? (
+                    <Text className="text-xs text-gray-700 bg-gray-50 p-2.5 rounded-xl border border-gray-100 mb-2 italic">
+                      "{rev.cookComment}"
+                    </Text>
+                  ) : null}
+
+                  {rev.dishesRatings && rev.dishesRatings.length > 0 && (
+                    <View className="mt-1 pt-2 border-t border-gray-100">
+                      <Text className="text-xs font-bold text-gray-600 mb-1">
+                        Notes des plats :
+                      </Text>
+                      {rev.dishesRatings.map((d, dIdx) => (
+                        <View
+                          key={d.dishId || dIdx}
+                          className="flex-row items-center justify-between py-1"
+                        >
+                          <Text
+                            className="text-xs text-gray-700 flex-1 mr-2"
+                            numberOfLines={1}
+                          >
+                            • {d.name}
+                          </Text>
+                          <Text className="text-xs font-bold text-amber-700">
+                            {d.rating}/5 ⭐
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              ))}
             </View>
           )}
         </ScrollView>

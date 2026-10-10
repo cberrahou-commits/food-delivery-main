@@ -5,9 +5,13 @@ import { collection, query, where, getDocs, doc, updateDoc } from "firebase/fire
 import DishInfo from "./DishInfo";
 import { useLanguage } from "../contexts/LanguageContext";
 import { notifyCookClientConfirmed } from "../services/notificationService";
+import { StarIcon } from "react-native-heroicons/solid";
+import OrderRatingModal from "./OrderRatingModal";
 
 const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => {
   const [dishes, setDishes] = useState([]);
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [hasRatedLocal, setHasRatedLocal] = useState(Boolean(order?.hasRated));
   const { t, formatPrice, language } = useLanguage();
 
   let statusText, statusColor, badgeBg;
@@ -294,14 +298,48 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
             </View>
           )}
 
-          {/* ETAPE 6 : DELIVERED */}
+          {/* ETAPE 6 : DELIVERED & NOTATION */}
           {isDelivered && (
-            <View className="mt-3 p-3 bg-green-50 rounded-xl border border-green-200">
-              <Text className="text-xs text-green-800 font-bold">
-                ✅ Commande livrée ! Bon appétit !
-              </Text>
+            <View className="mt-3">
+              {hasRatedLocal || order?.hasRated ? (
+                <View className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200">
+                  <View className="flex-row items-center space-x-1.5 mb-1">
+                    <StarIcon size={16} color="#059669" />
+                    <Text className="text-xs font-bold text-emerald-800">
+                      Commande notée ! Merci pour votre avis ⭐
+                    </Text>
+                  </View>
+                  <Text className="text-xs text-emerald-700">
+                    Cuisine : {order?.cookRating || 5}/5 ⭐ {order?.driverRating ? `· Livreur : ${order.driverRating}/5 ⭐` : ""}
+                  </Text>
+                </View>
+              ) : (
+                <View className="p-3 bg-green-50 rounded-2xl border border-green-200">
+                  <Text className="text-xs text-green-800 font-bold mb-2">
+                    ✅ Commande livrée ! Bon appétit !
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setRatingModalVisible(true)}
+                    activeOpacity={0.8}
+                    className="bg-amber-500 py-3 px-4 rounded-xl items-center flex-row justify-center space-x-2 shadow-sm"
+                  >
+                    <StarIcon size={18} color="white" />
+                    <Text className="text-white font-bold text-xs">
+                      Noter les plats, le chef et le livreur ⭐
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
+
+          {/* Modal de notation */}
+          <OrderRatingModal
+            visible={ratingModalVisible}
+            onClose={() => setRatingModalVisible(false)}
+            order={{ ...order, id: orderId, restaurantName }}
+            onRatedSuccess={() => setHasRatedLocal(true)}
+          />
         </View>
       </View>
     </View>

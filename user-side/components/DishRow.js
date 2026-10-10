@@ -1,5 +1,5 @@
 import { View, Text, Pressable, Image, TouchableOpacity, Alert } from "react-native";
-import { MinusCircleIcon, PlusCircleIcon } from "react-native-heroicons/solid";
+import { MinusCircleIcon, PlusCircleIcon, StarIcon } from "react-native-heroicons/solid";
 import React, { useState } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
 import {
@@ -20,6 +20,8 @@ const DishRow = ({
   image,
   restaurantId,
   prepTimeMinutes,
+  rating,
+  reviewCount,
 }) => {
   const [isPressed, setIsPressed] = useState(false);
   const { t, formatPrice } = useLanguage();
@@ -84,6 +86,14 @@ const DishRow = ({
               <Text className="text-emerald-700 text-base font-bold">
                 {formatPrice(price)}
               </Text>
+              {rating ? (
+                <View className="flex-row items-center space-x-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                  <StarIcon size={12} color="#F59E0B" />
+                  <Text className="text-amber-800 text-xs font-bold">
+                    {Number(rating).toFixed(1)} {reviewCount ? `(${reviewCount})` : ""}
+                  </Text>
+                </View>
+              ) : null}
               {prepTimeMinutes ? (
                 <View className="bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
                   <Text className="text-amber-700 text-xs font-semibold">

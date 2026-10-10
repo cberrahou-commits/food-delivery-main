@@ -172,7 +172,7 @@ const NotificationWatcher = () => {
             } else if (newStatus === "DELIVERED" || newStatus === "COMPLETE") {
               notifyUser(
                 "🎉 Commande livrée !",
-                "Votre repas a été livré avec succès. Bon appétit !",
+                "Votre repas a été livré ! N'oubliez pas d'évaluer vos plats, votre chef et votre coursier ⭐",
                 { orderId, type: "DELIVERED" }
               );
             }

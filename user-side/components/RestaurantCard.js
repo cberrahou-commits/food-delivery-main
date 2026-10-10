@@ -14,6 +14,7 @@ const RestaurantCard = ({
   genre,
   minDeliveryTime,
   maxDeliveryTime,
+  reviewCount,
 }) => {
   const navigation = useNavigation();
   const DEFAULT_IMAGE = "https://i.postimg.cc/qvhzT8XP/pastry.jpg";
@@ -42,7 +43,8 @@ const RestaurantCard = ({
         <View className="flex-row items-center space-x-1">
           <StarIcon color="green" opacity={0.5} size={22} />
           <Text className="text-sm text-gray-500">
-            <Text className="text-green-500">{rating}</Text> · {minDeliveryTime}
+            <Text className="text-green-500 font-bold">{rating || 5.0}</Text>{" "}
+            {reviewCount ? `(${reviewCount}) ` : ""}· {minDeliveryTime}
             -{maxDeliveryTime} min
           </Text>
         </View>

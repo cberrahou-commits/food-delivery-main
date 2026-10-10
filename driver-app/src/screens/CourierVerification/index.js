@@ -43,8 +43,8 @@ const CourierVerificationScreen = ({ navigation, onStatusUpdate }) => {
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        quality: 0.4,
+        allowsEditing: false,
+        quality: 0.35,
         base64: true,
       });
 
@@ -73,8 +73,8 @@ const CourierVerificationScreen = ({ navigation, onStatusUpdate }) => {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.4,
+        allowsEditing: false,
+        quality: 0.35,
         base64: true,
       });
 

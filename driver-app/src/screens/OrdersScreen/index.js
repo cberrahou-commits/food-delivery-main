@@ -15,12 +15,15 @@ import {
   where,
   orderBy,
   onSnapshot,
+  doc,
 } from "firebase/firestore";
 
 const OrdersScreen = () => {
   const [orders, setOrders] = useState([]);
   const [langModalVisible, setLangModalVisible] = useState(false);
-  const { signOutUser } = useAuth();
+  const [driverRating, setDriverRating] = useState(5.0);
+  const [driverRatingCount, setDriverRatingCount] = useState(0);
+  const { user, signOutUser } = useAuth();
   const { t, language } = useLanguage();
 
   useEffect(() => {
@@ -41,6 +44,18 @@ const OrdersScreen = () => {
 
     return unsubscribe; // Cleanup function to unsubscribe from real-time updates
   }, []);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsub = onSnapshot(doc(db, "user", user.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.driverRating !== undefined) setDriverRating(data.driverRating);
+        if (data.driverRatingCount !== undefined) setDriverRatingCount(data.driverRatingCount);
+      }
+    });
+    return unsub;
+  }, [user?.uid]);
 
 
   const bottomSheetRef = useRef(null);
@@ -107,6 +122,9 @@ const OrdersScreen = () => {
               </Text>
               <View style={{ backgroundColor: "#dcfce7", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 4 }}>
                 <Text style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold" }}>{t("certified")}</Text>
+              </View>
+              <View style={{ backgroundColor: "#fef3c7", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 6 }}>
+                <Text style={{ color: "#b45309", fontSize: 11, fontWeight: "bold" }}>⭐ {Number(driverRating).toFixed(1)} ({driverRatingCount})</Text>
               </View>
             </View>
             <Text style={{ letterSpacing: 0.5, color: "grey", marginTop: 2 }}>

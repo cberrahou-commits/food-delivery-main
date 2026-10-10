@@ -17,6 +17,8 @@ service cloud.firestore {
     //   - latitude: float / number (optional)
     //   - longitude: float / number (optional)
     //   - role: string ("user" | "courier")
+    //   - rating: float / number (optional, driver rating)
+    //   - ratingCount: int / number (optional)
     //   - createdAt: string / timestamp (optional)
     //
     // Collection: restaurants
@@ -28,6 +30,7 @@ service cloud.firestore {
     //   - address: string (required)
     //   - genre: string (optional)
     //   - rating: float / number (optional)
+    //   - ratingCount: int / number (optional)
     //   - description: string (optional)
     //   - lat: float / number (required)
     //   - lng: float / number (required)
@@ -70,6 +73,18 @@ service cloud.firestore {
     //   - dishId: string (required)
     //   - quantity: int / number (required)
     //
+    // Collection: reviews
+    // Document ID: {reviewId}
+    // Fields:
+    //   - targetId: string (required, restaurantId or driver userId)
+    //   - targetType: string ("restaurant" | "driver")
+    //   - orderId: string (optional)
+    //   - userId: string (optional)
+    //   - userName: string (optional)
+    //   - rating: float / number (required)
+    //   - comment: string (optional)
+    //   - createdAt: timestamp / string (optional)
+    //
     // ===============================================================
 
     // Helper functions
@@ -78,24 +93,22 @@ service cloud.firestore {
     }
 
     // User profiles (clients and couriers)
+    // Public read and write to allow customer apps, dashboards, and driver rating updates
     match /user/{userId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
 
     // Restaurants
-    // Public read for customer apps & dashboards; write requires authenticated access
+    // Public read and write to allow customer apps and dashboards to update rating averages
     match /restaurants/{restaurantId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if true;
     }
 
     // Dishes / Menu items
     // Public read and write to allow the unauthenticated restaurant dashboard (Vercel)
     // to view, create (AddDishModal), and remove menu items
     match /dishes/{dishId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
 
     // Orders
@@ -110,6 +123,12 @@ service cloud.firestore {
     // Order dishes (items associated with orders)
     // Public read and write to allow web dashboard and mobile apps to inspect and record order items
     match /orderDishes/{orderDishId} {
+      allow read, write: if true;
+    }
+
+    // Customer & driver reviews
+    // Public read and write to allow customers to leave ratings/feedback and view reviews
+    match /reviews/{reviewId} {
       allow read, write: if true;
     }
   }
