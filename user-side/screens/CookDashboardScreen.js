@@ -9,8 +9,12 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import {
   collection,
   query,
@@ -32,6 +36,10 @@ import {
   ClockIcon,
   CheckCircleIcon,
   SparklesIcon,
+  PencilSquareIcon,
+  XMarkIcon,
+  CameraIcon,
+  PhotoIcon,
 } from "react-native-heroicons/solid";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -84,6 +92,212 @@ const CookDashboardScreen = () => {
   const [orders, setOrders] = useState([]);
   const [prepTimes, setPrepTimes] = useState({});
   const [loading, setLoading] = useState(true);
+
+  // --- ÉDITION DE PLAT ---
+  const [editDishModalVisible, setEditDishModalVisible] = useState(false);
+  const [editingDish, setEditingDish] = useState(null);
+  const [editDishName, setEditDishName] = useState("");
+  const [editDishDesc, setEditDishDesc] = useState("");
+  const [editDishPrice, setEditDishPrice] = useState("");
+  const [editDishPrepTime, setEditDishPrepTime] = useState("");
+  const [editDishPortions, setEditDishPortions] = useState("");
+  const [editDishImageUri, setEditDishImageUri] = useState(null);
+  const [savingDish, setSavingDish] = useState(false);
+
+  const handleOpenEditDish = (dish) => {
+    setEditingDish(dish);
+    setEditDishName(dish.name || "");
+    setEditDishDesc(dish.description || "");
+    setEditDishPrice(dish.price !== undefined ? String(dish.price) : "");
+    setEditDishPrepTime(dish.prepTimeMinutes !== undefined ? String(dish.prepTimeMinutes) : "25");
+    setEditDishPortions(dish.portionsAvailable !== undefined ? String(dish.portionsAvailable) : "4");
+    setEditDishImageUri(dish.image || null);
+    setEditDishModalVisible(true);
+  };
+
+  const takeEditDishPhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission", "Accès à la caméra requis.");
+        return;
+      }
+      const res = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.4,
+        base64: true,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        const dataUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        setEditDishImageUri(dataUri);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const pickEditDishPhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission", "Accès à la galerie requis.");
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.4,
+        base64: true,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        const dataUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        setEditDishImageUri(dataUri);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSaveEditDish = async () => {
+    if (!editDishName.trim()) {
+      Alert.alert("Champ manquant", "Veuillez indiquer le nom du plat.");
+      return;
+    }
+    const parsedPrice = parseFloat(editDishPrice.replace(",", "."));
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      Alert.alert("Prix invalide", "Veuillez indiquer un prix valide.");
+      return;
+    }
+
+    setSavingDish(true);
+    try {
+      await updateDoc(doc(db, "dishes", editingDish.id), {
+        name: editDishName.trim(),
+        description: editDishDesc.trim(),
+        price: parsedPrice,
+        prepTimeMinutes: parseInt(editDishPrepTime) || 25,
+        portionsAvailable: parseInt(editDishPortions) || 4,
+        image: editDishImageUri || editingDish.image,
+        updatedAt: new Date(),
+      });
+      setEditDishModalVisible(false);
+      Alert.alert("Succès ! 🎉", "Votre plat a été mis à jour.");
+    } catch (err) {
+      console.error("Erreur modification plat:", err);
+      Alert.alert("Erreur", "Impossible de mettre à jour le plat.");
+    } finally {
+      setSavingDish(false);
+    }
+  };
+
+  // --- ÉDITION DE LA CUISINE ET DE SA PHOTO ---
+  const [kitchenModalVisible, setKitchenModalVisible] = useState(false);
+  const [editKitchenName, setEditKitchenName] = useState("");
+  const [editKitchenGenre, setEditKitchenGenre] = useState("");
+  const [editKitchenDesc, setEditKitchenDesc] = useState("");
+  const [editKitchenAddress, setEditKitchenAddress] = useState("");
+  const [editKitchenMinTime, setEditKitchenMinTime] = useState("");
+  const [editKitchenMaxTime, setEditKitchenMaxTime] = useState("");
+  const [editKitchenImageUri, setEditKitchenImageUri] = useState(null);
+  const [savingKitchen, setSavingKitchen] = useState(false);
+
+  const handleOpenEditKitchen = () => {
+    if (kitchenInfo) {
+      setEditKitchenName(kitchenInfo.name || kitchenInfo.title || "");
+      setEditKitchenGenre(kitchenInfo.genre || "");
+      setEditKitchenDesc(kitchenInfo.description || "");
+      setEditKitchenAddress(kitchenInfo.address || "");
+      setEditKitchenMinTime(String(kitchenInfo.minDeliveryTime || 25));
+      setEditKitchenMaxTime(String(kitchenInfo.maxDeliveryTime || 40));
+      setEditKitchenImageUri(kitchenInfo.image || null);
+    }
+    setKitchenModalVisible(true);
+  };
+
+  const takeKitchenPhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission", "Accès à la caméra requis.");
+        return;
+      }
+      const res = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.4,
+        base64: true,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        const dataUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        setEditKitchenImageUri(dataUri);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const pickKitchenPhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission", "Accès à la galerie requis.");
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.4,
+        base64: true,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        const dataUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        setEditKitchenImageUri(dataUri);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSaveKitchen = async () => {
+    if (!editKitchenName.trim()) {
+      Alert.alert("Champ manquant", "Veuillez renseigner le nom de la cuisine.");
+      return;
+    }
+
+    setSavingKitchen(true);
+    try {
+      const updateData = {
+        name: editKitchenName.trim(),
+        title: editKitchenName.trim(),
+        genre: editKitchenGenre.trim(),
+        description: editKitchenDesc.trim(),
+        address: editKitchenAddress.trim(),
+        minDeliveryTime: parseInt(editKitchenMinTime) || 20,
+        maxDeliveryTime: parseInt(editKitchenMaxTime) || 40,
+        updatedAt: new Date(),
+      };
+      if (editKitchenImageUri) {
+        updateData.image = editKitchenImageUri;
+      }
+
+      await updateDoc(doc(db, "restaurants", kitchenId), updateData);
+      setKitchenInfo((prev) => ({ ...prev, ...updateData }));
+      setKitchenModalVisible(false);
+      Alert.alert("Succès ! 🎉", "Les informations et la photo de votre cuisine ont été enregistrées.");
+    } catch (err) {
+      console.error("Erreur modification cuisine:", err);
+      Alert.alert("Erreur", "Impossible de mettre à jour la cuisine.");
+    } finally {
+      setSavingKitchen(false);
+    }
+  };
 
   // Charger les infos de la cuisine
   useEffect(() => {
@@ -279,17 +493,30 @@ const CookDashboardScreen = () => {
       {/* Header avec bascule vers Mode Client */}
       <View className="bg-white px-5 pt-3 pb-4 border-b border-gray-200">
         <View className="flex-row items-center justify-between mb-3">
-          <View className="flex-row items-center gap-2">
-            <View className="w-10 h-10 rounded-full bg-green-100 items-center justify-center">
-              <Text className="text-xl">🍳</Text>
-            </View>
-            <View>
-              <Text className="text-lg font-bold text-gray-900">
-                {kitchenInfo?.name || "Ma Cuisine Maison"}
+          <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+            {kitchenInfo?.image ? (
+              <Image
+                source={{ uri: kitchenInfo.image }}
+                className="w-12 h-12 rounded-full border border-gray-200"
+              />
+            ) : (
+              <View className="w-12 h-12 rounded-full bg-green-100 items-center justify-center">
+                <Text className="text-xl">🍳</Text>
+              </View>
+            )}
+            <View className="flex-1">
+              <Text className="text-base font-bold text-gray-900" numberOfLines={1}>
+                {kitchenInfo?.name || kitchenInfo?.title || "Ma Cuisine Maison"}
               </Text>
-              <Text className="text-xs text-green-700 font-semibold">
-                Chef Fait Maison Certifié ✓
-              </Text>
+              <TouchableOpacity
+                onPress={handleOpenEditKitchen}
+                className="flex-row items-center gap-1 mt-0.5"
+              >
+                <PencilSquareIcon size={14} color="#16a34a" />
+                <Text className="text-xs text-green-700 font-bold">
+                  Modifier cuisine & photo
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -397,12 +624,20 @@ const CookDashboardScreen = () => {
                       <Text className="text-base font-extrabold text-green-700">
                         {formatPrice(dish.price)}
                       </Text>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteDish(dish.id, dish.name)}
-                        className="p-1.5 bg-red-50 rounded-lg"
-                      >
-                        <TrashIcon size={18} color="#ef4444" />
-                      </TouchableOpacity>
+                      <View className="flex-row items-center gap-2">
+                        <TouchableOpacity
+                          onPress={() => handleOpenEditDish(dish)}
+                          className="p-1.5 bg-blue-50 rounded-lg"
+                        >
+                          <PencilSquareIcon size={18} color="#2563EB" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteDish(dish.id, dish.name)}
+                          className="p-1.5 bg-red-50 rounded-lg"
+                        >
+                          <TrashIcon size={18} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -715,6 +950,309 @@ const CookDashboardScreen = () => {
           )}
         </ScrollView>
       )}
+
+      {/* MODAL 1 : MODIFIER UN PLAT */}
+      <Modal
+        visible={editDishModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setEditDishModalVisible(false)}
+      >
+        <SafeAreaView className="flex-1 bg-gray-50">
+          <View className="p-4 bg-white border-b border-gray-200 flex-row items-center justify-between">
+            <TouchableOpacity
+              onPress={() => setEditDishModalVisible(false)}
+              className="p-2 bg-gray-100 rounded-full"
+            >
+              <XMarkIcon size={20} color="#374151" />
+            </TouchableOpacity>
+            <Text className="text-base font-bold text-gray-900">
+              Modifier le Plat 🍲
+            </Text>
+            <View style={{ width: 36 }} />
+          </View>
+
+          <KeyboardAvoidingView
+            className="flex-1"
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
+            <ScrollView contentContainerStyle={{ padding: 20 }}>
+              {/* Photo du plat */}
+              <View className="bg-white p-4 rounded-2xl border border-gray-200 items-center mb-4 shadow-xs">
+                <Text className="text-sm font-bold text-gray-800 mb-2">
+                  Photo du plat
+                </Text>
+                {editDishImageUri ? (
+                  <Image
+                    source={{ uri: editDishImageUri }}
+                    className="w-full h-44 rounded-xl mb-3 object-cover"
+                  />
+                ) : null}
+
+                <View className="flex-row gap-3">
+                  <TouchableOpacity
+                    onPress={takeEditDishPhoto}
+                    className="flex-row items-center bg-gray-100 px-3.5 py-2 rounded-xl border border-gray-300"
+                  >
+                    <CameraIcon size={18} color="#374151" />
+                    <Text className="text-xs font-semibold text-gray-800 ml-1.5">
+                      Prendre photo
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={pickEditDishPhoto}
+                    className="flex-row items-center bg-gray-100 px-3.5 py-2 rounded-xl border border-gray-300"
+                  >
+                    <PhotoIcon size={18} color="#374151" />
+                    <Text className="text-xs font-semibold text-gray-800 ml-1.5">
+                      Galerie
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Formulaire Plat */}
+              <View className="bg-white p-4 rounded-2xl border border-gray-200 gap-3 mb-4 shadow-xs">
+                <View>
+                  <Text className="text-xs font-bold text-gray-700 mb-1">
+                    Nom du plat *
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 border border-gray-300 h-11 px-3 rounded-xl text-sm text-gray-900"
+                    value={editDishName}
+                    onChangeText={setEditDishName}
+                    placeholder="Ex: Couscous Royal"
+                  />
+                </View>
+
+                <View>
+                  <Text className="text-xs font-bold text-gray-700 mb-1">
+                    Description
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 border border-gray-300 p-3 rounded-xl text-sm text-gray-900 h-20"
+                    value={editDishDesc}
+                    onChangeText={setEditDishDesc}
+                    placeholder="Ingrédients, recette..."
+                    multiline
+                  />
+                </View>
+
+                <View>
+                  <Text className="text-xs font-bold text-gray-700 mb-1">
+                    Prix (DA) *
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 border border-gray-300 h-11 px-3 rounded-xl text-sm text-gray-900"
+                    value={editDishPrice}
+                    onChangeText={setEditDishPrice}
+                    placeholder="Ex: 850"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Text className="text-xs font-bold text-gray-700 mb-1">
+                      Temps prép. (min)
+                    </Text>
+                    <TextInput
+                      className="bg-gray-50 border border-gray-300 h-11 px-3 rounded-xl text-sm text-gray-900"
+                      value={editDishPrepTime}
+                      onChangeText={setEditDishPrepTime}
+                      placeholder="25"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-xs font-bold text-gray-700 mb-1">
+                      Portions dispo.
+                    </Text>
+                    <TextInput
+                      className="bg-gray-50 border border-gray-300 h-11 px-3 rounded-xl text-sm text-gray-900"
+                      value={editDishPortions}
+                      onChangeText={setEditDishPortions}
+                      placeholder="4"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleSaveEditDish}
+                disabled={savingDish}
+                className="bg-green-600 py-3.5 rounded-xl items-center shadow-md active:bg-green-700 mb-6"
+              >
+                {savingDish ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-bold text-base">
+                    Enregistrer les modifications
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* MODAL 2 : MODIFIER LA CUISINE & PHOTO */}
+      <Modal
+        visible={kitchenModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setKitchenModalVisible(false)}
+      >
+        <SafeAreaView className="flex-1 bg-gray-50">
+          <View className="p-4 bg-white border-b border-gray-200 flex-row items-center justify-between">
+            <TouchableOpacity
+              onPress={() => setKitchenModalVisible(false)}
+              className="p-2 bg-gray-100 rounded-full"
+            >
+              <XMarkIcon size={20} color="#374151" />
+            </TouchableOpacity>
+            <Text className="text-base font-bold text-gray-900">
+              Paramètres de ma Cuisine 🏠
+            </Text>
+            <View style={{ width: 36 }} />
+          </View>
+
+          <KeyboardAvoidingView
+            className="flex-1"
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
+            <ScrollView contentContainerStyle={{ padding: 20 }}>
+              {/* Photo de couverture de la cuisine */}
+              <View className="bg-white p-4 rounded-2xl border border-gray-200 items-center mb-4 shadow-xs">
+                <Text className="text-sm font-bold text-gray-800 mb-2">
+                  Photo de couverture de la Cuisine 📸
+                </Text>
+                {editKitchenImageUri ? (
+                  <Image
+                    source={{ uri: editKitchenImageUri }}
+                    className="w-full h-44 rounded-xl mb-3 object-cover"
+                  />
+                ) : null}
+
+                <View className="flex-row gap-3">
+                  <TouchableOpacity
+                    onPress={takeKitchenPhoto}
+                    className="flex-row items-center bg-gray-100 px-3.5 py-2 rounded-xl border border-gray-300"
+                  >
+                    <CameraIcon size={18} color="#374151" />
+                    <Text className="text-xs font-semibold text-gray-800 ml-1.5">
+                      Prendre photo
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={pickKitchenPhoto}
+                    className="flex-row items-center bg-gray-100 px-3.5 py-2 rounded-xl border border-gray-300"
+                  >
+                    <PhotoIcon size={18} color="#374151" />
+                    <Text className="text-xs font-semibold text-gray-800 ml-1.5">
+                      Galerie
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Formulaire Cuisine */}
+              <View className="bg-white p-4 rounded-2xl border border-gray-200 gap-3 mb-4 shadow-xs">
+                <View>
+                  <Text className="text-xs font-bold text-gray-700 mb-1">
+                    Nom de la cuisine *
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 border border-gray-300 h-11 px-3 rounded-xl text-sm text-gray-900"
+                    value={editKitchenName}
+                    onChangeText={setEditKitchenName}
+                    placeholder="Ex: La Cuisine Familiale de Fatima"
+                  />
+                </View>
+
+                <View>
+                  <Text className="text-xs font-bold text-gray-700 mb-1">
+                    Spécialité / Type de cuisine
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 border border-gray-300 h-11 px-3 rounded-xl text-sm text-gray-900"
+                    value={editKitchenGenre}
+                    onChangeText={setEditKitchenGenre}
+                    placeholder="Ex: Traditionnelle, Maghreb, Pâtisserie..."
+                  />
+                </View>
+
+                <View>
+                  <Text className="text-xs font-bold text-gray-700 mb-1">
+                    Description de votre cuisine
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 border border-gray-300 p-3 rounded-xl text-sm text-gray-900 h-20"
+                    value={editKitchenDesc}
+                    onChangeText={setEditKitchenDesc}
+                    placeholder="Présentez votre passion, vos spécialités..."
+                    multiline
+                  />
+                </View>
+
+                <View>
+                  <Text className="text-xs font-bold text-gray-700 mb-1">
+                    Adresse de la cuisine
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 border border-gray-300 h-11 px-3 rounded-xl text-sm text-gray-900"
+                    value={editKitchenAddress}
+                    onChangeText={setEditKitchenAddress}
+                    placeholder="Adresse pour les livreurs"
+                  />
+                </View>
+
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Text className="text-xs font-bold text-gray-700 mb-1">
+                      Délai Min (min)
+                    </Text>
+                    <TextInput
+                      className="bg-gray-50 border border-gray-300 h-11 px-3 rounded-xl text-sm text-gray-900"
+                      value={editKitchenMinTime}
+                      onChangeText={setEditKitchenMinTime}
+                      placeholder="20"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-xs font-bold text-gray-700 mb-1">
+                      Délai Max (min)
+                    </Text>
+                    <TextInput
+                      className="bg-gray-50 border border-gray-300 h-11 px-3 rounded-xl text-sm text-gray-900"
+                      value={editKitchenMaxTime}
+                      onChangeText={setEditKitchenMaxTime}
+                      placeholder="40"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleSaveKitchen}
+                disabled={savingKitchen}
+                className="bg-green-600 py-3.5 rounded-xl items-center shadow-md active:bg-green-700 mb-6"
+              >
+                {savingKitchen ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-bold text-base">
+                    Mettre à jour ma cuisine
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };

@@ -372,7 +372,10 @@ const DriverNotificationWatcher = () => {
                 3️⃣ Cliquez sur <Text style={{ fontWeight: "700", color: "#D97706" }}>"Réinitialiser les préférences des applications"</Text>. (Cela débloque immédiatement les interrupteurs grisés !).
               </Text>
               <Text style={{ fontSize: 12, color: "#374151", marginVertical: 3 }}>
-                4️⃣ Dans <Text style={{ fontWeight: "700" }}>Gestion de la batterie</Text>, autorisez <Text style={{ fontWeight: "700", color: "#10B981" }}>"Activité en arrière-plan"</Text>.
+                4️⃣ Dans <Text style={{ fontWeight: "700" }}>Utilisation de la batterie</Text>, cochez <Text style={{ fontWeight: "700", color: "#10B981" }}>"Autoriser l'activité en arrière-plan"</Text>.
+              </Text>
+              <Text style={{ fontSize: 12, color: "#374151", marginVertical: 3 }}>
+                5️⃣ Activez impérativement <Text style={{ fontWeight: "700", color: "#2563EB" }}>"Lancement automatique"</Text> (Auto-start). C'est ce paramètre qui permet à ColorOS de réveiller l'application livreur lorsque l'écran est éteint.
               </Text>
             </View>
 
