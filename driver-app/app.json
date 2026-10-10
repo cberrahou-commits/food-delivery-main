@@ -46,6 +46,7 @@
     },
     "android": {
       "package": "com.fooddelivery.courierapp",
+      "googleServicesFile": "./google-services.json",
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyCi-MWuhMrs1DfJqTycPWS8N9KorPuAs-0"
@@ -62,6 +63,9 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.POST_NOTIFICATIONS",
+        "android.permission.WAKE_LOCK",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"

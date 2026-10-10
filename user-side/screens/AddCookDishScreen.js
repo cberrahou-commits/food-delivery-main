@@ -40,11 +40,16 @@ const AddCookDishScreen = () => {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8,
+        quality: 0.4,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImageUri(result.assets[0].uri);
+        const asset = result.assets[0];
+        const dataUri = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
+        setImageUri(dataUri);
       }
     } catch (e) {
       console.error(e);
@@ -64,11 +69,16 @@ const AddCookDishScreen = () => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8,
+        quality: 0.4,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImageUri(result.assets[0].uri);
+        const asset = result.assets[0];
+        const dataUri = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
+        setImageUri(dataUri);
       }
     } catch (e) {
       console.error(e);

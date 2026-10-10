@@ -1,7 +1,7 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform, Linking } from "react-native";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 
 export const openAppSettings = () => {
   Linking.openSettings();
@@ -139,16 +139,45 @@ export const registerForPushNotificationsAsync = async (userId) => {
       token = tokenData?.data;
       console.log("Expo Push Token obtenu (User Side):", token);
     } catch (tokenErr) {
-      console.log("Note: Expo Push Token nécessite un build EAS / appareil réel:", tokenErr?.message);
+      console.log("Note Expo Push Token:", tokenErr?.message);
     }
 
-    if (userId && token) {
-      const userRef = doc(db, "user", userId);
+    let devicePushToken = null;
+    try {
+      const devData = await Notifications.getDevicePushTokenAsync();
+      devicePushToken = devData?.data;
+      console.log("FCM Device Push Token obtenu:", devicePushToken);
+    } catch (devErr) {
+      console.log("Note Device Push Token:", devErr?.message);
+    }
+
+    const currentUid = userId || auth?.currentUser?.uid;
+    const finalPushToken = token || devicePushToken;
+
+    if (currentUid && finalPushToken) {
+      const userRef = doc(db, "user", currentUid);
       await updateDoc(userRef, {
-        pushToken: token,
+        pushToken: finalPushToken,
+        fcmToken: devicePushToken || null,
         pushTokenUpdatedAt: serverTimestamp(),
       });
-      console.log("Token push enregistré pour l'utilisateur:", userId);
+      console.log("Token push enregistré pour l'utilisateur:", currentUid, finalPushToken);
+
+      // Si l'utilisateur est un cuisinier propriétaire de restaurant, répliquer sur le restaurant
+      try {
+        const uDoc = await getDoc(userRef);
+        if (uDoc.exists()) {
+          const uData = uDoc.data();
+          if (uData.kitchenId) {
+            await updateDoc(doc(db, "restaurants", uData.kitchenId), {
+              pushToken: finalPushToken,
+            });
+            console.log("Token push répliqué sur le restaurant du cuisinier:", uData.kitchenId);
+          }
+        }
+      } catch (kErr) {
+        console.warn("Notice replication token restaurant:", kErr?.message);
+      }
     }
   } catch (error) {
     console.warn("Erreur enregistrement notifications push:", error);

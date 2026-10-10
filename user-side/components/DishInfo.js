@@ -29,7 +29,12 @@ const DishInfo = ({ id, quantity }) => {
         {quantity} x
       </Text>
       <Image
-        source={{ uri: dishes.image }}
+        source={{
+          uri:
+            dishes?.image && (dishes.image.startsWith("http") || dishes.image.startsWith("data:image"))
+              ? dishes.image
+              : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80",
+        }}
         className="h-12 w-12 rounded-full"
       />
       <Text className="font-semibold text-base pt-1 text-gray-700">

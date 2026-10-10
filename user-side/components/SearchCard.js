@@ -26,7 +26,11 @@ const SearchCard = ({ results }) => {
       <View className="h-32 w-32 my-auto">
         <Image
           source={{
-            uri: results.image,
+            uri:
+              results?.image &&
+              (results.image.startsWith("http") || results.image.startsWith("data:image"))
+                ? results.image
+                : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80",
           }}
           className="h-32 w-32 rounded-xl"
         />

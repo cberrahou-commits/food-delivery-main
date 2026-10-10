@@ -1,7 +1,7 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform, Linking } from "react-native";
-import { db } from "../../firebase/firebase";
+import { db, auth } from "../../firebase/firebase";
 
 export const openAppSettings = () => {
   Linking.openSettings();
@@ -135,16 +135,29 @@ export const registerForPushNotificationsAsync = async (userId) => {
       token = tokenData?.data;
       console.log("Expo Push Token obtenu (Livreur):", token);
     } catch (tokenErr) {
-      console.log("Note: Expo Push Token nécessite un build EAS / appareil réel:", tokenErr?.message);
+      console.log("Note Expo Push Token (Livreur):", tokenErr?.message);
     }
 
-    if (userId && token) {
-      const userRef = doc(db, "user", userId);
+    let devicePushToken = null;
+    try {
+      const devData = await Notifications.getDevicePushTokenAsync();
+      devicePushToken = devData?.data;
+      console.log("FCM Device Push Token obtenu (Livreur):", devicePushToken);
+    } catch (devErr) {
+      console.log("Note Device Push Token (Livreur):", devErr?.message);
+    }
+
+    const currentUid = userId || auth?.currentUser?.uid;
+    const finalPushToken = token || devicePushToken;
+
+    if (currentUid && finalPushToken) {
+      const userRef = doc(db, "user", currentUid);
       await updateDoc(userRef, {
-        pushToken: token,
+        pushToken: finalPushToken,
+        fcmToken: devicePushToken || null,
         pushTokenUpdatedAt: serverTimestamp(),
       });
-      console.log("Token push du coursier enregistré dans Firestore");
+      console.log("Token push du coursier enregistré dans Firestore pour:", currentUid, finalPushToken);
     }
   } catch (error) {
     console.warn("Erreur enregistrement token push livreur:", error);

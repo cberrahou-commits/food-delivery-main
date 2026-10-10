@@ -56,11 +56,14 @@ const CookOnboardingScreen = () => {
       }
       const res = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
-        quality: 0.7,
+        quality: 0.4,
+        base64: true,
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {
-        if (target === "idCard") setIdCardUri(res.assets[0].uri);
-        if (target === "kitchen") setKitchenPhotoUri(res.assets[0].uri);
+        const asset = res.assets[0];
+        const dataUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        if (target === "idCard") setIdCardUri(dataUri);
+        if (target === "kitchen") setKitchenPhotoUri(dataUri);
       }
     } catch (e) {
       console.error(e);
@@ -78,11 +81,14 @@ const CookOnboardingScreen = () => {
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        quality: 0.7,
+        quality: 0.4,
+        base64: true,
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {
-        if (target === "idCard") setIdCardUri(res.assets[0].uri);
-        if (target === "kitchen") setKitchenPhotoUri(res.assets[0].uri);
+        const asset = res.assets[0];
+        const dataUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        if (target === "idCard") setIdCardUri(dataUri);
+        if (target === "kitchen") setKitchenPhotoUri(dataUri);
       }
     } catch (e) {
       console.error(e);

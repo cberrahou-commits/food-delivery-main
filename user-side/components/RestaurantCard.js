@@ -29,7 +29,10 @@ const RestaurantCard = ({
     >
       <Image
         source={{
-          uri: image.startsWith("http") ? image : DEFAULT_IMAGE,
+          uri:
+            image && (image.startsWith("http") || image.startsWith("data:image"))
+              ? image
+              : DEFAULT_IMAGE,
         }}
         className="h-36 w-60 rounded-md"
       />

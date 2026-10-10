@@ -44,12 +44,15 @@ const CourierVerificationScreen = ({ navigation, onStatusUpdate }) => {
       }
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
-        quality: 0.7,
+        quality: 0.4,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        if (type === "idCard") setIdCardUri(result.assets[0].uri);
-        if (type === "license") setLicenseUri(result.assets[0].uri);
+        const asset = result.assets[0];
+        const dataUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        if (type === "idCard") setIdCardUri(dataUri);
+        if (type === "license") setLicenseUri(dataUri);
       }
     } catch (e) {
       console.error("Camera error:", e);
@@ -71,12 +74,15 @@ const CourierVerificationScreen = ({ navigation, onStatusUpdate }) => {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        quality: 0.7,
+        quality: 0.4,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        if (type === "idCard") setIdCardUri(result.assets[0].uri);
-        if (type === "license") setLicenseUri(result.assets[0].uri);
+        const asset = result.assets[0];
+        const dataUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        if (type === "idCard") setIdCardUri(dataUri);
+        if (type === "license") setLicenseUri(dataUri);
       }
     } catch (e) {
       console.error("Picker error:", e);

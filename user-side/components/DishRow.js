@@ -101,7 +101,10 @@ const DishRow = ({
                 borderColor: "#F3F3F4",
               }}
               source={{
-                uri: image,
+                uri:
+                  image && (image.startsWith("http") || image.startsWith("data:image"))
+                    ? image
+                    : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80",
               }}
               className="w-28 h-28 bg-gray-300 p-4 rounded-xl"
             />

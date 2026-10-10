@@ -34,7 +34,10 @@ const RestaurantItem = ({
       <View className="h-30 w-30 ">
         <Image
           source={{
-            uri: image.startsWith("http") ? image : DEFAULT_IMAGE,
+            uri:
+              image && (image.startsWith("http") || image.startsWith("data:image"))
+                ? image
+                : DEFAULT_IMAGE,
           }}
           className="h-36 w-36 rounded-md "
         />
