@@ -1,0 +1,17 @@
+{
+  "name": "food-delivery-whatsapp-service",
+  "version": "1.0.0",
+  "description": "Service d'écoute Firestore et d'envoi automatique de notifications WhatsApp (Meta Cloud API & Twilio) pour Food Delivery Algérie",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test-send": "node test-whatsapp.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "firebase": "^10.8.0"
+  }
+}
+
