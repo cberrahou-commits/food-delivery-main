@@ -219,3 +219,4 @@ const WilayaSelectorModal = ({
 };
 
 export default WilayaSelectorModal;
+

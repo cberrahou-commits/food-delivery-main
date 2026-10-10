@@ -147,3 +147,4 @@ export const openGpsNavigation = (lat, lng, address = "", label = "Destination")
     Alert.alert("Position introuvable", "Aucune coordonnée ni adresse n'a été trouvée pour cet itinéraire.");
   }
 };
+
