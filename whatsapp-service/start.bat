@@ -6,3 +6,4 @@ echo   DEMARRAGE DU SERVICE WHATSAPP NOTIFICATIONS
 echo ========================================================
 node index.js
 pause
+

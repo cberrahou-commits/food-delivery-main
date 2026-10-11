@@ -212,10 +212,75 @@ const unsubscribe = onSnapshot(
   }
 );
 
+// 3. Écouteur Firestore pour la vérification OTP de numéro WhatsApp
+const verifCol = collection(db, "phoneVerifications");
+
+const unsubscribeVerif = onSnapshot(
+  verifCol,
+  (snapshot) => {
+    snapshot.docChanges().forEach(async (change) => {
+      const data = change.doc.data();
+      const verifId = change.doc.id;
+
+      if (
+        (change.type === "added" || change.type === "modified") &&
+        data.status === "REQUESTED"
+      ) {
+        const targetPhone = data.formattedPhone || data.phone || data.phoneNumber;
+        const code = data.code;
+
+        console.log(`\n🔐 Demande de vérification WhatsApp reçue pour : ${targetPhone}`);
+
+        if (!targetPhone || !code) {
+          console.warn("⚠️ Données incomplètes pour la vérification OTP:", data);
+          return;
+        }
+
+        const otpMessage =
+          `🔐 *Food Delivery Algérie*\n\n` +
+          `Votre code de vérification WhatsApp est : *${code}*\n\n` +
+          `Entrez ce code dans l'application pour valider votre numéro de téléphone.\n` +
+          `⏱️ Ce code expire dans 10 minutes. Ne le partagez avec personne.`;
+
+        try {
+          // Marquer en cours pour éviter les envois concurrents
+          await updateDoc(doc(db, "phoneVerifications", verifId), {
+            status: "PROCESSING",
+          });
+
+          await dispatchWhatsApp({
+            phone: targetPhone,
+            messageText: otpMessage,
+            templateName: process.env.META_TEMPLATE_OTP || null,
+            templateParams: [code],
+          });
+
+          await updateDoc(doc(db, "phoneVerifications", verifId), {
+            status: "SENT",
+            sentAt: new Date(),
+          });
+
+          console.log(`✅ Code OTP WhatsApp [${code}] envoyé avec succès à ${targetPhone}`);
+        } catch (err) {
+          console.error(`❌ Échec envoi code OTP WhatsApp à ${targetPhone}:`, err.message);
+          await updateDoc(doc(db, "phoneVerifications", verifId), {
+            status: "FAILED",
+            error: err.message,
+          }).catch(() => {});
+        }
+      }
+    });
+  },
+  (error) => {
+    console.error("❌ Erreur écouteur phoneVerifications:", error);
+  }
+);
+
 // Arrêt propre
 process.on("SIGINT", () => {
   console.log("\nArrêt du service WhatsApp...");
   unsubscribe();
+  unsubscribeVerif();
   process.exit(0);
 });
 

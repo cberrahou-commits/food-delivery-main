@@ -33,6 +33,7 @@ import {
   registerForPushNotificationsAsync,
   triggerLocalNotification,
 } from "../services/notificationService";
+import WhatsAppOtpModal from "../components/WhatsAppOtpModal";
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -42,6 +43,8 @@ const ProfileScreen = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [otpModalVisible, setOtpModalVisible] = useState(false);
   const [address, setAddress] = useState("");
   const [profileImage, setProfileImage] = useState(null);
   const [phoneNumberError, setPhoneNumberError] = useState("");
@@ -70,6 +73,7 @@ const ProfileScreen = () => {
           setFirstName(data.firstName || (data.name ? data.name.split(" ")[0] : ""));
           setLastName(data.lastName || (data.name ? data.name.split(" ").slice(1).join(" ") : ""));
           setPhoneNumber(data.phoneNumber || data.phone || "");
+          setIsPhoneVerified(Boolean(data.isPhoneVerified));
           setAddress(data.address || "");
           setProfileImage(data.profileImage || data.photoURL || null);
           setHasPushToken(Boolean(data.pushToken || data.fcmToken));
@@ -223,6 +227,7 @@ const ProfileScreen = () => {
         lastName: lastName.trim(),
         name: `${firstName.trim()} ${lastName.trim()}`,
         phoneNumber: phoneNumber.trim(),
+        isPhoneVerified: isPhoneVerified,
         address: address.trim(),
         updatedAt: new Date(),
       };
@@ -416,16 +421,50 @@ const ProfileScreen = () => {
             </View>
 
             <View className="mb-4">
-              <Text className="text-xs font-bold text-gray-600 mb-1">
-                Numéro de téléphone
-              </Text>
-              <TextInput
-                className="bg-gray-50 border border-gray-300 text-sm h-11 px-3.5 rounded-xl text-gray-800"
-                value={phoneNumber}
-                onChangeText={handlePhoneNumberChange}
-                placeholder="+33 6 12 34 56 78"
-                keyboardType="phone-pad"
-              />
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="text-xs font-bold text-gray-600">
+                  Numéro WhatsApp 📱
+                </Text>
+                {isPhoneVerified ? (
+                  <View className="bg-emerald-100 px-2 py-0.5 rounded-full flex-row items-center">
+                    <Text className="text-[10px] font-bold text-emerald-800">
+                      ✅ Vérifié
+                    </Text>
+                  </View>
+                ) : (
+                  <View className="bg-amber-100 px-2 py-0.5 rounded-full flex-row items-center">
+                    <Text className="text-[10px] font-bold text-amber-800">
+                      Non vérifié
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View className="flex-row items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 h-11">
+                <Text className="text-sm font-bold text-gray-600 mr-2">🇩🇿 +213</Text>
+                <TextInput
+                  className="flex-1 text-sm text-gray-800"
+                  value={phoneNumber}
+                  onChangeText={(txt) => {
+                    handlePhoneNumberChange(txt);
+                    setIsPhoneVerified(false);
+                  }}
+                  placeholder="05 / 06 / 07 XX XX XX"
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              {!isPhoneVerified && phoneNumber.length >= 8 ? (
+                <TouchableOpacity
+                  onPress={() => setOtpModalVisible(true)}
+                  className="mt-2 bg-emerald-50 border border-emerald-300 py-2 px-3 rounded-xl flex-row items-center justify-center space-x-1"
+                >
+                  <Text className="text-xs font-bold text-emerald-800">
+                    💬 Vérifier ce numéro sur WhatsApp
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+
               {phoneNumberError ? (
                 <Text className="text-xs text-red-500 mt-1">{phoneNumberError}</Text>
               ) : null}
@@ -503,6 +542,18 @@ const ProfileScreen = () => {
             )}
           </TouchableOpacity>
         </ScrollView>
+
+        {/* Modal de vérification OTP WhatsApp */}
+        <WhatsAppOtpModal
+          visible={otpModalVisible}
+          phoneNumber={phoneNumber}
+          userId={user?.uid}
+          onClose={() => setOtpModalVisible(false)}
+          onVerified={(clean) => {
+            setIsPhoneVerified(true);
+            setPhoneNumber(clean);
+          }}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

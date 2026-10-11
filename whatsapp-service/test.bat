@@ -10,3 +10,4 @@ echo.
 node test-whatsapp.js %phone%
 echo.
 pause
+

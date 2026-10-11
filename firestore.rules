@@ -85,6 +85,21 @@ service cloud.firestore {
     //   - comment: string (optional)
     //   - createdAt: timestamp / string (optional)
     //
+    // Collection: phoneVerifications
+    // Document ID: {verifId}
+    // Fields:
+    //   - userId: string (optional)
+    //   - phone: string (optional)
+    //   - formattedPhone: string (optional)
+    //   - code: string (required)
+    //   - status: string ("REQUESTED" | "PROCESSING" | "SENT" | "VERIFIED" | "FAILED")
+    //   - verified: bool (optional)
+    //   - createdAt: timestamp (required)
+    //   - expiresAt: timestamp (optional)
+    //   - verifiedAt: timestamp (optional)
+    //   - sentAt: timestamp (optional)
+    //   - error: string (optional)
+    //
     // ===============================================================
 
     // Helper functions
@@ -129,6 +144,11 @@ service cloud.firestore {
     // Customer & driver reviews
     // Public read and write to allow customers to leave ratings/feedback and view reviews
     match /reviews/{reviewId} {
+      allow read, write: if true;
+    }
+
+    // Phone verifications (WhatsApp OTP)
+    match /phoneVerifications/{verifId} {
       allow read, write: if true;
     }
   }
