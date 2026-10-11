@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Image, ScrollView, Alert, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
@@ -20,6 +20,7 @@ import {
   collection,
   addDoc,
   setDoc,
+  updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import { notifyCookForNewOrder } from "../services/notificationService";
@@ -46,6 +47,16 @@ const BasketScreen = () => {
     setGroupItemsInBucket(groupItems);
   }, [items]);
 
+  const [phoneNumber, setPhoneNumber] = useState(
+    dbUser?.phoneNumber || ""
+  );
+
+  useEffect(() => {
+    if (dbUser?.phoneNumber && !phoneNumber) {
+      setPhoneNumber(dbUser.phoneNumber);
+    }
+  }, [dbUser?.phoneNumber]);
+
   const ordersCollection = collection(db, "orders");
   const orderDishesCollection = collection(db, "orderDishes");
 
@@ -67,6 +78,15 @@ const BasketScreen = () => {
   const createOrder = async () => {
     if (items.length === 0) {
       Alert.alert(t("basketEmpty"), t("basketEmptyDesc"));
+      return;
+    }
+
+    const targetPhone = phoneNumber.trim() || dbUser?.phoneNumber || "";
+    if (!targetPhone) {
+      Alert.alert(
+        "Numéro de téléphone requis",
+        "Veuillez renseigner votre numéro de téléphone (WhatsApp) pour recevoir les notifications en direct de votre commande."
+      );
       return;
     }
 
@@ -94,12 +114,19 @@ const BasketScreen = () => {
         userAddress: dbUser?.address || "",
         userWilaya: dbUser?.wilaya || "",
         userWilayaCode: dbUser?.wilayaCode || "",
-        userPhoneNumber: dbUser?.phoneNumber || "",
+        userPhoneNumber: targetPhone,
         status: "PENDING_COOK_APPROVAL",
         initialEstimatedMinutes: maxPrepTime,
         total: Number(basketTotal + deliveryFee),
         createdAt: serverTimestamp(),
       });
+
+      // Mettre à jour le profil utilisateur avec son numéro WhatsApp si non renseigné
+      if (user?.uid && targetPhone && !dbUser?.phoneNumber) {
+        updateDoc(doc(db, "user", user.uid), {
+          phoneNumber: targetPhone,
+        }).catch(console.warn);
+      }
 
       await Promise.all(
         Object.entries(groupItemsInBucket).map(([key, dishGroup]) => {
@@ -222,6 +249,34 @@ const BasketScreen = () => {
                 className="h-7 w-7 bg-gray-300 p-4 rounded-full"
               />
               <Text className="flex-1 text-gray-700">{t("cashOnDelivery")}</Text>
+            </View>
+
+            {/* Suivi WhatsApp de commande */}
+            <View className="bg-white px-4 py-3 my-1 border border-gray-100">
+              <View className="flex-row items-center justify-between mb-1.5">
+                <Text className="text-xs font-bold text-gray-800">
+                  📱 Suivi de commande sur WhatsApp
+                </Text>
+                <View className="bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <Text className="text-[10px] text-emerald-700 font-bold">
+                    Automatique 💬
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-xl px-3 h-11">
+                <Text className="text-xs font-bold text-gray-700 mr-2">🇩🇿 +213</Text>
+                <TextInput
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  placeholder="05 / 06 / 07 XX XX XX"
+                  keyboardType="phone-pad"
+                  className="flex-1 text-sm text-gray-900"
+                />
+              </View>
+              <Text className="text-[10px] text-gray-400 mt-1">
+                Vous recevrez l'estimation du chef et l'arrivée du livreur directement sur WhatsApp.
+              </Text>
             </View>
 
             {/* Résumé prix */}
