@@ -34,7 +34,7 @@ async function sendMetaWhatsAppMessage({ phone, messageText, templateName, templ
       template: {
         name: templateName,
         language: {
-          code: process.env.META_TEMPLATE_LANG || "fr",
+          code: templateName === "hello_world" ? "en_US" : (process.env.META_TEMPLATE_LANG || "fr"),
         },
       },
     };
