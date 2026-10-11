@@ -210,6 +210,17 @@ const WhatsAppOtpModal = ({
                 ⚠️ {errorMsg}
               </Text>
             ) : null}
+
+            {__DEV__ && generatedCode ? (
+              <TouchableOpacity
+                onPress={() => setCode(generatedCode)}
+                className="mt-2 py-1 px-3 bg-amber-50 rounded-lg border border-amber-200 self-center"
+              >
+                <Text className="text-xs text-amber-800 font-semibold">
+                  🛠️ Mode Test Dev : Remplir automatiquement ({generatedCode})
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           {/* Bouton de validation */}

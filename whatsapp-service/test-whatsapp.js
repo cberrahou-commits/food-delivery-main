@@ -28,7 +28,29 @@ async function runTest() {
 
   try {
     let result;
-    if (provider === "twilio") {
+    if (provider === "web" || provider === "baileys" || provider === "qr") {
+      console.log("📡 Envoi via WhatsApp Web (Session connectée)...");
+      const { initBaileys, sendBaileysWhatsAppMessage, isBaileysReady } = require("./baileysApi");
+      if (!isBaileysReady()) {
+        console.log("Connexion à WhatsApp Web en cours...");
+        await initBaileys();
+        // Attendre que la connexion soit prête (QR scanné ou session restaurée)
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error("Délai de connexion dépassé (60s). Veuillez scanner le QR code.")), 60000);
+          const interval = setInterval(() => {
+            if (isBaileysReady()) {
+              clearInterval(interval);
+              clearTimeout(timeout);
+              resolve();
+            }
+          }, 1000);
+        });
+      }
+      result = await sendBaileysWhatsAppMessage({
+        phone: targetPhone,
+        messageText: testMessage,
+      });
+    } else if (provider === "twilio") {
       console.log("📡 Envoi via Twilio WhatsApp API...");
       result = await sendTwilioWhatsAppMessage({
         phone: targetPhone,

@@ -82,12 +82,26 @@ async function sendMetaWhatsAppMessage({ phone, messageText, templateName, templ
   } catch (error) {
     const errorDetails = error.response?.data?.error;
     const msg = errorDetails?.message || error.message;
+    const code = errorDetails?.code;
     console.error("❌ Erreur Meta WhatsApp Cloud API:", {
       status: error.response?.status,
       message: msg,
-      code: errorDetails?.code,
+      code: code,
       error_data: errorDetails?.error_data,
     });
+
+    if (code === 131030) {
+      console.log("\n💡 [Action requise sur Meta] :");
+      console.log("   Votre application Meta est en mode Développeur / Test.");
+      console.log(`   Pour recevoir des messages sur ${formattedPhone} :`);
+      console.log("   1. Allez sur https://developers.facebook.com/apps");
+      console.log("   2. WhatsApp > Configuration de l'API (API Setup)");
+      console.log("   3. Dans le champ 'À' (To), cliquez sur 'Gérer la liste de numéros de téléphone'");
+      console.log(`   4. Ajoutez votre numéro (+213...) et validez le SMS/code Meta.`);
+    } else if (code === 131047) {
+      console.log("\n💡 [Fenêtre 24h Meta requise] :");
+      console.log("   Envoyez d'abord un message (ex: 'Salut') depuis votre WhatsApp vers le numéro de test Meta pour ouvrir la fenêtre de 24h.");
+    }
 
     throw new Error(`Erreur Meta API: ${msg}`);
   }

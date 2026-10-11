@@ -9,6 +9,18 @@ const {
 } = require("firebase/firestore");
 const { sendMetaWhatsAppMessage } = require("./metaApi");
 const { sendTwilioWhatsAppMessage } = require("./twilioApi");
+const { initBaileys, sendBaileysWhatsAppMessage, isBaileysReady } = require("./baileysApi");
+
+// Fournisseur actif
+const activeProvider = (process.env.WHATSAPP_PROVIDER || "web").toLowerCase();
+
+// Si le fournisseur est WhatsApp Web QR Code, on initialise la session
+if (activeProvider === "web" || activeProvider === "baileys" || activeProvider === "qr") {
+  console.log("🔄 Initialisation de la passerelle WhatsApp Web (Scan QR Code)...");
+  initBaileys().catch((err) => {
+    console.error("❌ Erreur initialisation Baileys:", err);
+  });
+}
 
 // 1. Initialisation Firebase
 const firebaseConfig = {
@@ -33,8 +45,9 @@ console.log("========================================================");
 console.log("🚀 SERVICE DE NOTIFICATIONS WHATSAPP FIRESTORE DÉMARRÉ");
 console.log("========================================================");
 console.log(`Projet Firebase : ${firebaseConfig.projectId}`);
-console.log(`Fournisseur WhatsApp : ${(process.env.WHATSAPP_PROVIDER || "meta").toUpperCase()}`);
+console.log(`Fournisseur WhatsApp : ${activeProvider.toUpperCase()}`);
 console.log("Écoute en temps réel des commandes dans 'orders'...");
+console.log("Écoute des demandes OTP dans 'phoneVerifications'...");
 console.log("--------------------------------------------------------");
 
 /**
@@ -46,9 +59,11 @@ async function dispatchWhatsApp({ phone, messageText, templateName, templatePara
     return;
   }
 
-  const provider = (process.env.WHATSAPP_PROVIDER || "meta").toLowerCase();
+  const provider = (process.env.WHATSAPP_PROVIDER || "web").toLowerCase();
 
-  if (provider === "twilio") {
+  if (provider === "web" || provider === "baileys" || provider === "qr") {
+    return await sendBaileysWhatsAppMessage({ phone, messageText });
+  } else if (provider === "twilio") {
     return await sendTwilioWhatsAppMessage({ phone, messageText });
   } else {
     return await sendMetaWhatsAppMessage({

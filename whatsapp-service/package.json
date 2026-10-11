@@ -9,9 +9,11 @@
     "test-send": "node test-whatsapp.js"
   },
   "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
-    "firebase": "^10.8.0"
+    "firebase": "^10.8.0",
+    "pino": "^10.4.0",
+    "qrcode-terminal": "^0.12.0"
   }
 }
-
