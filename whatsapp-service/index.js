@@ -5,6 +5,7 @@ const {
   collection,
   onSnapshot,
   doc,
+  getDoc,
   updateDoc,
 } = require("firebase/firestore");
 const { sendMetaWhatsAppMessage } = require("./metaApi");
@@ -87,36 +88,86 @@ async function handleOrderStatusChange(orderId, orderData) {
     return;
   }
 
-  // Vérifier la date de création : si la commande date de plus de 30 minutes avant le démarrage
-  const createdAtMs = orderData.createdAt?.toMillis
-    ? orderData.createdAt.toMillis()
-    : orderData.createdAt?.seconds
-    ? orderData.createdAt.seconds * 1000
-    : Date.now();
-
-  if (createdAtMs < serviceStartTime - 30 * 60 * 1000 && !lastStatus) {
-    // Ancienne commande historique au premier démarrage, on mémorise son statut sans spammer
-    notifiedStatusCache.set(orderId, status);
-    return;
-  }
-
-  console.log(`\n🔔 Changement détecté : Commande #${orderId.slice(0, 6)} -> [${status}]`);
+  console.log(`\n🔔 Changement détecté : Commande #${orderId.slice(0, 6)} -> [${status}] (Précédent: ${lastStatus || "Nouveau"})`);
   notifiedStatusCache.set(orderId, status);
 
-  const clientPhone = orderData.userPhoneNumber;
-  const cookPhone = orderData.restaurantPhone;
+  let clientPhone =
+    orderData.userPhoneNumber ||
+    orderData.phoneNumber ||
+    orderData.userPhone ||
+    orderData.phone;
+  let cookPhone =
+    orderData.restaurantPhone ||
+    orderData.cookPhone;
+
+  // Si le numéro du client n'est pas direct sur la commande, chercher dans son profil utilisateur
+  if (!clientPhone && orderData.userId) {
+    try {
+      const userSnap = await getDoc(doc(db, "user", orderData.userId));
+      if (userSnap.exists()) {
+        const u = userSnap.data();
+        clientPhone = u.phoneNumber || u.phone;
+      }
+    } catch (e) {}
+  }
+
+  // Si le numéro du cuisinier n'est pas direct sur la commande, chercher dans la fiche du restaurant
+  if (!cookPhone && orderData.restaurantId) {
+    try {
+      const restSnap = await getDoc(doc(db, "restaurants", orderData.restaurantId));
+      if (restSnap.exists()) {
+        const r = restSnap.data();
+        cookPhone = r.phone || r.phoneNumber;
+      }
+    } catch (e) {}
+  }
+
   const restaurantName = orderData.restaurantName || "Cuisine Partenaire";
   const shortId = orderId.slice(0, 6);
+  const total = orderData.total || 0;
 
   try {
     switch (status) {
+      // 0. NOUVELLE COMMANDE PASSÉE PAR LE CLIENT
+      case "PENDING_COOK_APPROVAL":
+      case "PENDING":
+      case "NEW": {
+        const msgClient =
+          `🍔 *Food Delivery Algérie*\n\n` +
+          `✅ *Votre commande #${shortId} a été enregistrée !*\n` +
+          `Restaurant : *${restaurantName}*\n` +
+          `💰 Montant total : *${total} DA*\n\n` +
+          `👨‍🍳 Votre commande a été transmise au chef cuisinier. Vous recevrez un message dès que le chef aura validé l'heure de préparation.`;
+
+        await dispatchWhatsApp({
+          phone: clientPhone,
+          messageText: msgClient,
+        });
+        console.log(`✅ Client notifié sur WhatsApp pour création de commande (#${shortId})`);
+
+        if (cookPhone) {
+          const msgCook =
+            `🔔 *Nouvelle Commande Reçue ! (#${shortId})*\n\n` +
+            `Un client vient de commander chez *${restaurantName}* !\n` +
+            `💰 Montant : *${total} DA*\n\n` +
+            `👉 Veuillez ouvrir votre tableau de bord restaurant pour indiquer l'heure de fin de cuisson.`;
+
+          await dispatchWhatsApp({
+            phone: cookPhone,
+            messageText: msgCook,
+          });
+          console.log(`✅ Cuisinier notifié sur WhatsApp pour nouvelle commande (#${shortId})`);
+        }
+        break;
+      }
+
       // 1. Cuisinier a estimé le temps -> Client doit confirmer
       case "WAITING_CLIENT_CONFIRMATION": {
         const timeStr = orderData.estimatedReadyTimeStr || "bientôt";
         const mins = orderData.prepTimeMinutes || 25;
         const msg =
           `👨‍🍳 *Mise à jour Commande #${shortId}*\n\n` +
-          `Le chef cuisinier de *${restaurantName}* a estimé la fin de préparation pour *${timeStr}* (~${mins} min).\n\n` +
+          `Le chef de *${restaurantName}* a estimé la fin de préparation pour *${timeStr}* (~${mins} min).\n\n` +
           `👉 Merci d'ouvrir l'application pour accepter ou refuser cette heure de fin de cuisson.`;
 
         await dispatchWhatsApp({
@@ -130,7 +181,8 @@ async function handleOrderStatusChange(orderId, orderData) {
       }
 
       // 2. Client a accepté l'heure -> Cuisson démarre
-      case "IN_PREPARATION": {
+      case "IN_PREPARATION":
+      case "PREPARING": {
         if (cookPhone) {
           const msg =
             `🍳 *Commande #${shortId} Confirmée !*\n\n` +
@@ -144,6 +196,16 @@ async function handleOrderStatusChange(orderId, orderData) {
           });
           console.log(`✅ Cuisinier notifié sur WhatsApp du début de cuisson (#${shortId})`);
         }
+
+        const msgClient =
+          `🍳 *Préparation en cours ! (Commande #${shortId})*\n\n` +
+          `Le chef cuisinier prépare actuellement vos plats avec soin chez *${restaurantName}*.`;
+
+        await dispatchWhatsApp({
+          phone: clientPhone,
+          messageText: msgClient,
+        });
+        console.log(`✅ Client notifié sur WhatsApp du début de cuisson (#${shortId})`);
         break;
       }
 
@@ -164,12 +226,13 @@ async function handleOrderStatusChange(orderId, orderData) {
         break;
       }
 
-      // 4. Livreur assigné et en route
-      case "ASSIGNED_TO_DELIVERY": {
+      // 4. Livreur assigné et en route vers le restaurant
+      case "ASSIGNED_TO_DELIVERY":
+      case "DRIVERACCEPTED": {
         const driverName = orderData.driverName || "Votre livreur";
         const msg =
-          `🛵 *Livreur en route ! (Commande #${shortId})*\n\n` +
-          `*${driverName}* a pris en charge votre commande et se dirige vers votre adresse :\n📍 ${orderData.userAddress || "Votre domicile"}`;
+          `🛵 *Livreur assigné ! (Commande #${shortId})*\n\n` +
+          `*${driverName}* a pris en charge votre commande et se dirige vers *${restaurantName}* pour récupérer vos plats.`;
 
         await dispatchWhatsApp({
           phone: clientPhone,
@@ -177,12 +240,30 @@ async function handleOrderStatusChange(orderId, orderData) {
           templateName: process.env.META_TEMPLATE_DRIVER_ASSIGNED || null,
           templateParams: [shortId, `Livreur ${driverName} en route`],
         });
+        console.log(`✅ Client notifié sur WhatsApp : coursier assigné (#${shortId})`);
+        break;
+      }
+
+      // 5. Livreur a récupéré les plats chez le chef et roule vers le client
+      case "DRIVERPICKEDUP":
+      case "ON_THE_WAY": {
+        const driverName = orderData.driverName || "Votre livreur";
+        const address = orderData.userAddress || "Votre domicile";
+        const msg =
+          `🛵 *Livreur en route vers chez vous ! (Commande #${shortId})*\n\n` +
+          `*${driverName}* a récupéré vos plats et se dirige vers votre adresse :\n📍 ${address}`;
+
+        await dispatchWhatsApp({
+          phone: clientPhone,
+          messageText: msg,
+        });
         console.log(`✅ Client notifié sur WhatsApp : coursier en route (#${shortId})`);
         break;
       }
 
-      // 5. Commande livrée avec succès
-      case "DELIVERED": {
+      // 6. Commande livrée avec succès
+      case "DELIVERED":
+      case "COMPLETE": {
         const msg =
           `✅ *Commande #${shortId} Livrée avec Succès !*\n\n` +
           `Nous espérons que vous allez vous régaler ! Bon appétit ! 🍽️\n\n` +
@@ -198,8 +279,23 @@ async function handleOrderStatusChange(orderId, orderData) {
         break;
       }
 
+      // 7. Commande refusée par le cuisinier
+      case "DECLINED_BY_COOK":
+      case "DECLINED": {
+        const msg =
+          `❌ *Commande Non Confirmée (#${shortId})*\n\n` +
+          `Le chef de *${restaurantName}* ne peut malheureusement pas prendre en charge votre commande actuellement.`;
+
+        await dispatchWhatsApp({
+          phone: clientPhone,
+          messageText: msg,
+        });
+        console.log(`✅ Client notifié sur WhatsApp du refus de commande (#${shortId})`);
+        break;
+      }
+
       default:
-        // Autres statuts (PENDING, DECLINED, etc.)
+        // Autres statuts
         break;
     }
   } catch (err) {
@@ -209,6 +305,7 @@ async function handleOrderStatusChange(orderId, orderData) {
 
 // 2. Écouteur Firestore en temps réel
 const ordersCol = collection(db, "orders");
+let isInitialOrdersLoad = true;
 
 const unsubscribe = onSnapshot(
   ordersCol,
@@ -217,13 +314,26 @@ const unsubscribe = onSnapshot(
       const orderData = change.doc.data();
       const orderId = change.doc.id;
 
+      if (isInitialOrdersLoad) {
+        // Mémoriser l'état initial des commandes existantes pour ne pas envoyer d'anciens spams
+        notifiedStatusCache.set(orderId, orderData.status);
+        return;
+      }
+
       if (change.type === "added" || change.type === "modified") {
         handleOrderStatusChange(orderId, orderData);
       }
     });
+
+    if (isInitialOrdersLoad) {
+      isInitialOrdersLoad = false;
+      console.log(`✅ Synchronisation initiale : ${notifiedStatusCache.size} commandes existantes en mémoire.`);
+      console.log("👂 Écoute active : Toute nouvelle commande ou changement de statut sera notifié sur WhatsApp !");
+      console.log("--------------------------------------------------------");
+    }
   },
   (error) => {
-    console.error("❌ Erreur écouteur Firestore:", error);
+    console.error("❌ Erreur écouteur Firestore orders:", error);
   }
 );
 
