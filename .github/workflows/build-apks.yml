@@ -51,23 +51,27 @@ jobs:
           cd user-side
           npx expo prebuild -p android --clean
 
-      - name: 🔨 Compilation de l'APK Android avec Gradle
+      - name: 🔨 Compilation de l'APK Android Standalone avec Gradle
         run: |
           cd user-side/android
           chmod +x gradlew
-          ./gradlew assembleRelease || ./gradlew assembleDebug
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: 📋 Préparation du fichier APK
+      - name: 📋 Préparation du fichier APK Standalone
         run: |
           mkdir -p output-apks
-          find user-side/android/app/build/outputs/apk/ -name "*.apk" -exec cp {} output-apks/FoodDelivery-Client-Cuisinier.apk \;
+          if ls user-side/android/app/build/outputs/apk/release/*.apk 1> /dev/null 2>&1; then
+            cp user-side/android/app/build/outputs/apk/release/*.apk output-apks/Wajbati-Client-Cuisinier.apk
+          else
+            find user-side/android/app/build/outputs/apk/ -name "*.apk" -exec cp {} output-apks/Wajbati-Client-Cuisinier.apk \;
+          fi
           ls -lh output-apks/
 
       - name: 🚀 Téléchargement de l'APK (Artifact GitHub)
         uses: actions/upload-artifact@v4
         with:
-          name: FoodDelivery-Client-Cuisinier-APK
-          path: output-apks/FoodDelivery-Client-Cuisinier.apk
+          name: Wajbati-Client-Cuisinier-APK
+          path: output-apks/Wajbati-Client-Cuisinier.apk
           retention-days: 14
 
   build-driver-apk:
@@ -107,21 +111,25 @@ jobs:
           cd driver-app
           npx expo prebuild -p android --clean
 
-      - name: 🔨 Compilation de l'APK Android avec Gradle
+      - name: 🔨 Compilation de l'APK Android Standalone avec Gradle
         run: |
           cd driver-app/android
           chmod +x gradlew
-          ./gradlew assembleRelease || ./gradlew assembleDebug
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: 📋 Préparation du fichier APK
+      - name: 📋 Préparation du fichier APK Standalone
         run: |
           mkdir -p output-apks
-          find driver-app/android/app/build/outputs/apk/ -name "*.apk" -exec cp {} output-apks/FoodDelivery-Livreur.apk \;
+          if ls driver-app/android/app/build/outputs/apk/release/*.apk 1> /dev/null 2>&1; then
+            cp driver-app/android/app/build/outputs/apk/release/*.apk output-apks/Wajbati-Livreur.apk
+          else
+            find driver-app/android/app/build/outputs/apk/ -name "*.apk" -exec cp {} output-apks/Wajbati-Livreur.apk \;
+          fi
           ls -lh output-apks/
 
       - name: 🚀 Téléchargement de l'APK (Artifact GitHub)
         uses: actions/upload-artifact@v4
         with:
-          name: FoodDelivery-Livreur-APK
-          path: output-apks/FoodDelivery-Livreur.apk
+          name: Wajbati-Livreur-APK
+          path: output-apks/Wajbati-Livreur.apk
           retention-days: 14
