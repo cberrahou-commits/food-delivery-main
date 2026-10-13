@@ -27,6 +27,12 @@
           "icon": "./assets/icon.png",
           "color": "#3FC060"
         }
+      ],
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "L'application a besoin de l'appareil photo pour scanner les QR codes de traçabilité."
+        }
       ]
     ],
     "splash": {
