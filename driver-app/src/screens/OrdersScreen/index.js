@@ -160,28 +160,27 @@ const OrdersScreen = () => {
               <Text style={{ letterSpacing: 0.5, color: "grey", fontSize: 12, marginTop: 1 }}>
                 {t("readyOrders")} {filteredOrders.length}
               </Text>
+              <TouchableOpacity
+                onPress={() => setWilayaModalVisible(true)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#f0fdf4",
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: "#bbf7d0",
+                  marginTop: 4,
+                  alignSelf: "flex-start",
+                }}
+              >
+                <Entypo name="location-pin" size={13} color="#16a34a" />
+                <Text style={{ fontSize: 11, fontWeight: "bold", color: "#166534", marginLeft: 2 }}>
+                  {selectedWilaya ? `${selectedWilaya.code} - ${selectedWilaya.name}` : "Toutes les Wilayas 🇩🇿"}
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
-            <TouchableOpacity
-              onPress={() => setWilayaModalVisible(true)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#f0fdf4",
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: "#bbf7d0",
-                marginTop: 4,
-                alignSelf: "flex-start",
-              }}
-            >
-              <Entypo name="location-pin" size={13} color="#16a34a" />
-              <Text style={{ fontSize: 11, fontWeight: "bold", color: "#166534", marginLeft: 2 }}>
-                {selectedWilaya ? `${selectedWilaya.code} - ${selectedWilaya.name}` : "Toutes les Wilayas 🇩🇿"}
-              </Text>
-            </TouchableOpacity>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
