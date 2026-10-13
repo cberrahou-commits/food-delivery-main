@@ -96,6 +96,10 @@ const BasketScreen = () => {
         return p > max ? p : max;
       }, 25);
 
+      // Générer les codes PIN de sécurité et traçabilité pour les QR codes
+      const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
+      const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
+
       const newOrderRef = await addDoc(ordersCollection, {
         restaurantName: restaurant?.name || restaurant?.title || "Cuisine Partenaire",
         restaurantId: restaurant?.id || "",
@@ -117,6 +121,8 @@ const BasketScreen = () => {
         userPhoneNumber: targetPhone,
         status: "PENDING_COOK_APPROVAL",
         initialEstimatedMinutes: maxPrepTime,
+        pickupCode,
+        deliveryCode,
         total: Number(basketTotal + deliveryFee),
         createdAt: serverTimestamp(),
       });

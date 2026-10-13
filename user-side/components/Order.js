@@ -7,11 +7,13 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { notifyCookClientConfirmed } from "../services/notificationService";
 import { StarIcon } from "react-native-heroicons/solid";
 import OrderRatingModal from "./OrderRatingModal";
+import OrderQrModal from "./OrderQrModal";
 import { openWhatsApp } from "../constants/wilayas";
 
 const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => {
   const [dishes, setDishes] = useState([]);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [hasRatedLocal, setHasRatedLocal] = useState(Boolean(order?.hasRated));
   const { t, formatPrice, language } = useLanguage();
 
@@ -285,17 +287,38 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
             </View>
           )}
 
-          {/* ETAPE 5 : ASSIGNED_TO_DELIVERY -> Livreur en route */}
+          {/* ETAPE 5 : ASSIGNED_TO_DELIVERY / DRIVERPICKEDUP -> Livreur en route */}
           {isAssigned && (
             <View className="mt-3 p-3 bg-indigo-50 rounded-xl border border-indigo-200">
               <Text className="text-xs text-indigo-900 font-bold">
-                🚴🏻‍♀️ Un coursier est en route vers le restaurant !
+                {status === "DRIVERPICKEDUP"
+                  ? "🛵 Le livreur a récupéré vos plats et arrive chez vous !"
+                  : "🚴🏻‍♀️ Un coursier est en route vers le restaurant !"}
               </Text>
               {order?.driverName ? (
                 <Text className="text-xs text-indigo-800 font-semibold mt-0.5">
                   Livreur : {order.driverName}
                 </Text>
               ) : null}
+
+              {/* BOUTON QR CODE DE LIVRAISON POUR LE CLIENT */}
+              <TouchableOpacity
+                onPress={() => setQrModalVisible(true)}
+                activeOpacity={0.8}
+                className="mt-2.5 bg-emerald-600 py-2.5 px-3 rounded-xl flex-row items-center justify-between shadow-xs"
+              >
+                <View className="flex-row items-center space-x-2">
+                  <Text className="text-base">📱</Text>
+                  <Text className="text-xs font-bold text-white">
+                    Afficher mon QR Code de Réception
+                  </Text>
+                </View>
+                <View className="bg-emerald-700 py-1 px-2.5 rounded-lg">
+                  <Text className="text-xs font-mono font-bold text-emerald-100">
+                    PIN : {order?.deliveryCode || orderId.slice(0, 4).toUpperCase()}
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -381,6 +404,17 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
             onClose={() => setRatingModalVisible(false)}
             order={{ ...order, id: orderId, restaurantName }}
             onRatedSuccess={() => setHasRatedLocal(true)}
+          />
+
+          {/* Modal QR Code de confirmation de réception */}
+          <OrderQrModal
+            visible={qrModalVisible}
+            onClose={() => setQrModalVisible(false)}
+            type="DELIVERY"
+            orderId={orderId}
+            orderCode={order?.deliveryCode}
+            restaurantName={restaurantName}
+            customerName={`${order?.userFirstName || ""} ${order?.userLastName || ""}`.trim()}
           />
         </View>
       </View>

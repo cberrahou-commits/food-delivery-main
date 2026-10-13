@@ -24,9 +24,11 @@ import {
   query,
   getDocs,
   serverTimestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../../firebase/firebase";
 import DishInfo from "../../components/DishInfo";
+import QrScannerModal from "../../components/QrScannerModal";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -47,7 +49,29 @@ const OrderDelivery = ({ route }) => {
     order?.status || "READY_FOR_PICKUP"
   );
   const [isAccepting, setIsAccepting] = useState(false);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [scannerType, setScannerType] = useState("PICKUP"); // 'PICKUP' | 'DELIVERY'
+  const [orderPickupCode, setOrderPickupCode] = useState(
+    order?.pickupCode || (order?.id ? order.id.slice(-4).toUpperCase() : "")
+  );
+  const [orderDeliveryCode, setOrderDeliveryCode] = useState(
+    order?.deliveryCode || (order?.id ? order.id.slice(0, 4).toUpperCase() : "")
+  );
   const navigation = useNavigation();
+
+  // Écoute en temps réel de la commande pour synchroniser statut et codes
+  useEffect(() => {
+    if (!order?.id) return;
+    const unsub = onSnapshot(doc(db, "orders", order.id), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.status) setDeliveryStatus(data.status);
+        if (data.pickupCode) setOrderPickupCode(data.pickupCode);
+        if (data.deliveryCode) setOrderDeliveryCode(data.deliveryCode);
+      }
+    });
+    return unsub;
+  }, [order?.id]);
 
   const bottomSheetRef = useRef(null);
   const { width, height } = useWindowDimensions();
@@ -84,12 +108,13 @@ const OrderDelivery = ({ route }) => {
 
   const isAvailableInPool =
     deliveryStatus === "READY_FOR_PICKUP" || deliveryStatus === "READY";
-  const isAssignedToMe =
-    deliveryStatus === "ASSIGNED_TO_DELIVERY" ||
-    deliveryStatus === "DRIVERACCEPTED" ||
+  const isEnRouteToCook =
+    deliveryStatus === "ASSIGNED_TO_DELIVERY" || deliveryStatus === "DRIVERACCEPTED";
+  const isEnRouteToClient =
     deliveryStatus === "DRIVERPICKEDUP";
   const isDelivered =
     deliveryStatus === "DELIVERED" || deliveryStatus === "COMPLETE";
+  const isAssignedToMe = isEnRouteToCook || isEnRouteToClient;
 
   // Région initiale sécurisée pour MapView (jamais d'accès null)
   const initialRegion = useMemo(() => {
@@ -280,7 +305,45 @@ const OrderDelivery = ({ route }) => {
     }
   };
 
-  // Remise effective au client -> Statut DELIVERED
+  // Retrait effectif chez le cuisinier -> Statut DRIVERPICKEDUP (validé par QR Code)
+  const handleConfirmPickup = async () => {
+    try {
+      if (!order?.id) return;
+      const orderRef = doc(db, "orders", order.id);
+      await updateDoc(orderRef, {
+        status: "DRIVERPICKEDUP",
+        pickedUpAt: serverTimestamp(),
+      });
+      setDeliveryStatus("DRIVERPICKEDUP");
+
+      Alert.alert(
+        "Plats Récupérés ! 🍲",
+        "Retrait validé avec succès par QR code. Vous pouvez maintenant vous diriger vers le client !",
+        [
+          {
+            text: "C'est parti ! 🛵",
+            onPress: () => {
+              if (deliveryLocation && mapRef.current) {
+                try {
+                  mapRef.current.animateToRegion({
+                    latitude: Number(deliveryLocation.latitude),
+                    longitude: Number(deliveryLocation.longitude),
+                    latitudeDelta: 0.02,
+                    longitudeDelta: 0.02,
+                  });
+                } catch (e) {}
+              }
+            },
+          },
+        ]
+      );
+    } catch (e) {
+      console.error("Erreur confirmation retrait:", e);
+      Alert.alert(t("error") || "Erreur", "Impossible de valider le retrait.");
+    }
+  };
+
+  // Remise effective au client -> Statut DELIVERED (validé par QR Code)
   const handleCompleteDelivery = async () => {
     try {
       if (!order?.id) return;
@@ -296,9 +359,12 @@ const OrderDelivery = ({ route }) => {
         notifyClientOrderDelivered(order.userId, order?.id);
       }
 
-      Alert.alert(t("orderDeliveredTitle"), t("orderDeliveredMsg"), [
+      Alert.alert(
+        t("orderDeliveredTitle") || "Commande Livrée ! 🎉",
+        "Livraison validée avec succès par QR code en mains propres !",
+        [
           {
-            text: "OK",
+            text: "Terminer la course ✅",
             onPress: () => navigation.goBack(),
           },
         ]
@@ -344,8 +410,11 @@ const OrderDelivery = ({ route }) => {
     if (isAvailableInPool) {
       return isAccepting ? "Verrouillage..." : t("lockOrderBtn");
     }
-    if (isAssignedToMe) {
-      return t("confirmHandover");
+    if (isEnRouteToCook) {
+      return "📦 Scanner QR Retrait Cuisine";
+    }
+    if (isEnRouteToClient) {
+      return "🏠 Scanner QR Remise Client";
     }
     if (isDelivered) {
       return t("orderDeliveredTitle");
@@ -356,8 +425,12 @@ const OrderDelivery = ({ route }) => {
   const onButtonpressed = () => {
     if (isAvailableInPool) {
       handleAcceptOrder();
-    } else if (isAssignedToMe) {
-      handleCompleteDelivery();
+    } else if (isEnRouteToCook) {
+      setScannerType("PICKUP");
+      setScannerVisible(true);
+    } else if (isEnRouteToClient) {
+      setScannerType("DELIVERY");
+      setScannerVisible(true);
     } else if (isDelivered) {
       navigation.goBack();
     }
@@ -371,7 +444,10 @@ const OrderDelivery = ({ route }) => {
     typeof driverLocation.longitude === "number" &&
     !isNaN(driverLocation.longitude);
 
-  const targetDestination = isAvailableInPool
+  // La destination active s'adapte à l'étape en cours :
+  // En route vers la cuisine -> restaurantLocation
+  // Plats récupérés -> deliveryLocation (client)
+  const targetDestination = (isAvailableInPool || isEnRouteToCook)
     ? (restaurantLocation || deliveryLocation)
     : (deliveryLocation || restaurantLocation);
 
@@ -631,13 +707,29 @@ const OrderDelivery = ({ route }) => {
         <Pressable
           style={{
             ...styles.buttonContainer,
-            backgroundColor: isDelivered ? "#16a34a" : "#3FC060",
+            backgroundColor: isDelivered
+              ? "#16a34a"
+              : isEnRouteToCook
+              ? "#D97706"
+              : isEnRouteToClient
+              ? "#2563EB"
+              : "#3FC060",
           }}
           onPress={onButtonpressed}
         >
           <Text style={styles.buttonText}>{renderButtonTitle()}</Text>
         </Pressable>
       </BottomSheet>
+
+      {/* Scanner QR Code pour Retrait Cuisine et Remise Client */}
+      <QrScannerModal
+        visible={scannerVisible}
+        onClose={() => setScannerVisible(false)}
+        type={scannerType}
+        targetOrderId={order?.id}
+        expectedCode={scannerType === "PICKUP" ? orderPickupCode : orderDeliveryCode}
+        onSuccess={scannerType === "PICKUP" ? handleConfirmPickup : handleCompleteDelivery}
+      />
     </View>
   );
 };

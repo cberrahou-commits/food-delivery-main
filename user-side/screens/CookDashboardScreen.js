@@ -56,6 +56,7 @@ import {
   broadcastOrderReadyToDrivers,
   notifyClientOrderReady,
 } from "../services/notificationService";
+import OrderQrModal from "../components/OrderQrModal";
 
 const CookOrderDishes = ({ orderId }) => {
   const [items, setItems] = useState([]);
@@ -100,6 +101,7 @@ const CookDashboardScreen = () => {
   const [reviews, setReviews] = useState([]);
   const [prepTimes, setPrepTimes] = useState({});
   const [loading, setLoading] = useState(true);
+  const [selectedQrOrder, setSelectedQrOrder] = useState(null);
 
   // --- ÉDITION DE PLAT ---
   const [editDishModalVisible, setEditDishModalVisible] = useState(false);
@@ -991,8 +993,27 @@ const CookDashboardScreen = () => {
                           🛵 Repas prêt et emballé !
                         </Text>
                         <Text className="text-xs text-blue-700 mt-0.5">
-                          Notification envoyée à tous les livreurs disponibles. Dès qu'un livreur accepte, il sera assigné en exclusivité.
+                          Notification envoyée aux livreurs. Dès qu'un livreur arrive, présentez-lui ce QR Code :
                         </Text>
+
+                        {/* BOUTON QR CODE DE RETRAIT */}
+                        <TouchableOpacity
+                          onPress={() => setSelectedQrOrder(order)}
+                          activeOpacity={0.8}
+                          className="mt-2.5 bg-amber-600 py-2.5 px-3 rounded-xl flex-row items-center justify-between shadow-xs"
+                        >
+                          <View className="flex-row items-center space-x-2">
+                            <Text className="text-base">📦</Text>
+                            <Text className="text-xs font-bold text-white">
+                              QR Code Retrait (Pour le Livreur)
+                            </Text>
+                          </View>
+                          <View className="bg-amber-700 py-1 px-2.5 rounded-lg">
+                            <Text className="text-xs font-mono font-bold text-amber-100">
+                              PIN : {order.pickupCode || order.id.slice(-4).toUpperCase()}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
                       </View>
                     )}
 
@@ -1010,6 +1031,25 @@ const CookDashboardScreen = () => {
                             Téléphone : {order.driverPhone}
                           </Text>
                         ) : null}
+
+                        {/* BOUTON QR CODE DE RETRAIT LORSQUE LIVREUR ASSIGNÉ */}
+                        <TouchableOpacity
+                          onPress={() => setSelectedQrOrder(order)}
+                          activeOpacity={0.8}
+                          className="mt-2.5 bg-amber-600 py-2.5 px-3 rounded-xl flex-row items-center justify-between shadow-xs"
+                        >
+                          <View className="flex-row items-center space-x-2">
+                            <Text className="text-base">📦</Text>
+                            <Text className="text-xs font-bold text-white">
+                              Présenter le QR Code au Livreur
+                            </Text>
+                          </View>
+                          <View className="bg-amber-700 py-1 px-2.5 rounded-lg">
+                            <Text className="text-xs font-mono font-bold text-amber-100">
+                              PIN : {order.pickupCode || order.id.slice(-4).toUpperCase()}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
                       </View>
                     )}
 
@@ -1462,6 +1502,19 @@ const CookDashboardScreen = () => {
           />
         </SafeAreaView>
       </Modal>
+
+      {/* Modal QR Code de retrait pour le chef cuisinier */}
+      {selectedQrOrder ? (
+        <OrderQrModal
+          visible={Boolean(selectedQrOrder)}
+          onClose={() => setSelectedQrOrder(null)}
+          type="PICKUP"
+          orderId={selectedQrOrder.id}
+          orderCode={selectedQrOrder.pickupCode}
+          restaurantName={selectedQrOrder.restaurantName || kitchenName}
+          customerName={`${selectedQrOrder.userFirstName || ""} ${selectedQrOrder.userLastName || ""}`.trim()}
+        />
+      ) : null}
     </SafeAreaView>
   );
 };

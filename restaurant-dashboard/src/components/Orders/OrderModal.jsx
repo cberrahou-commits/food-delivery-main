@@ -78,6 +78,31 @@ const OrderModal = ({ setIsActive, selectedOrder }) => {
 
   const currentInfo = getStatusInfo(status);
 
+  // Codes de traçabilité QR Code et PIN
+  const pickupCode =
+    selectedOrder?.pickupCode ||
+    (selectedOrder?.id ? selectedOrder.id.slice(-4).toUpperCase() : "----");
+  const deliveryCode =
+    selectedOrder?.deliveryCode ||
+    (selectedOrder?.id ? selectedOrder.id.slice(0, 4).toUpperCase() : "----");
+
+  const pickupPayload = JSON.stringify({
+    type: "PICKUP",
+    orderId: selectedOrder?.id,
+    code: pickupCode,
+  });
+  const pickupQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+    pickupPayload
+  )}`;
+
+  const isReadyForPickup =
+    status === "READY_FOR_PICKUP" ||
+    status === "READY" ||
+    status === "ASSIGNED_TO_DELIVERY" ||
+    status === "DRIVERACCEPTED" ||
+    status === "IN_PREPARATION" ||
+    status === "PREPARING";
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div
@@ -127,13 +152,51 @@ const OrderModal = ({ setIsActive, selectedOrder }) => {
             </span>
           </div>
 
+          {/* QR Code Retrait Cuisine (pour le Livreur) */}
+          {isReadyForPickup && (
+            <div className="my-4 p-4 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row items-center gap-4 shadow-sm">
+              <div className="bg-white p-2.5 rounded-xl shadow-md border border-amber-200">
+                <img
+                  src={pickupQrUrl}
+                  alt="QR Code Retrait Cuisine"
+                  className="w-32 h-32 rounded-lg object-contain"
+                />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500 text-white rounded-full text-xs font-bold mb-1">
+                  <span>📦</span>
+                  <span>QR Code Retrait Cuisine (Pour Livreur)</span>
+                </div>
+                <h4 className="text-base font-extrabold text-amber-950">
+                  À scanner par le livreur
+                </h4>
+                <p className="text-xs text-amber-800 mt-1">
+                  Le livreur doit scanner ce QR code avec l'application Driver pour certifier la prise en charge des plats.
+                </p>
+                <div className="mt-2.5 inline-flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-amber-300 shadow-xs">
+                  <span className="text-xs text-gray-500 font-semibold">
+                    Code PIN de secours :
+                  </span>
+                  <span className="font-mono text-lg font-black tracking-widest text-amber-600">
+                    #{pickupCode}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Grille Informations Client / Cuisinier / Livreur */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 text-xs">
             {/* Client */}
             <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-              <span className="font-bold text-gray-700 block mb-1">
-                👤 Client
-              </span>
+              <div className="flex justify-between items-start">
+                <span className="font-bold text-gray-700 block mb-1">
+                  👤 Client
+                </span>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-mono font-bold px-2 py-0.5 rounded-md">
+                  PIN remise: #{deliveryCode}
+                </span>
+              </div>
               <div className="text-gray-900 font-semibold">
                 {selectedOrder?.userFirstName} {selectedOrder?.userLastName}
               </div>
