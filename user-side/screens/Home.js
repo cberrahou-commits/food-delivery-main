@@ -126,14 +126,15 @@ const Home = () => {
 
       <View className="flex-row pb-3 items-center mx-4 space-x-2">
         <Image
-          source={{
-            uri: "https://links.papareact.com/wru",
-          }}
-          className="h-8 w-8 bg-gray-300 p-4 rounded-full"
+          source={require("../assets/logo.png")}
+          className="h-10 w-10 rounded-full border border-emerald-300"
         />
 
         <View className="flex-1">
-          <Text className="font-bold text-gray-400 text-xs">{t("deliverNow")}</Text>
+          <View className="flex-row items-center space-x-1.5">
+            <Text className="font-extrabold text-emerald-800 text-sm">Wajbati</Text>
+            <Text className="font-bold text-emerald-600 text-xs">وجبتي</Text>
+          </View>
           <TouchableOpacity
             onPress={() => setWilayaModalVisible(true)}
             className="flex-row items-center space-x-1"

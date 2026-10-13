@@ -53,8 +53,20 @@ const Sidebar = () => {
       <div className="flex-none w-3/12">
         <nav className="fixed top-0 left-0 w-full h-full border-r bg-white space-y-4 sm:w-80">
           <div className="flex flex-col h-full">
-            <div className="h-20 flex items-center px-8">
-              <p className="font-bold text-2xl text-gray-800">Dashboard</p>
+            <div className="h-20 flex items-center px-6 gap-3 border-b border-gray-100">
+              <img
+                src="/logo.png"
+                alt="Wajbati Logo"
+                className="w-11 h-11 rounded-xl shadow-xs object-cover border border-emerald-100"
+              />
+              <div>
+                <p className="font-extrabold text-lg text-emerald-900 leading-tight">
+                  Wajbati <span className="text-emerald-600 font-bold text-sm">وجبتي</span>
+                </p>
+                <p className="text-[11px] font-semibold text-emerald-600 tracking-wide uppercase">
+                  Espace Restaurant
+                </p>
+              </div>
             </div>
 
             {/* Sélecteur de restaurant */}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { View, Text, FlatList, useWindowDimensions, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, useWindowDimensions, TouchableOpacity, Image } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
 import OrderItem from "../../components/OrderItem";
 import MapView, { Marker } from "react-native-maps";
@@ -132,28 +132,36 @@ const OrdersScreen = () => {
             marginBottom: 20,
           }}
         >
-          <View>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  letterSpacing: 0.5,
-                  paddingBottom: 2,
-                }}
-              >
-                {t("driverOnline")}{" "}
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Image
+              source={require("../../../assets/icon.png")}
+              style={{ width: 42, height: 42, borderRadius: 12, marginRight: 10, borderWidth: 1, borderColor: "#a7f3d0" }}
+            />
+            <View>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    letterSpacing: 0.5,
+                    paddingBottom: 2,
+                    color: "#064e3b",
+                  }}
+                >
+                  Wajbati <Text style={{ fontSize: 13, color: "#10b981", fontWeight: "bold" }}>وجبتي</Text>
+                </Text>
+                <View style={{ backgroundColor: "#dcfce7", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 6 }}>
+                  <Text style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold" }}>{t("certified")}</Text>
+                </View>
+                <View style={{ backgroundColor: "#fef3c7", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 6 }}>
+                  <Text style={{ color: "#b45309", fontSize: 11, fontWeight: "bold" }}>⭐ {Number(driverRating).toFixed(1)}</Text>
+                </View>
+              </View>
+              <Text style={{ letterSpacing: 0.5, color: "grey", fontSize: 12, marginTop: 1 }}>
+                {t("readyOrders")} {filteredOrders.length}
               </Text>
-              <View style={{ backgroundColor: "#dcfce7", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 4 }}>
-                <Text style={{ color: "#16a34a", fontSize: 11, fontWeight: "bold" }}>{t("certified")}</Text>
-              </View>
-              <View style={{ backgroundColor: "#fef3c7", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginLeft: 6 }}>
-                <Text style={{ color: "#b45309", fontSize: 11, fontWeight: "bold" }}>⭐ {Number(driverRating).toFixed(1)} ({driverRatingCount})</Text>
-              </View>
             </View>
-            <Text style={{ letterSpacing: 0.5, color: "grey", marginTop: 2 }}>
-              {t("readyOrders")} {filteredOrders.length}
-            </Text>
+          </View>
             <TouchableOpacity
               onPress={() => setWilayaModalVisible(true)}
               style={{

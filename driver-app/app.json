@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Food Delivery Courier",
-    "slug": "food-delivery-courier",
-    "scheme": "fooddeliverycourier",
+    "name": "Wajbati Livreur | وجبتي",
+    "slug": "wajbati-driver",
+    "scheme": "wajbatidriver",
     "owner": "chaouki.b",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,7 +11,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Courier App to use your location for delivery navigation."
+          "locationAlwaysAndWhenInUsePermission": "Autoriser Wajbati Livreur à utiliser votre position pour la navigation."
         }
       ],
       [
@@ -25,7 +25,7 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#3FC060"
+          "color": "#10B981"
         }
       ],
       [
@@ -38,7 +38,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#07704F"
     },
     "updates": {
       "fallbackToCacheTimeout": 0
@@ -60,7 +60,7 @@
       },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#07704F"
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
