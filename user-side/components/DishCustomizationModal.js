@@ -13,6 +13,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { XMarkIcon, CheckIcon, MinusIcon, PlusIcon } from "react-native-heroicons/solid";
 import { useLanguage } from "../contexts/LanguageContext";
+import { StatusBar } from "expo-status-bar";
 import { getDefaultIngredientsForDish } from "../constants/categories";
 
 const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
@@ -90,7 +91,7 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
               : 0,
         }}
       >
-        <StatusBar barStyle="dark-content" />
+        <StatusBar style="dark" />
 
         {/* Header avec Photo & Bouton Fermer */}
         <View style={{ position: "relative", height: 200, backgroundColor: "#E5E7EB" }}>
