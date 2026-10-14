@@ -11,6 +11,8 @@ import ProfileScreen from '../screens/ProfileScreen';
 import CookOnboardingScreen from "../screens/CookOnboardingScreen";
 import CookDashboardScreen from "../screens/CookDashboardScreen";
 import AddCookDishScreen from "../screens/AddCookDishScreen";
+import MenuCategoriesScreen from "../screens/MenuCategoriesScreen";
+import PlusScreen from "../screens/PlusScreen";
 import { useNavigation } from "@react-navigation/native";
 
 const AppStack = () => {
@@ -35,6 +37,18 @@ const AppStack = () => {
         />
 
         <Stack.Screen
+          name="MenuCategories"
+          component={MenuCategoriesScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="Plus"
+          component={PlusScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
           name="Options"
           component={OptionsScreen}
           options={{ headerShown: false }}
@@ -49,7 +63,7 @@ const AppStack = () => {
         <Stack.Screen
           name="Restaurant"
           component={RestaurantDetails}
-          ptions={{ headerShown: false }}
+          options={{ headerShown: false }}
         />
 
         <Stack.Screen

@@ -1,13 +1,29 @@
-import { View, Text, TouchableOpacity, Image, ScrollView, Alert, TextInput } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  Alert,
+  TextInput,
+  SafeAreaView,
+  StatusBar,
+} from "react-native";
 import React, { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { useLanguage } from "../contexts/LanguageContext";
 import { selectRestaurant } from "../features/restaurantSlice";
 import { selectUser } from "../features/userSlice";
 import { useSelector, useDispatch } from "react-redux";
-import { XCircleIcon, TrashIcon } from "react-native-heroicons/solid";
 import {
+  XMarkIcon,
+  ChevronDownIcon,
+  PlusIcon,
+  MinusIcon,
+  TrashIcon,
+} from "react-native-heroicons/outline";
+import {
+  addToBasket,
   removeFromBasket,
   clearBasket,
   selectBasketItems,
@@ -16,14 +32,12 @@ import {
 import { UserAuth } from "../contexts/AuthContext";
 import { db } from "../firebase";
 import {
-  doc,
   collection,
   addDoc,
-  setDoc,
-  updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import { notifyCookForNewOrder } from "../services/notificationService";
+import OrderModeModal from "../components/OrderModeModal";
 
 const BasketScreen = () => {
   const navigation = useNavigation();
@@ -36,8 +50,11 @@ const BasketScreen = () => {
   const dispatch = useDispatch();
   const { user } = UserAuth();
 
-  // Frais de livraison standard en Algérie : 200 DA
-  const deliveryFee = items.length === 0 ? 0 : 200;
+  const [orderModeModalVisible, setOrderModeModalVisible] = useState(false);
+  const [orderMode, setOrderMode] = useState("DELIVERY");
+
+  // Frais de livraison standard en Algérie : 200 DA (gratuit en click & collect)
+  const deliveryFee = items.length === 0 || orderMode === "PICKUP" ? 0 : 200;
 
   useEffect(() => {
     const groupItems = items.reduce((results, item) => {
@@ -47,9 +64,7 @@ const BasketScreen = () => {
     setGroupItemsInBucket(groupItems);
   }, [items]);
 
-  const [phoneNumber, setPhoneNumber] = useState(
-    dbUser?.phoneNumber || ""
-  );
+  const [phoneNumber, setPhoneNumber] = useState(dbUser?.phoneNumber || "");
 
   useEffect(() => {
     if (dbUser?.phoneNumber && !phoneNumber) {
@@ -81,75 +96,47 @@ const BasketScreen = () => {
       return;
     }
 
-    const targetPhone = phoneNumber.trim() || dbUser?.phoneNumber || "";
-    if (!targetPhone) {
-      Alert.alert(
-        "Numéro de téléphone requis",
-        "Veuillez renseigner votre numéro de téléphone (WhatsApp) pour recevoir les notifications en direct de votre commande."
-      );
-      return;
-    }
-
     try {
-      const maxPrepTime = items.reduce((max, item) => {
-        const p = Number(item.prepTimeMinutes || item.prepTime || 25);
-        return p > max ? p : max;
-      }, 25);
-
-      // Générer les codes PIN de sécurité et traçabilité pour les QR codes
-      const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
-      const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
+      const pickupCode = String(Math.floor(1000 + Math.random() * 9000));
+      const deliveryCode = String(Math.floor(1000 + Math.random() * 9000));
 
       const newOrderRef = await addDoc(ordersCollection, {
-        restaurantName: restaurant?.name || restaurant?.title || "Cuisine Partenaire",
-        restaurantId: restaurant?.id || "",
-        restaurantAddress: restaurant?.address || "",
-        restaurantWilaya: restaurant?.wilaya || "",
-        restaurantWilayaCode: restaurant?.wilayaCode || "",
-        restaurantPhone: restaurant?.phone || restaurant?.phoneNumber || "",
-        restaurantImage: restaurant?.image || "",
-        restaurantLatitude: restaurant?.lat || 0,
-        restaurantLongitude: restaurant?.lng || 0,
-        userId: user?.uid || "",
-        userFirstName: dbUser?.firstName || "",
-        userLastName: dbUser?.lastName || "",
-        userLatitude: dbUser?.latitude || 0,
-        userLongitude: dbUser?.longitude || 0,
-        userAddress: dbUser?.address || "",
-        userWilaya: dbUser?.wilaya || "",
-        userWilayaCode: dbUser?.wilayaCode || "",
-        userPhoneNumber: targetPhone,
+        userId: user?.uid || "guest",
+        userFirstName: dbUser?.firstName || "Client",
+        userLastName: dbUser?.lastName || "Wajbati",
+        userAddress: dbUser?.address || "Alger",
+        userPhoneNumber: phoneNumber || dbUser?.phoneNumber || "",
+        total: basketTotal + deliveryFee,
+        subtotal: basketTotal,
+        deliveryFee: deliveryFee,
+        orderMode: orderMode,
         status: "PENDING_COOK_APPROVAL",
-        initialEstimatedMinutes: maxPrepTime,
-        pickupCode,
-        deliveryCode,
-        total: Number(basketTotal + deliveryFee),
+        pickupCode: pickupCode,
+        deliveryCode: deliveryCode,
         createdAt: serverTimestamp(),
+        restaurantId: restaurant?.id || "default",
+        restaurantName: restaurant?.name || restaurant?.title || "Cuisine Wajbati",
+        restaurantWilayaCode: restaurant?.wilayaCode || "16",
+        restaurantWilaya: restaurant?.wilaya || "Alger",
+        restaurantAddress: restaurant?.address || "",
+        restaurantLatitude: restaurant?.latitude || 36.7538,
+        restaurantLongitude: restaurant?.longitude || 3.0588,
+        userLatitude: dbUser?.latitude || 36.7538,
+        userLongitude: dbUser?.longitude || 3.0588,
       });
 
-      // Mettre à jour le profil utilisateur avec son numéro WhatsApp si non renseigné
-      if (user?.uid && targetPhone && !dbUser?.phoneNumber) {
-        updateDoc(doc(db, "user", user.uid), {
-          phoneNumber: targetPhone,
-        }).catch(console.warn);
+      for (const item of items) {
+        await addDoc(orderDishesCollection, {
+          orderId: newOrderRef.id,
+          dishId: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: 1,
+        });
       }
 
-      await Promise.all(
-        Object.entries(groupItemsInBucket).map(([key, dishGroup]) => {
-          return setDoc(doc(orderDishesCollection, `${newOrderRef.id}_${key}`), {
-            quantity: dishGroup.length,
-            orderId: newOrderRef.id,
-            dishId: key,
-          });
-        })
-      );
-
-      // Vider le panier après commande réussie
       dispatch(clearBasket());
-
-      // Notifier le cuisinier en push notification
       notifyCookForNewOrder(restaurant?.id, newOrderRef.id);
-
       navigation.navigate("PreparingOrderScreen");
     } catch (error) {
       console.error("Erreur commande:", error);
@@ -158,166 +145,352 @@ const BasketScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1 bg-gray-50">
-        {/* En-tête */}
-        <View className="p-3 border-b border-[#4ade80] bg-white shadow-xs flex-row items-center justify-between">
-          <View className="w-12">
-            {items.length > 0 && (
-              <TouchableOpacity onPress={handleClearBasket} className="p-2">
-                <TrashIcon color="#ef4444" size={24} />
-              </TouchableOpacity>
-            )}
-          </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
+      <StatusBar barStyle="dark-content" backgroundColor="white" />
 
-          <View className="flex-1">
-            <Text className="text-lg font-bold text-center">{t("viewBasket")}</Text>
-            <Text className="text-center text-gray-400 text-xs">
-              {restaurant?.name || restaurant?.title || t("appName")}
+      {/* Header Panier McDo (Image 4) */}
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingTop: 10,
+          paddingBottom: 14,
+          borderBottomWidth: 1,
+          borderBottomColor: "#F3F4F6",
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity onPress={navigation.goBack} style={{ padding: 4 }}>
+              <XMarkIcon size={24} color="#111827" />
+            </TouchableOpacity>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "800",
+                color: "#111827",
+                marginLeft: 16,
+              }}
+            >
+              Panier
             </Text>
           </View>
 
-          <TouchableOpacity
-            onPress={navigation.goBack}
-            className="w-12 items-end pr-2"
-          >
-            <XCircleIcon color="#4ade80" height={40} width={40} />
-          </TouchableOpacity>
+          {items.length > 0 && (
+            <TouchableOpacity onPress={handleClearBasket} style={{ padding: 4 }}>
+              <TrashIcon size={20} color="#EF4444" />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {items.length === 0 ? (
-          <View className="flex-1 justify-center items-center py-20 px-6">
-            <Text className="text-6xl mb-4">🛒</Text>
-            <Text className="text-2xl font-bold text-gray-800 text-center">
-              {t("basketEmpty")}
-            </Text>
-            <Text className="text-gray-500 text-center mt-2 px-6">
-              {t("basketEmptyDesc")}
-            </Text>
-            <TouchableOpacity
-              onPress={navigation.goBack}
-              className="mt-6 bg-[#22c55e] px-8 py-3.5 rounded-2xl shadow-sm shadow-green-500/30"
-            >
-              <Text className="text-white font-bold text-base">
-                {t("discoverMenu")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            {/* Info Livraison */}
-            <View className="flex-row items-center space-x-4 px-4 py-3 bg-white my-3 border border-gray-100">
-              <Image
-                source={{
-                  uri: "https://www.pngitem.com/pimgs/m/533-5338534_motor-21-philosophychicchic-home-delivery-service-bike-hd.png",
-                }}
-                className="h-7 w-7 bg-gray-300 p-4 rounded-full"
-              />
-              <Text className="flex-1 text-gray-700">
-                {t("deliveryEstimated")} {restaurant?.minDeliveryTime || 20}-{restaurant?.maxDeliveryTime || 35} {t("mins")}
-              </Text>
-            </View>
+        {/* Rappel Restaurant / Ville */}
+        <Text
+          style={{
+            fontSize: 22,
+            fontWeight: "900",
+            color: "#111827",
+            letterSpacing: 0.3,
+          }}
+        >
+          {restaurant?.name
+            ? restaurant.name.toUpperCase()
+            : "ALGER CENTRE"}
+        </Text>
+        <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
+          {restaurant?.address || "10 Rue Didouche Mourad"}
+        </Text>
 
-            {/* Liste des plats */}
-            <ScrollView className="divide-y divide-gray-200 flex-1">
-              {Object.entries(groupItemsInBucket).map(([key, dishGroup]) => (
+        {/* Dropdown mode de commande */}
+        <TouchableOpacity
+          onPress={() => setOrderModeModalVisible(true)}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginTop: 6,
+          }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: "800", color: "#111827" }}>
+            {orderMode === "PICKUP"
+              ? "Click & Collect"
+              : orderMode === "DINE_IN"
+              ? "Sur place"
+              : "Livraison à domicile"}
+          </Text>
+          <ChevronDownIcon size={14} color="#111827" style={{ marginLeft: 4 }} />
+        </TouchableOpacity>
+      </View>
+
+      {items.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
+          <Text style={{ fontSize: 50, marginBottom: 12 }}>🛒</Text>
+          <Text style={{ fontSize: 20, fontWeight: "800", color: "#111827", textAlign: "center" }}>
+            Votre panier est vide
+          </Text>
+          <Text style={{ fontSize: 13, color: "#6B7280", textAlign: "center", marginTop: 6, lineHeight: 18 }}>
+            Découvrez nos spécialités faites maison et ajoutez vos plats préférés.
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("MenuCategories")}
+            style={{
+              marginTop: 20,
+              backgroundColor: "#FFBC0D",
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              borderRadius: 10,
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: "900", color: "#111827" }}>
+              Découvrir le menu
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          {/* Liste des plats dans le panier façon McDo */}
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
+            {Object.entries(groupItemsInBucket).map(([key, dishGroup]) => {
+              const dish = dishGroup[0];
+              const qty = dishGroup.length;
+              const linePrice = dish?.price * qty;
+
+              return (
                 <View
                   key={key}
-                  className="flex-row items-center space-x-3 bg-white py-3 px-5 border-t border-gray-100"
+                  style={{
+                    paddingHorizontal: 20,
+                    paddingVertical: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: "#F3F4F6",
+                    backgroundColor: "white",
+                  }}
                 >
-                  <Text className="text-[#22c55e] font-bold">{dishGroup.length} x</Text>
-                  <Image
-                    source={{ uri: dishGroup[0]?.image || restaurant?.image }}
-                    className="h-12 w-12 rounded-xl bg-gray-100"
-                  />
-                  <Text className="flex-1 font-medium text-gray-800">{dishGroup[0]?.name}</Text>
-                  <Text className="text-gray-700 font-semibold">
-                    {formatPrice(dishGroup[0]?.price * dishGroup.length)}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => dispatch(removeFromBasket({ id: key }))}
-                    className="p-1"
+                  {/* Nom du plat et lien Modifier */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 12,
+                    }}
                   >
-                    <Text className="text-[#ef4444] text-xs font-semibold">
-                      {t("remove")}
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "800",
+                        color: "#111827",
+                        flex: 1,
+                      }}
+                    >
+                      {dish?.name}
                     </Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </ScrollView>
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "700",
+                          color: "#059669",
+                        }}
+                      >
+                        Modifier
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
-            {/* Mode de paiement */}
-            <View className="flex-row items-center space-x-4 px-4 py-3 bg-white my-2 border border-gray-100">
-              <Image
-                source={{
-                  uri: "https://img.icons8.com/?size=512&id=76948&format=png",
+                  {/* Ligne Quantité (-) QTY (+) et Prix */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+                      {/* Bouton Moins */}
+                      <TouchableOpacity
+                        onPress={() => dispatch(removeFromBasket({ id: key }))}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          borderWidth: 1.5,
+                          borderColor: "#D1D5DB",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <MinusIcon size={16} color="#4B5563" />
+                      </TouchableOpacity>
+
+                      {/* Nombre */}
+                      <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
+                        {qty}
+                      </Text>
+
+                      {/* Bouton Plus Jaune McDo */}
+                      <TouchableOpacity
+                        onPress={() => dispatch(addToBasket(dish))}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          borderWidth: 1.5,
+                          borderColor: "#FFBC0D",
+                          backgroundColor: "#FFFBEB",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <PlusIcon size={16} color="#B45309" />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Prix de la ligne */}
+                    <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
+                      {formatPrice(linePrice)}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+
+            {/* Ligne "🍟 Ajouter un produit" (Image 4) */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate("MenuCategories")}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 20,
+                paddingVertical: 18,
+                borderBottomWidth: 1,
+                borderBottomColor: "#F3F4F6",
+                backgroundColor: "white",
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={{ fontSize: 24, marginRight: 14 }}>🍟</Text>
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 15,
+                  fontWeight: "800",
+                  color: "#1F2937",
                 }}
-                className="h-7 w-7 bg-gray-300 p-4 rounded-full"
-              />
-              <Text className="flex-1 text-gray-700">{t("cashOnDelivery")}</Text>
-            </View>
+              >
+                Ajouter un produit
+              </Text>
+              <PlusIcon size={20} color="#6B7280" />
+            </TouchableOpacity>
 
-            {/* Suivi WhatsApp de commande */}
-            <View className="bg-white px-4 py-3 my-1 border border-gray-100">
-              <View className="flex-row items-center justify-between mb-1.5">
-                <Text className="text-xs font-bold text-gray-800">
-                  📱 Suivi de commande sur WhatsApp
+            {/* Suivi WhatsApp */}
+            <View
+              style={{
+                paddingHorizontal: 20,
+                paddingVertical: 14,
+                backgroundColor: "#F9FAFB",
+                marginVertical: 10,
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827", marginBottom: 6 }}>
+                📱 Numéro WhatsApp pour suivi en temps réel :
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "white",
+                  borderWidth: 1,
+                  borderColor: "#E5E7EB",
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  height: 44,
+                }}
+              >
+                <Text style={{ fontWeight: "800", color: "#374151", marginRight: 8 }}>
+                  🇩🇿 +213
                 </Text>
-                <View className="bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  <Text className="text-[10px] text-emerald-700 font-bold">
-                    Automatique 💬
-                  </Text>
-                </View>
-              </View>
-
-              <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-xl px-3 h-11">
-                <Text className="text-xs font-bold text-gray-700 mr-2">🇩🇿 +213</Text>
                 <TextInput
                   value={phoneNumber}
                   onChangeText={setPhoneNumber}
                   placeholder="05 / 06 / 07 XX XX XX"
                   keyboardType="phone-pad"
-                  className="flex-1 text-sm text-gray-900"
+                  style={{ flex: 1, fontSize: 14, color: "#111827" }}
                 />
               </View>
-              <Text className="text-[10px] text-gray-400 mt-1">
-                Vous recevrez l'estimation du chef et l'arrivée du livreur directement sur WhatsApp.
+            </View>
+          </ScrollView>
+
+          {/* Footer McDo : Sous-Total & Bouton Jaune Valider le panier (Image 4) */}
+          <View
+            style={{
+              paddingHorizontal: 20,
+              paddingTop: 14,
+              paddingBottom: 24,
+              borderTopWidth: 1,
+              borderTopColor: "#F3F4F6",
+              backgroundColor: "white",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 14,
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
+                Sous-Total
+              </Text>
+              <Text style={{ fontSize: 18, fontWeight: "900", color: "#111827" }}>
+                {formatPrice(basketTotal + deliveryFee)}
               </Text>
             </View>
 
-            {/* Résumé prix */}
-            <View className="p-5 bg-white space-y-3 border-t border-gray-100">
-              <View className="flex-row justify-between">
-                <Text className="text-gray-500">{t("subtotal")}</Text>
-                <Text className="text-gray-600 font-medium">
-                  {formatPrice(basketTotal)}
-                </Text>
-              </View>
-              <View className="flex-row justify-between">
-                <Text className="text-gray-500">{t("deliveryFee")}</Text>
-                <Text className="text-gray-600 font-medium">
-                  {formatPrice(deliveryFee)}
-                </Text>
-              </View>
-              <View className="flex-row justify-between pt-2 border-t border-gray-100">
-                <Text className="font-bold text-base text-gray-800">{t("orderTotal")}</Text>
-                <Text className="font-extrabold text-lg text-emerald-800">
-                  {formatPrice(basketTotal + deliveryFee)}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={createOrder}
-                className="rounded-2xl p-4 bg-[#22c55e] active:bg-[#16a34a] duration-150 shadow-md shadow-green-600/30 mt-2"
+            <TouchableOpacity
+              onPress={createOrder}
+              activeOpacity={0.88}
+              style={{
+                backgroundColor: "#FFBC0D", // Jaune signature McDo
+                paddingVertical: 15,
+                borderRadius: 10,
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 3,
+                elevation: 3,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "900",
+                  color: "#111827",
+                  letterSpacing: 0.2,
+                }}
               >
-                <Text className="text-center text-white font-extrabold text-lg">
-                  {t("placeOrder")} ({formatPrice(basketTotal + deliveryFee)})
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-      </View>
+                Valider le panier
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
+      {/* Modal Mode de commande */}
+      <OrderModeModal
+        visible={orderModeModalVisible}
+        onClose={() => setOrderModeModalVisible(false)}
+        selectedMode={orderMode}
+        onSelectMode={setOrderMode}
+      />
     </SafeAreaView>
   );
 };

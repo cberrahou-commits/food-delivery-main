@@ -118,23 +118,50 @@ const DishRow = ({
               }}
               className="w-28 h-28 bg-gray-300 p-4 rounded-xl"
             />
-            <View className="bg-white pt-3">
-              <View className="flex-row items-center justify-between ">
-                <TouchableOpacity onPress={removeItemFromBasket}>
-                  <MinusCircleIcon
-                    color={items.length > 0 ? "#4ade80" : "lightgray"}
-                    size={42}
-                  />
-                </TouchableOpacity>
+            <View className="bg-white pt-2">
+              <View className="flex-row items-center justify-end space-x-2">
+                {items.length > 0 && (
+                  <>
+                    <TouchableOpacity
+                      onPress={removeItemFromBasket}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        borderWidth: 1.5,
+                        borderColor: "#D1D5DB",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "white",
+                      }}
+                    >
+                      <Text style={{ fontSize: 16, fontWeight: "900", color: "#374151", marginTop: -2 }}>-</Text>
+                    </TouchableOpacity>
 
-                {items.length === 0 ? (
-                  <Text> </Text>
-                ) : (
-                  <Text>{items.length}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "900", color: "#111827", minWidth: 18, textAlign: "center" }}>
+                      {items.length}
+                    </Text>
+                  </>
                 )}
 
-                <TouchableOpacity onPress={addItems}>
-                  <PlusCircleIcon color="#4ade80" size={42} />
+                <TouchableOpacity
+                  onPress={addItems}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: "#FFBC0D",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 2,
+                    elevation: 2,
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 18, fontWeight: "900", color: "#111827", marginTop: -2 }}>+</Text>
                 </TouchableOpacity>
               </View>
             </View>
