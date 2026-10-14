@@ -439,3 +439,4 @@ seedBBAData()
     console.error("Erreur seed BBA:", err);
     process.exit(1);
   });
+

@@ -58,13 +58,14 @@ const PlusScreen = () => {
 
   return (
     <SafeAreaView
+      edges={["left", "right", "bottom"]}
       style={{
         flex: 1,
         backgroundColor: "white",
         paddingTop:
           Platform.OS === "android"
             ? Math.max(insets.top, StatusBar.currentHeight || 0, 24)
-            : 0,
+            : Math.max(insets.top, 20),
       }}
     >
       <StatusBar barStyle="dark-content" backgroundColor="white" />

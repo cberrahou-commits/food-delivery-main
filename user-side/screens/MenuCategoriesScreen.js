@@ -148,16 +148,16 @@ const MenuCategoriesScreen = () => {
 
     // Filtre par Wilaya si sélectionnée
     if (selectedWilaya) {
-      const wCode = selectedWilaya.code;
-      const wName = selectedWilaya.name.toLowerCase();
+      const wCode = String(selectedWilaya.code || "");
+      const wName = String(selectedWilaya.name || "").toLowerCase();
       list = list.filter((r) => {
-        if (r.wilayaCode === wCode) return true;
+        if (r.wilayaCode && String(r.wilayaCode) === wCode) return true;
         if (
           r.wilaya &&
-          (r.wilaya.includes(wCode) || r.wilaya.toLowerCase().includes(wName))
+          (String(r.wilaya).includes(wCode) || String(r.wilaya).toLowerCase().includes(wName))
         )
           return true;
-        if (r.address && r.address.toLowerCase().includes(wName)) return true;
+        if (r.address && String(r.address).toLowerCase().includes(wName)) return true;
         return false;
       });
     }
@@ -201,13 +201,14 @@ const MenuCategoriesScreen = () => {
 
   return (
     <SafeAreaView
+      edges={["left", "right", "bottom"]}
       style={{
         flex: 1,
         backgroundColor: "white",
         paddingTop:
           Platform.OS === "android"
             ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
-            : 0,
+            : Math.max(insets.top, 20),
       }}
     >
       {/* Header McDo style */}
@@ -247,10 +248,10 @@ const MenuCategoriesScreen = () => {
             textAlign: "center",
           }}
         >
-          {selectedWilaya
-            ? selectedWilaya.name.toUpperCase()
+          {selectedWilaya?.name
+            ? String(selectedWilaya.name).toUpperCase()
             : dbUser?.address
-            ? dbUser.address.toUpperCase()
+            ? String(dbUser.address).toUpperCase()
             : "ALGER & ENVIRONS"}
         </Text>
 
@@ -262,7 +263,7 @@ const MenuCategoriesScreen = () => {
             textAlign: "center",
           }}
         >
-          {selectedWilaya
+          {selectedWilaya?.code
             ? `Wilaya ${selectedWilaya.code} · Algérie`
             : "Établissements classés par proximité géographique"}
         </Text>

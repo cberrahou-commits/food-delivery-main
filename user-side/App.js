@@ -3,7 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 import RootNavigator from "./navigation/RootNavigator";
 import { store } from "./store.js";
 import { Provider } from "react-redux";
@@ -18,7 +18,7 @@ export default function App() {
   }, []);
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
+      <SafeAreaProvider initialWindowMetrics={initialWindowMetrics}>
         <LanguageProvider>
           <NavigationContainer>
             <AuthContextProvder>
@@ -27,7 +27,7 @@ export default function App() {
                 <RootNavigator />
               </Provider>
             </AuthContextProvder>
-            <StatusBar style="dark" />
+            <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />
           </NavigationContainer>
         </LanguageProvider>
       </SafeAreaProvider>

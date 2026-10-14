@@ -49,13 +49,14 @@ const OrderDetailsScreen = () => {
       <StatusBar style="dark" />
 
       <SafeAreaView
+        edges={["left", "right", "bottom"]}
         style={{
           flex: 1,
           backgroundColor: "white",
           paddingTop:
             Platform.OS === "android"
               ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
-              : 0,
+              : Math.max(insets.top, 20),
         }}
       >
         <View className=" bg-white">
