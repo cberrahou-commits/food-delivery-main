@@ -158,7 +158,7 @@ const BasketScreen = () => {
         backgroundColor: "white",
         paddingTop:
           Platform.OS === "android"
-            ? Math.max(insets.top, StatusBar.currentHeight || 0, 24)
+            ? Math.max(insets.top, (StatusBar.currentHeight || 0) + 16, 52)
             : 0,
       }}
     >

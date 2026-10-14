@@ -1,3 +1,4 @@
+import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Home from "../screens/Home";
 import RestaurantDetails from "../screens/RestaurantDetails";
@@ -6,8 +7,7 @@ import UserDetails from "../screens/UserDetails";
 import OptionsScreen from "../screens/OptionsScreen";
 import OrderDetailsScreen from "../screens/OrderDetailsScreen";
 import PreparingOrderScreen from "../screens/PreparingOrderScreen";
-import { UserAuth } from "../contexts/AuthContext";
-import ProfileScreen from '../screens/ProfileScreen';
+import ProfileScreen from "../screens/ProfileScreen";
 import CookOnboardingScreen from "../screens/CookOnboardingScreen";
 import CookDashboardScreen from "../screens/CookDashboardScreen";
 import AddCookDishScreen from "../screens/AddCookDishScreen";
@@ -15,107 +15,48 @@ import MenuCategoriesScreen from "../screens/MenuCategoriesScreen";
 import PlusScreen from "../screens/PlusScreen";
 import RestaurantOnboardingScreen from "../screens/RestaurantOnboardingScreen";
 import RestaurantsMapScreen from "../screens/RestaurantsMapScreen";
-import { useNavigation } from "@react-navigation/native";
+
+const Stack = createNativeStackNavigator();
 
 const AppStack = () => {
-  const navigation = useNavigation()
-  const Stack = createNativeStackNavigator();
-  const { dbUser } = UserAuth();
-
   return (
-    <Stack.Navigator>
-      {dbUser == null ? (
-        <Stack.Screen
-          name="User Details"
-          component={UserDetails}
-          options={{ presentation: "fullScreenModal", headerShown: false }}
-        />
-      ) : null}
-      <>
-        <Stack.Screen
-          name="Home"
-          component={Home}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="MenuCategories"
-          component={MenuCategoriesScreen}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="Plus"
-          component={PlusScreen}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="Options"
-          component={OptionsScreen}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="Restaurant"
-          component={RestaurantDetails}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="Basket"
-          component={BasketScreen}
-          options={{ presentation: "modal", headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="PreparingOrderScreen"
-          component={PreparingOrderScreen}
-          options={{ presentation: "fullScreenModal", headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="Order Details"
-          component={OrderDetailsScreen}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="CookOnboarding"
-          component={CookOnboardingScreen}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="CookDashboard"
-          component={CookDashboardScreen}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="AddCookDish"
-          component={AddCookDishScreen}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="RestaurantOnboarding"
-          component={RestaurantOnboardingScreen}
-          options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="RestaurantsMap"
-          component={RestaurantsMapScreen}
-          options={{ headerShown: false }}
-        />
-      </>
+    <Stack.Navigator
+      initialRouteName="Home"
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_right",
+      }}
+    >
+      <Stack.Screen name="Home" component={Home} />
+      <Stack.Screen name="MenuCategories" component={MenuCategoriesScreen} />
+      <Stack.Screen name="RestaurantsMap" component={RestaurantsMapScreen} />
+      <Stack.Screen name="Plus" component={PlusScreen} />
+      <Stack.Screen name="Restaurant" component={RestaurantDetails} />
+      <Stack.Screen
+        name="Basket"
+        component={BasketScreen}
+        options={{ presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="PreparingOrderScreen"
+        component={PreparingOrderScreen}
+        options={{ presentation: "fullScreenModal" }}
+      />
+      <Stack.Screen name="Order Details" component={OrderDetailsScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Options" component={OptionsScreen} />
+      <Stack.Screen name="CookOnboarding" component={CookOnboardingScreen} />
+      <Stack.Screen name="CookDashboard" component={CookDashboardScreen} />
+      <Stack.Screen name="AddCookDish" component={AddCookDishScreen} />
+      <Stack.Screen
+        name="RestaurantOnboarding"
+        component={RestaurantOnboardingScreen}
+      />
+      <Stack.Screen
+        name="User Details"
+        component={UserDetails}
+        options={{ presentation: "fullScreenModal" }}
+      />
     </Stack.Navigator>
   );
 };

@@ -11,6 +11,7 @@ import { AuthContextProvder } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { registerForPushNotificationsAsync } from "./services/notificationService";
 import NotificationWatcher from "./components/NotificationWatcher";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 export default function App() {
   useEffect(() => {
@@ -19,17 +20,19 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider initialWindowMetrics={initialWindowMetrics}>
-        <LanguageProvider>
-          <NavigationContainer>
-            <AuthContextProvder>
-              <NotificationWatcher />
-              <Provider store={store}>
-                <RootNavigator />
-              </Provider>
-            </AuthContextProvder>
-            <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />
-          </NavigationContainer>
-        </LanguageProvider>
+        <ErrorBoundary>
+          <LanguageProvider>
+            <NavigationContainer>
+              <AuthContextProvder>
+                <NotificationWatcher />
+                <Provider store={store}>
+                  <RootNavigator />
+                </Provider>
+              </AuthContextProvder>
+              <StatusBar style="dark" translucent={false} backgroundColor="#FFFFFF" />
+            </NavigationContainer>
+          </LanguageProvider>
+        </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

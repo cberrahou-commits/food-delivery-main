@@ -25,6 +25,8 @@ const OrderDetailsScreen = () => {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
+    if (!user?.uid) return;
+
     const ordersRef = collection(db, "orders");
     const q = query(
       ordersRef,
@@ -32,17 +34,22 @@ const OrderDetailsScreen = () => {
       orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      let item = [];
-      querySnapshot.forEach((doc) => {
-        item.push({ ...doc.data(), id: doc.id });
-      });
-      setOrders(item);
-      console.log(orders);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        let item = [];
+        querySnapshot.forEach((doc) => {
+          item.push({ ...doc.data(), id: doc.id });
+        });
+        setOrders(item);
+      },
+      (error) => {
+        console.warn("Orders onSnapshot error:", error);
+      }
+    );
 
-    return unsubscribe; // Cleanup function to unsubscribe from real-time updates
-  }, []);
+    return unsubscribe;
+  }, [user?.uid]);
 
   return (
     <>
@@ -55,8 +62,8 @@ const OrderDetailsScreen = () => {
           backgroundColor: "white",
           paddingTop:
             Platform.OS === "android"
-              ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
-              : Math.max(insets.top, 20),
+              ? Math.max(insets.top, (RNStatusBar.currentHeight || 0) + 16, 52)
+              : Math.max(insets.top, 44),
         }}
       >
         <View className=" bg-white">

@@ -173,8 +173,8 @@ const RestaurantsMapScreen = () => {
 
   const topOffset =
     Platform.OS === "android"
-      ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 36) + 10
-      : (insets.top > 0 ? insets.top + 8 : 50);
+      ? Math.max(insets.top, (RNStatusBar.currentHeight || 0) + 16, 52) + 10
+      : (insets.top > 0 ? insets.top + 8 : 52);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>

@@ -179,7 +179,7 @@ const RestaurantDetails = () => {
               position: "absolute",
               top:
                 Platform.OS === "android"
-                  ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24) + 12
+                  ? Math.max(insets.top, (RNStatusBar.currentHeight || 0) + 16, 52) + 8
                   : (insets.top > 0 ? insets.top + 8 : 44),
               left: 16,
               zIndex: 10,

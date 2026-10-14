@@ -17,8 +17,14 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
   const [hasRatedLocal, setHasRatedLocal] = useState(Boolean(order?.hasRated));
   const { t, formatPrice, language } = useLanguage();
 
-  let statusText, statusColor, badgeBg;
-  const orderTimeStamp = timestamp ? timestamp.toDate() : new Date();
+  let orderTimeStamp;
+  if (timestamp && typeof timestamp.toDate === "function") {
+    orderTimeStamp = timestamp.toDate();
+  } else if (timestamp) {
+    orderTimeStamp = new Date(timestamp);
+  } else {
+    orderTimeStamp = new Date();
+  }
   const options = {
     day: "2-digit",
     month: "short",

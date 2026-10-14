@@ -161,7 +161,7 @@ const AddCookDishScreen = () => {
         backgroundColor: "#F9FAFB",
         paddingTop:
           Platform.OS === "android"
-            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+            ? Math.max(insets.top, (RNStatusBar.currentHeight || 0) + 16, 52)
             : 0,
       }}
     >

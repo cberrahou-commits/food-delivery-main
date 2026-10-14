@@ -1,5 +1,5 @@
-import { View, Text, Pressable, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, Pressable, TouchableOpacity, Platform, StatusBar as RNStatusBar } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowRightIcon, ArrowLeftIcon, GlobeAltIcon } from "react-native-heroicons/solid";
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
@@ -8,6 +8,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import LanguageSelectorModal from "../components/LanguageSelectorModal";
 
 const OptionsScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const [name, setName] = useState("");
   const [langModalVisible, setLangModalVisible] = useState(false);
@@ -22,7 +23,17 @@ const OptionsScreen = () => {
     language === "ar" ? "🇩🇿 العربية" : language === "en" ? "🇬🇧 English" : "🇫🇷 Français";
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView
+      edges={["left", "right", "bottom"]}
+      style={{
+        flex: 1,
+        backgroundColor: "white",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, (RNStatusBar.currentHeight || 0) + 16, 52)
+            : 0,
+      }}
+    >
       <LanguageSelectorModal
         visible={langModalVisible}
         onClose={() => setLangModalVisible(false)}

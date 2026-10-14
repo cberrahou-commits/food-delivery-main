@@ -207,8 +207,8 @@ const MenuCategoriesScreen = () => {
         backgroundColor: "white",
         paddingTop:
           Platform.OS === "android"
-            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
-            : Math.max(insets.top, 20),
+            ? Math.max(insets.top, (RNStatusBar.currentHeight || 0) + 16, 52)
+            : Math.max(insets.top, 44),
       }}
     >
       {/* Header McDo style */}
@@ -504,10 +504,13 @@ const MenuCategoriesScreen = () => {
         ) : (
           sortedEstablishments.map((est) => {
             const isCook = est.isCook || est.isHomemade;
+            const rawImg = est.image || est.exteriorImage;
             const photoUrl =
-              est.image ||
-              est.exteriorImage ||
-              "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400";
+              rawImg &&
+              typeof rawImg === "string" &&
+              (rawImg.startsWith("http://") || rawImg.startsWith("https://") || rawImg.startsWith("data:image"))
+                ? rawImg
+                : "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400";
 
             return (
               <TouchableOpacity
