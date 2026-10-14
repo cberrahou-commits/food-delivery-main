@@ -78,8 +78,15 @@ const CookOrderDishes = ({ orderId }) => {
 
   return (
     <View className="my-2 border-t border-b border-gray-100 py-2">
-      {items.map((dish) => (
-        <DishInfo key={dish.dishId} id={dish.dishId} quantity={dish.quantity} />
+      {items.map((dish, idx) => (
+        <DishInfo
+          key={idx}
+          id={dish.dishId}
+          quantity={dish.quantity}
+          name={dish.name}
+          excludedIngredients={dish.excludedIngredients}
+          specialInstructions={dish.specialInstructions}
+        />
       ))}
     </View>
   );

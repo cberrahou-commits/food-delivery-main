@@ -165,12 +165,15 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
 
           {/* LISTE DES PLATS */}
           <View className="my-2 border-t border-b border-gray-50 py-1">
-            {dishes.map((dish) => {
+            {dishes.map((dish, idx) => {
               return (
                 <DishInfo
-                  key={dish.dishId}
+                  key={idx}
                   id={dish.dishId}
                   quantity={dish.quantity}
+                  name={dish.name}
+                  excludedIngredients={dish.excludedIngredients}
+                  specialInstructions={dish.specialInstructions}
                 />
               );
             })}

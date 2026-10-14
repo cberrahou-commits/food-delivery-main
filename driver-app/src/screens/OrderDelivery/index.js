@@ -683,6 +683,9 @@ const OrderDelivery = ({ route }) => {
                   key={index}
                   id={item.dishId}
                   quantity={item.quantity}
+                  name={item.name}
+                  excludedIngredients={item.excludedIngredients}
+                  specialInstructions={item.specialInstructions}
                 />
               );
             })}

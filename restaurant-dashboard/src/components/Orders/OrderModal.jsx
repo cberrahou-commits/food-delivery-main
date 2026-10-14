@@ -282,7 +282,13 @@ const OrderModal = ({ setIsActive, selectedOrder }) => {
               ) : (
                 dishes.map((dish, i) => (
                   <div key={i} className="py-2 first:pt-0 last:pb-0">
-                    <DishInfo id={dish.dishId} quantity={dish.quantity} />
+                    <DishInfo
+                      id={dish.dishId}
+                      quantity={dish.quantity}
+                      name={dish.name}
+                      excludedIngredients={dish.excludedIngredients}
+                      specialInstructions={dish.specialInstructions}
+                    />
                   </div>
                 ))
               )}

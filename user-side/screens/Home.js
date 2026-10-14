@@ -102,21 +102,32 @@ const Home = () => {
     });
   };
 
+  const [establishmentFilter, setEstablishmentFilter] = useState("all"); // 'all' | 'restaurant' | 'cook'
+
   const filteredRestaurants = useMemo(() => {
-    if (!selectedWilaya) return restaurant;
-    const wCode = selectedWilaya.code;
-    const wName = selectedWilaya.name.toLowerCase();
-    return restaurant.filter((r) => {
-      if (r.wilayaCode === wCode) return true;
-      if (
-        r.wilaya &&
-        (r.wilaya.includes(wCode) || r.wilaya.toLowerCase().includes(wName))
-      )
-        return true;
-      if (r.address && r.address.toLowerCase().includes(wName)) return true;
-      return false;
-    });
-  }, [restaurant, selectedWilaya]);
+    let list = restaurant;
+    if (selectedWilaya) {
+      const wCode = selectedWilaya.code;
+      const wName = selectedWilaya.name.toLowerCase();
+      list = list.filter((r) => {
+        if (r.wilayaCode === wCode) return true;
+        if (
+          r.wilaya &&
+          (r.wilaya.includes(wCode) || r.wilaya.toLowerCase().includes(wName))
+        )
+          return true;
+        if (r.address && r.address.toLowerCase().includes(wName)) return true;
+        return false;
+      });
+    }
+
+    if (establishmentFilter === "cook") {
+      return list.filter((r) => r.isCook || r.isHomemade);
+    } else if (establishmentFilter === "restaurant") {
+      return list.filter((r) => !r.isCook && !r.isHomemade);
+    }
+    return list;
+  }, [restaurant, selectedWilaya, establishmentFilter]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
@@ -541,24 +552,69 @@ const Home = () => {
               );
             })}
 
-            {/* Cuisines de la Wilaya */}
+            {/* Cuisines de la Wilaya & Filtre Restaurants / Cuisiniers */}
             <View style={{ paddingHorizontal: 16 }}>
-              <Text style={{ marginVertical: 14, fontWeight: "900", fontSize: 20, color: "#111827" }}>
+              <Text style={{ marginTop: 14, marginBottom: 10, fontWeight: "900", fontSize: 20, color: "#111827" }}>
                 {selectedWilaya
-                  ? `Cuisines à ${selectedWilaya.name} (${filteredRestaurants.length})`
-                  : `Toutes les cuisines (${filteredRestaurants.length})`}
+                  ? `Établissements à ${selectedWilaya.name}`
+                  : "Tous les établissements"}
               </Text>
+
+              {/* Filtres : Tous / Restaurants / Cuisiniers Fait-Maison */}
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+                <TouchableOpacity
+                  onPress={() => setEstablishmentFilter("all")}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 12,
+                    backgroundColor: establishmentFilter === "all" ? "#FFBC0D" : "#F3F4F6",
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
+                    🍽️ Tous ({restaurant.length})
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setEstablishmentFilter("restaurant")}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 12,
+                    backgroundColor: establishmentFilter === "restaurant" ? "#FFBC0D" : "#F3F4F6",
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
+                    🏢 Restaurants ({restaurant.filter((r) => !r.isCook && !r.isHomemade).length})
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setEstablishmentFilter("cook")}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 12,
+                    backgroundColor: establishmentFilter === "cook" ? "#FFBC0D" : "#F3F4F6",
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
+                    🍳 Fait-Maison ({restaurant.filter((r) => r.isCook || r.isHomemade).length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
               {filteredRestaurants.length === 0 ? (
                 <View style={{ backgroundColor: "#F9FAFB", padding: 24, borderRadius: 16, alignItems: "center", borderWidth: 1, borderColor: "#E5E7EB", marginVertical: 12 }}>
                   <Text style={{ fontSize: 28, marginBottom: 8 }}>📍</Text>
                   <Text style={{ fontWeight: "bold", color: "#1F2937", fontSize: 15, textAlign: "center" }}>
-                    Aucune cuisine pour le moment
+                    Aucun établissement pour le moment
                   </Text>
                   <Text style={{ color: "#6B7280", fontSize: 12, textAlign: "center", marginTop: 4 }}>
                     {selectedWilaya
                       ? `Aucune cuisine enregistrée dans la Wilaya de ${selectedWilaya.name}. Choisissez "Toutes les Wilayas" pour explorer toute l'Algérie.`
-                      : "Aucun restaurant n'est disponible pour le moment."}
+                      : "Aucun établissement n'est disponible pour le moment."}
                   </Text>
                 </View>
               ) : (
@@ -577,6 +633,8 @@ const Home = () => {
                       lng={item.lng}
                       minDeliveryTime={item.minDeliveryTime}
                       maxDeliveryTime={item.maxDeliveryTime}
+                      isCook={item.isCook}
+                      isHomemade={item.isHomemade}
                     />
                   );
                 })

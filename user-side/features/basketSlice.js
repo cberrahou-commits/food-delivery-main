@@ -22,14 +22,18 @@ export const basketSlice = createSlice({
       }
 
       if (state.restaurantId === itemRestaurantId) {
-        state.items = [...state.items, action.payload];
+        const qty = action.payload.quantity || 1;
+        const itemToAdd = { ...action.payload, quantity: 1 };
+        for (let i = 0; i < qty; i++) {
+          state.items.push(itemToAdd);
+        }
       }
     },
 
     removeFromBasket: (state, action) => {
-      const index = state.items.findIndex(
-        (item) => item.id === action.payload.id
-      );
+      const index = action.payload?.uniqueBasketId
+        ? state.items.findIndex((item) => item.uniqueBasketId === action.payload.uniqueBasketId)
+        : state.items.findIndex((item) => item.id === action.payload.id);
 
       let newBasket = [...state.items];
 
@@ -37,7 +41,7 @@ export const basketSlice = createSlice({
         newBasket.splice(index, 1);
       } else {
         console.warn(
-          `Cant remove product (id: ${action.payload.id}) as its not in basket!`
+          `Cant remove product (id: ${action.payload?.id}) as its not in basket!`
         );
       }
 

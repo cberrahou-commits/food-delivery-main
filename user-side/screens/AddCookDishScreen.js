@@ -15,6 +15,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { ArrowLeftIcon, CameraIcon, PhotoIcon, SparklesIcon } from "react-native-heroicons/solid";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { FOOD_CATEGORIES } from "../constants/categories";
 
 const AddCookDishScreen = () => {
   const navigation = useNavigation();
@@ -22,12 +23,24 @@ const AddCookDishScreen = () => {
   const { kitchenId } = route.params || {};
 
   const [name, setName] = useState("");
+  const [category, setCategory] = useState("traditionnel");
+  const [customizableIngredientsText, setCustomizableIngredientsText] = useState(
+    FOOD_CATEGORIES.find((c) => c.id === "traditionnel")?.defaultIngredients?.join(", ") || ""
+  );
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [prepTime, setPrepTime] = useState("25");
   const [portions, setPortions] = useState("4");
   const [imageUri, setImageUri] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const handleSelectCategory = (catId) => {
+    setCategory(catId);
+    const catObj = FOOD_CATEGORIES.find((c) => c.id === catId);
+    if (catObj && catObj.defaultIngredients) {
+      setCustomizableIngredientsText(catObj.defaultIngredients.join(", "));
+    }
+  };
 
   // Prise de photo avec le téléphone
   const takePhoto = async () => {
@@ -91,7 +104,7 @@ const AddCookDishScreen = () => {
     }
     const parsedPrice = parseFloat(price.replace(",", "."));
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      Alert.alert("Prix invalide", "Veuillez indiquer un prix valide en euros (ex: 12.50).");
+      Alert.alert("Prix invalide", "Veuillez indiquer un prix valide en Dinars (ex: 850).");
       return;
     }
 
@@ -102,9 +115,19 @@ const AddCookDishScreen = () => {
         imageUri ||
         "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80";
 
+      const selectedCatObj = FOOD_CATEGORIES.find((c) => c.id === category);
+      const ingredientsList = customizableIngredientsText
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
       await addDoc(collection(db, "dishes"), {
         restaurantId: kitchenId,
         name: name.trim(),
+        category: selectedCatObj ? selectedCatObj.name : "Plats traditionnels",
+        categoryId: category,
+        customizableIngredients: ingredientsList,
+        ingredients: ingredientsList,
         description: description.trim() || "Plat artisanal fait maison avec amour et ingrédients frais.",
         price: parsedPrice,
         image: finalImage,
@@ -207,8 +230,61 @@ const AddCookDishScreen = () => {
           <TextInput
             value={name}
             onChangeText={setName}
-            placeholder="Ex: Couscous Royal Maison, Lasagnes Italiennes..."
+            placeholder="Ex: Couscous Royal Maison, Burger Artisanal..."
             className="border border-gray-300 rounded-xl p-3 text-base bg-gray-50 mb-4"
+          />
+
+          {/* Choix de la Catégorie */}
+          <Text className="text-sm font-bold text-gray-800 mb-1.5">
+            Catégorie du plat *
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingBottom: 6 }}
+            className="mb-4"
+          >
+            {FOOD_CATEGORIES.map((cat) => {
+              const isSelected = category === cat.id;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  onPress={() => handleSelectCategory(cat.id)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 12,
+                    borderWidth: 1.5,
+                    borderColor: isSelected ? "#059669" : "#E5E7EB",
+                    backgroundColor: isSelected ? "#ECFDF5" : "#F9FAFB",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: isSelected ? "800" : "600",
+                      color: isSelected ? "#065F46" : "#374151",
+                    }}
+                  >
+                    {cat.icon} {cat.shortName}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Ingrédients personnalisables (ex: sans salade et tomate) */}
+          <Text className="text-sm font-bold text-gray-800 mb-1">
+            Ingrédients de base personnalisables 🌿
+          </Text>
+          <Text className="text-xs text-gray-500 mb-2">
+            Séparez par des virgules. Les clients pourront les décocher (ex: sans salade, sans oignons).
+          </Text>
+          <TextInput
+            value={customizableIngredientsText}
+            onChangeText={setCustomizableIngredientsText}
+            placeholder="Ex: Salade, Tomate, Oignons, Cornichons, Fromage..."
+            className="border border-amber-200 bg-amber-50/50 rounded-xl p-3 text-sm mb-4"
           />
 
           {/* Description */}
@@ -219,7 +295,7 @@ const AddCookDishScreen = () => {
             value={description}
             onChangeText={setDescription}
             multiline
-            numberOfLines={4}
+            numberOfLines={3}
             placeholder="Détaillez vos ingrédients frais, épices, savoir-faire artisanal..."
             className="border border-gray-300 rounded-xl p-3 text-sm bg-gray-50 mb-4"
           />

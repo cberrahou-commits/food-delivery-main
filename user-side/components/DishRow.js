@@ -1,7 +1,8 @@
 import { View, Text, Pressable, Image, TouchableOpacity, Alert } from "react-native";
-import { MinusCircleIcon, PlusCircleIcon, StarIcon } from "react-native-heroicons/solid";
+import { MinusCircleIcon, PlusCircleIcon, StarIcon, SparklesIcon } from "react-native-heroicons/solid";
 import React, { useState } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
+import DishCustomizationModal from "./DishCustomizationModal";
 import {
   addToBasket,
   clearBasket,
@@ -22,8 +23,12 @@ const DishRow = ({
   prepTimeMinutes,
   rating,
   reviewCount,
+  category,
+  customizableIngredients,
+  ingredients,
 }) => {
   const [isPressed, setIsPressed] = useState(false);
+  const [customModalVisible, setCustomModalVisible] = useState(false);
   const { t, formatPrice } = useLanguage();
 
   const dispatch = useDispatch();
@@ -31,7 +36,7 @@ const DishRow = ({
   const basketItems = useSelector(selectBasketItems);
   const basketRestaurantId = useSelector(selectBasketRestaurantId);
 
-  const addItems = () => {
+  const handleCustomizedAddToCart = (customizedDish) => {
     if (
       basketItems.length > 0 &&
       basketRestaurantId &&
@@ -52,7 +57,10 @@ const DishRow = ({
             onPress: () => {
               dispatch(clearBasket());
               dispatch(
-                addToBasket({ id, restaurantId, name, description, price, image, prepTimeMinutes })
+                addToBasket({
+                  ...customizedDish,
+                  restaurantId,
+                })
               );
             },
           },
@@ -62,26 +70,55 @@ const DishRow = ({
     }
 
     dispatch(
-      addToBasket({ id, restaurantId, name, description, price, image, prepTimeMinutes })
+      addToBasket({
+        ...customizedDish,
+        restaurantId,
+      })
     );
+  };
+
+  const addItems = () => {
+    // Toujours ouvrir la personnalisation pour permettre de choisir sans salade, tomate, etc.
+    setCustomModalVisible(true);
   };
 
   const removeItemFromBasket = () => {
     if (!items.length > 0) return;
-
     dispatch(removeFromBasket({ id }));
   };
 
   return (
     <>
       <Pressable
-        onPress={() => setIsPressed(!isPressed)}
-        className="m-2  rounded-3xl bg-white shadow shadow-slate-200 p-4 border border-gray-200"
+        onPress={() => setCustomModalVisible(true)}
+        className="m-2 rounded-3xl bg-white shadow shadow-slate-200 p-4 border border-gray-200"
       >
         <View className="flex-row">
           <View className="flex-1 pr-2 justify-center">
             <Text className="text-xl mb-1 font-semibold">{name}</Text>
             <Text className="text-gray-400">{description}</Text>
+
+            {/* Badge Personnalisable */}
+            <View className="flex-row items-center mt-2">
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#FFFBEB",
+                  borderWidth: 1,
+                  borderColor: "#FDE68A",
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 8,
+                }}
+              >
+                <SparklesIcon size={12} color="#D97706" style={{ marginRight: 4 }} />
+                <Text style={{ fontSize: 10, fontWeight: "800", color: "#92400E" }}>
+                  Personnalisable (ex: sans tomate)
+                </Text>
+              </View>
+            </View>
+
             <View className="flex-row items-center flex-wrap gap-2 mt-2">
               <Text className="text-emerald-700 text-base font-bold">
                 {formatPrice(price)}
@@ -168,6 +205,25 @@ const DishRow = ({
           </View>
         </View>
       </Pressable>
+
+      {/* Modal de personnalisation des ingrédients */}
+      <DishCustomizationModal
+        visible={customModalVisible}
+        onClose={() => setCustomModalVisible(false)}
+        dish={{
+          id,
+          restaurantId,
+          name,
+          description,
+          price,
+          image,
+          prepTimeMinutes,
+          category,
+          customizableIngredients,
+          ingredients,
+        }}
+        onAddToCart={handleCustomizedAddToCart}
+      />
     </>
   );
 };

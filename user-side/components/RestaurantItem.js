@@ -18,20 +18,23 @@ const RestaurantItem = ({
   lng,
   minDeliveryTime,
   maxDeliveryTime,
+  isCook,
+  isHomemade,
 }) => {
   const navigation = useNavigation();
-  const DEFAULT_IMAGE = "https://i.postimg.cc/qvhzT8XP/pastry.jpg";
+  const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600";
+
+  const isCookEstablishment = isCook || isHomemade;
 
   return (
     <Pressable
       onPress={() => {
-        navigation.navigate("Restaurant", {
-          id
-        });
+        navigation.navigate("Restaurant", { id });
       }}
-      className="bg-white my-2 flex-row rounded-2xl border border-gray-200 space-x-1"
+      className="bg-white my-2 flex-row rounded-2xl border border-gray-200 overflow-hidden shadow-xs"
+      style={{ elevation: 1 }}
     >
-      <View className="h-30 w-30 ">
+      <View className="h-32 w-32 bg-gray-100">
         <Image
           source={{
             uri:
@@ -39,28 +42,62 @@ const RestaurantItem = ({
                 ? image
                 : DEFAULT_IMAGE,
           }}
-          className="h-36 w-36 rounded-md "
+          className="h-full w-full"
+          resizeMode="cover"
         />
       </View>
 
-      <View className="px-3 pb-4 space-y-1">
-        <Text className="font-bold text-xl py-2">{title}</Text>
-        <View className="flex-row items-center space-x-1">
-          <StarIcon color="green" opacity={0.5} size={22} />
-          <Text className="text-sm text-gray-500">
-            <Text className="text-green-500">{rating}</Text> · {minDeliveryTime}{" "}
-            - {maxDeliveryTime} mins
+      <View className="px-3 py-2.5 flex-1 justify-center">
+        {/* Badge Type: Cuisinier Maison vs Restaurant */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: isCookEstablishment ? "#ECFDF5" : "#EFF6FF",
+            borderWidth: 1,
+            borderColor: isCookEstablishment ? "#A7F3D0" : "#BFDBFE",
+            paddingHorizontal: 7,
+            paddingVertical: 2,
+            borderRadius: 6,
+            alignSelf: "flex-start",
+            marginBottom: 4,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: "800",
+              color: isCookEstablishment ? "#065F46" : "#1D4ED8",
+            }}
+          >
+            {isCookEstablishment ? "🍳 Cuisinier Maison" : "🍽️ Restaurant"}
           </Text>
         </View>
 
-        <View className="flex-row items-center space-x-1">
-          <SparklesIcon color="gold" opacity={0.4} size={22} />
-          <Text className="text-sm text-gray-500">{genre}</Text>
+        <Text className="font-bold text-base text-gray-900 leading-tight" numberOfLines={1}>
+          {title}
+        </Text>
+
+        <View className="flex-row items-center space-x-1 mt-1">
+          <StarIcon color="#F59E0B" size={16} />
+          <Text className="text-xs text-gray-500 font-semibold">
+            <Text className="text-amber-600 font-bold">{rating || 5.0}</Text> ·{" "}
+            {minDeliveryTime || 20} - {maxDeliveryTime || 35} mins
+          </Text>
         </View>
 
-        <View className="flex-row items-center space-x-1">
-          <MapPinIcon color="gray" opacity={0.4} size={22} />
-          <Text className="text-sm text-gray-500">{address}</Text>
+        {genre ? (
+          <View className="flex-row items-center space-x-1 mt-0.5">
+            <SparklesIcon color="#10B981" size={14} />
+            <Text className="text-xs text-gray-500" numberOfLines={1}>{genre}</Text>
+          </View>
+        ) : null}
+
+        <View className="flex-row items-center space-x-1 mt-0.5">
+          <MapPinIcon color="#9CA3AF" size={14} />
+          <Text className="text-xs text-gray-400" numberOfLines={1}>
+            {address || "Alger, Algérie"}
+          </Text>
         </View>
       </View>
     </Pressable>

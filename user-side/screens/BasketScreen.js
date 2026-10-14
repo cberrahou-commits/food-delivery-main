@@ -58,7 +58,8 @@ const BasketScreen = () => {
 
   useEffect(() => {
     const groupItems = items.reduce((results, item) => {
-      (results[item.id] = results[item.id] || []).push(item);
+      const groupKey = `${item.id}_${item.excludedIngredients?.slice().sort().join("-") || "none"}_${item.specialInstructions || ""}`;
+      (results[groupKey] = results[groupKey] || []).push(item);
       return results;
     }, {});
     setGroupItemsInBucket(groupItems);
@@ -132,6 +133,10 @@ const BasketScreen = () => {
           name: item.name,
           price: item.price,
           quantity: 1,
+          category: item.category || "",
+          excludedIngredients: item.excludedIngredients || [],
+          specialInstructions: item.specialInstructions || "",
+          customizations: item.customizations || null,
         });
       }
 
@@ -276,7 +281,7 @@ const BasketScreen = () => {
                       flexDirection: "row",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      marginBottom: 12,
+                      marginBottom: 6,
                     }}
                   >
                     <Text
@@ -302,18 +307,62 @@ const BasketScreen = () => {
                     </TouchableOpacity>
                   </View>
 
+                  {/* Badges d'ingrédients exclus (ex: sans salade, sans tomate) */}
+                  {dish?.excludedIngredients && dish.excludedIngredients.length > 0 && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        backgroundColor: "#FEF2F2",
+                        borderWidth: 1,
+                        borderColor: "#FECACA",
+                        borderRadius: 6,
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        alignSelf: "flex-start",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: "800", color: "#DC2626" }}>
+                        🚫 Sans : {dish.excludedIngredients.join(", ")}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Consignes particulières pour le chef */}
+                  {dish?.customizations?.note ? (
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: "#4B5563",
+                        fontStyle: "italic",
+                        marginBottom: 8,
+                      }}
+                    >
+                      📝 Note : {dish.customizations.note}
+                    </Text>
+                  ) : null}
+
                   {/* Ligne Quantité (-) QTY (+) et Prix */}
                   <View
                     style={{
                       flexDirection: "row",
                       justifyContent: "space-between",
                       alignItems: "center",
+                      marginTop: 4,
                     }}
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
                       {/* Bouton Moins */}
                       <TouchableOpacity
-                        onPress={() => dispatch(removeFromBasket({ id: key }))}
+                        onPress={() =>
+                          dispatch(
+                            removeFromBasket({
+                              id: dish?.id,
+                              uniqueBasketId: dish?.uniqueBasketId,
+                            })
+                          )
+                        }
                         style={{
                           width: 32,
                           height: 32,
