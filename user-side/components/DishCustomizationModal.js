@@ -398,3 +398,4 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
 };
 
 export default DishCustomizationModal;
+

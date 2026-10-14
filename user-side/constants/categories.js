@@ -157,3 +157,4 @@ export const getDefaultIngredientsForDish = (dish) => {
   // Par défaut pour tout plat salé :
   return ["Sauce", "Oignons", "Épices fortes", "Sel"];
 };
+
