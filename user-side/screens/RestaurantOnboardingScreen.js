@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -56,6 +56,7 @@ const RestaurantOnboardingScreen = () => {
   );
   const [wilayaModalVisible, setWilayaModalVisible] = useState(false);
 
+  const mapRef = useRef(null);
   // Coordonnées GPS sur la carte
   const [markerCoords, setMarkerCoords] = useState({
     latitude: selectedWilaya?.lat || 36.7538,
@@ -63,6 +64,7 @@ const RestaurantOnboardingScreen = () => {
   });
   const [address, setAddress] = useState("Rue Didouche Mourad, Alger Centre");
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
 
   // Documents & Photos obligatoires
   const [rcDocumentUri, setRcDocumentUri] = useState(null);
@@ -74,46 +76,103 @@ const RestaurantOnboardingScreen = () => {
   useEffect(() => {
     // Si la wilaya change, recentrer la carte
     if (selectedWilaya) {
-      setMarkerCoords({
+      const coords = {
         latitude: selectedWilaya.lat || 36.7538,
         longitude: selectedWilaya.lng || 3.0588,
-      });
+      };
+      setMarkerCoords(coords);
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(
+          {
+            ...coords,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          },
+          500
+        );
+      }
     }
   }, [selectedWilaya]);
 
-  // Fonction de reverse geocoding quand l'utilisateur clique sur la carte
-  const handleMapPress = async (coords) => {
-    setMarkerCoords(coords);
+  // Fonction pour extraire les informations de l'adresse par géocodage inverse
+  const reverseGeocode = async (coords) => {
     setIsGeocoding(true);
     try {
       const results = await Location.reverseGeocodeAsync(coords);
       if (results && results.length > 0) {
         const item = results[0];
-        const parts = [
-          item.name || item.street,
-          item.district || item.subregion,
-          item.city || selectedWilaya?.name,
-        ].filter(Boolean);
+        const street = item.street || item.name || "";
+        const district = item.district || item.subregion || "";
+        const city = item.city || item.region || selectedWilaya?.name || "";
+
+        const parts = [street, district, city].filter(
+          (val, idx, arr) => Boolean(val) && arr.indexOf(val) === idx
+        );
+
         const resolvedAddress = parts.join(", ");
         if (resolvedAddress) {
           setAddress(resolvedAddress);
         } else {
           setAddress(
-            `Position GPS: ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)} (${selectedWilaya?.name || "Alger"})`
+            `Position GPS: ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)} (${selectedWilaya?.name || "Algérie"})`
           );
         }
       } else {
         setAddress(
-          `Position GPS: ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)} (${selectedWilaya?.name || "Alger"})`
+          `Position GPS: ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)} (${selectedWilaya?.name || "Algérie"})`
         );
       }
     } catch (err) {
       console.warn("Reverse geocode failed:", err);
       setAddress(
-        `Position GPS: ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)} (${selectedWilaya?.name || "Alger"})`
+        `Position GPS: ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)} (${selectedWilaya?.name || "Algérie"})`
       );
     } finally {
       setIsGeocoding(false);
+    }
+  };
+
+  // Clic sur la carte ou déplacement du repère
+  const handleMapPress = async (coords) => {
+    setMarkerCoords(coords);
+    await reverseGeocode(coords);
+  };
+
+  // Clic sur le bouton rond cible GPS pour déterminer sa position exacte
+  const handleUseCurrentLocation = async () => {
+    setIsLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission", "Accès à la géolocalisation refusé.");
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      if (pos?.coords) {
+        const coords = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        };
+        setMarkerCoords(coords);
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(
+            {
+              ...coords,
+              latitudeDelta: 0.015,
+              longitudeDelta: 0.015,
+            },
+            500
+          );
+        }
+        await reverseGeocode(coords);
+      }
+    } catch (err) {
+      console.warn("Location error:", err);
+      Alert.alert("Erreur", "Impossible de récupérer votre position GPS.");
+    } finally {
+      setIsLocating(false);
     }
   };
 
@@ -457,7 +516,7 @@ const RestaurantOnboardingScreen = () => {
             <Text style={{ fontSize: 11, fontWeight: "800", color: "#059669" }}>Modifier</Text>
           </TouchableOpacity>
 
-          {/* Carte interactive MapView */}
+          {/* Carte interactive MapView avec bouton cible GPS */}
           <View
             style={{
               borderRadius: 14,
@@ -466,9 +525,11 @@ const RestaurantOnboardingScreen = () => {
               borderColor: "#D1D5DB",
               height: 220,
               marginBottom: 12,
+              position: "relative",
             }}
           >
             <MapView
+              ref={mapRef}
               style={{ width: "100%", height: "100%" }}
               initialRegion={{
                 latitude: markerCoords.latitude,
@@ -492,6 +553,55 @@ const RestaurantOnboardingScreen = () => {
                 description={address}
               />
             </MapView>
+
+            {/* Bouton rond Cible GPS (Ma Position) comme sur la capture d'écran */}
+            <TouchableOpacity
+              onPress={handleUseCurrentLocation}
+              activeOpacity={0.8}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                backgroundColor: "white",
+                borderRadius: 20,
+                width: 38,
+                height: 38,
+                alignItems: "center",
+                justifyContent: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3,
+                elevation: 4,
+                borderWidth: 1,
+                borderColor: "#D1D5DB",
+              }}
+            >
+              {isLocating ? (
+                <ActivityIndicator size="small" color="#059669" />
+              ) : (
+                <View
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    borderWidth: 2,
+                    borderColor: "#374151",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: "#374151",
+                    }}
+                  />
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
 
           {/* Champ Adresse Renseigné Automatiquement */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -8,7 +8,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Alert,
-  Button,
   Platform,
   ActivityIndicator,
 } from "react-native";
@@ -22,7 +21,10 @@ import { StatusBar } from "expo-status-bar";
 import WhatsAppOtpModal from "../components/WhatsAppOtpModal";
 
 const UserDetails = () => {
+  const mapRef = useRef(null);
   const [location, setLocation] = useState(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [saving, setSaving] = useState(false);
   const navigation = useNavigation();
   const [firstName, setFirstName] = useState("");
@@ -52,12 +54,13 @@ const UserDetails = () => {
       if (status === "granted") {
         getLocation();
       } else {
-        // Fallback default coordinates
-        setLocation({ latitude: 48.8566, longitude: 2.3522 });
+        // Fallback default coordinates (Alger)
+        const defaultCoords = { latitude: 36.7538, longitude: 3.0588 };
+        setLocation(defaultCoords);
       }
     } catch (err) {
       console.warn("Location permission error:", err);
-      setLocation({ latitude: 48.8566, longitude: 2.3522 });
+      setLocation({ latitude: 36.7538, longitude: 3.0588 });
     }
   };
 
@@ -66,10 +69,87 @@ const UserDetails = () => {
       let { coords } = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      setLocation(coords);
+      const userCoords = { latitude: coords.latitude, longitude: coords.longitude };
+      setLocation(userCoords);
+      if (!address) {
+        reverseGeocodeAndSetAddress(userCoords);
+      }
     } catch (err) {
       console.warn("Could not get current position:", err);
-      setLocation({ latitude: 48.8566, longitude: 2.3522 });
+      setLocation({ latitude: 36.7538, longitude: 3.0588 });
+    }
+  };
+
+  // Extraire les informations d'adresse à partir des coordonnées GPS (géocodage inverse)
+  const reverseGeocodeAndSetAddress = async (coords) => {
+    if (!coords?.latitude || !coords?.longitude) return;
+    setIsGeocoding(true);
+    try {
+      const results = await Location.reverseGeocodeAsync(coords);
+      if (results && results.length > 0) {
+        const item = results[0];
+        const street = item.street || item.name || "";
+        const district = item.district || item.subregion || "";
+        const city = item.city || item.region || "";
+
+        const parts = [street, district, city].filter(
+          (val, idx, arr) => Boolean(val) && arr.indexOf(val) === idx
+        );
+
+        const resolved = parts.join(", ");
+        if (resolved) {
+          setAddress(resolved);
+        }
+      }
+    } catch (err) {
+      console.warn("Reverse geocode error:", err);
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  // Clic sur la carte ou déplacement du repère
+  const handleMapPress = (coords) => {
+    if (!coords?.latitude || !coords?.longitude) return;
+    setLocation(coords);
+    reverseGeocodeAndSetAddress(coords);
+  };
+
+  // Clic sur le bouton rond cible GPS pour déterminer sa position
+  const handleUseCurrentLocation = async () => {
+    setIsLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission", "Accès à la géolocalisation refusé.");
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      if (pos?.coords) {
+        const coords = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        };
+        setLocation(coords);
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(
+            {
+              ...coords,
+              latitudeDelta: 0.008,
+              longitudeDelta: 0.008,
+            },
+            500
+          );
+        }
+        await reverseGeocodeAndSetAddress(coords);
+      }
+    } catch (err) {
+      console.warn("Current location error:", err);
+      Alert.alert("Erreur", "Impossible de récupérer votre position GPS.");
+    } finally {
+      setIsLocating(false);
     }
   };
 
@@ -230,42 +310,121 @@ const UserDetails = () => {
           </View>
 
           <View className="mb-4">
-            <Text className="text-sm font-bold mb-1.5 text-gray-800">
-              Adresse de livraison *
-            </Text>
+            <View className="flex-row items-center justify-between mb-1.5">
+              <Text className="text-sm font-bold text-gray-800">
+                Adresse de livraison *
+              </Text>
+              {isGeocoding ? (
+                <View className="flex-row items-center">
+                  <ActivityIndicator size="small" color="#059669" style={{ marginRight: 4 }} />
+                  <Text className="text-[10px] text-emerald-700 font-bold">Détection adresse...</Text>
+                </View>
+              ) : null}
+            </View>
             <TextInput
               className="bg-white border border-gray-200 text-base h-12 px-4 rounded-xl text-gray-700"
               value={address}
               onChangeText={setAddress}
-              placeholder="Rue, quartier, résidence..."
+              placeholder="Ex: Rue Didouche Mourad, Alger"
             />
           </View>
 
-          <View className="mt-2 mb-6 rounded-2xl overflow-hidden border border-gray-300">
+          <View className="mt-1 mb-6 rounded-2xl overflow-hidden border border-gray-300 relative h-48">
             {location ? (
-              <MapView
-                className="w-full h-40"
-                provider="google"
-                showsUserLocation
-                initialRegion={{
-                  latitude: location.latitude || 0,
-                  longitude: location.longitude || 0,
-                  latitudeDelta: 0.005,
-                  longitudeDelta: 0.005,
-                }}
-              >
-                <Marker
-                  coordinate={{
-                    latitude: location.latitude || 0,
-                    longitude: location.longitude || 0,
+              <>
+                <MapView
+                  ref={mapRef}
+                  className="w-full h-full"
+                  provider="google"
+                  showsUserLocation
+                  onPress={(e) => handleMapPress(e.nativeEvent.coordinate)}
+                  initialRegion={{
+                    latitude: location.latitude || 36.7538,
+                    longitude: location.longitude || 3.0588,
+                    latitudeDelta: 0.008,
+                    longitudeDelta: 0.008,
                   }}
-                />
-              </MapView>
+                  region={
+                    location.latitude && location.longitude
+                      ? {
+                          latitude: location.latitude,
+                          longitude: location.longitude,
+                          latitudeDelta: 0.008,
+                          longitudeDelta: 0.008,
+                        }
+                      : undefined
+                  }
+                >
+                  <Marker
+                    coordinate={{
+                      latitude: location.latitude || 36.7538,
+                      longitude: location.longitude || 3.0588,
+                    }}
+                    draggable
+                    onDragEnd={(e) => handleMapPress(e.nativeEvent.coordinate)}
+                    title="Votre adresse"
+                    description={address || "Position sélectionnée"}
+                  />
+                </MapView>
+
+                {/* Bouton rond cible GPS (Ma Position) */}
+                <TouchableOpacity
+                  onPress={handleUseCurrentLocation}
+                  activeOpacity={0.8}
+                  style={{
+                    position: "absolute",
+                    top: 10,
+                    right: 10,
+                    backgroundColor: "white",
+                    borderRadius: 20,
+                    width: 38,
+                    height: 38,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3,
+                    elevation: 4,
+                    borderWidth: 1,
+                    borderColor: "#D1D5DB",
+                  }}
+                >
+                  {isLocating ? (
+                    <ActivityIndicator size="small" color="#059669" />
+                  ) : (
+                    <View
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        borderWidth: 2,
+                        borderColor: "#374151",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 3,
+                          backgroundColor: "#374151",
+                        }}
+                      />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </>
             ) : (
-              <Button
-                title="Get Current Location"
-                onPress={getLocationPermission}
-              />
+              <TouchableOpacity
+                onPress={handleUseCurrentLocation}
+                className="w-full h-full items-center justify-center bg-gray-100"
+              >
+                <Text className="text-green-700 font-bold text-sm">
+                  📍 Activer la géolocalisation
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
 

@@ -1,72 +1,189 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
   Image,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
-  StatusBar,
+  ActivityIndicator,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { ChevronRightIcon, ChevronDownIcon } from "react-native-heroicons/outline";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  ChevronRightIcon,
+  ChevronDownIcon,
+  StarIcon,
+  ClockIcon,
+  MapPinIcon,
+} from "react-native-heroicons/solid";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { useLanguage } from "../contexts/LanguageContext";
+import * as Location from "expo-location";
+import { UserAuth } from "../contexts/AuthContext";
 import McDoBottomNav from "../components/McDoBottomNav";
 import BasketIcon from "../components/BasketIcon";
 import OrderModeModal from "../components/OrderModeModal";
 import WilayaSelectorModal from "../components/WilayaSelectorModal";
 import { FOOD_CATEGORIES } from "../constants/categories";
 
-const CATEGORY_IMAGES = {
-  burger: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300",
-  pizza: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=300",
-  traditionnel: "https://images.unsplash.com/photo-1541518763669-27fef04b14ea?w=300",
-  tacos: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=300",
-  pates: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=300",
-  salades: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300",
-  desserts: "https://images.unsplash.com/photo-1587314168485-3236d6710814?w=300",
-  boissons: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=300",
-};
+// Calcul de distance Haversine en kilomètres
+function getDistanceInKm(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatDistance(distKm) {
+  if (distKm === null || distKm === undefined) return "À proximité";
+  if (distKm < 1) {
+    return `à ${Math.round(distKm * 1000)} m`;
+  }
+  return `à ${distKm.toFixed(1)} km`;
+}
 
 const MenuCategoriesScreen = () => {
   const navigation = useNavigation();
-  const { t } = useLanguage();
+  const route = useRoute();
+  const { dbUser } = UserAuth();
 
-  const [categories, setCategories] = useState([]);
+  const [establishments, setEstablishments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedWilaya, setSelectedWilaya] = useState(null);
   const [wilayaModalVisible, setWilayaModalVisible] = useState(false);
   const [orderModeModalVisible, setOrderModeModalVisible] = useState(false);
   const [orderMode, setOrderMode] = useState("DELIVERY");
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const snap = await getDocs(collection(db, "categories"));
-        const list = [];
-        snap.forEach((doc) => {
-          list.push({ id: doc.id, ...doc.data() });
-        });
-        if (list.length > 0) {
-          setCategories(list);
-        } else {
-          setCategories(
-            FOOD_CATEGORIES.map((c) => ({
-              id: c.id,
-              name: c.name,
-              icon: c.icon,
-              image: CATEGORY_IMAGES[c.id] || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
-            }))
-          );
-        }
-      } catch (e) {
-        console.warn("Could not load categories:", e);
-      }
-    };
+  // Type filter: 'all' | 'restaurant' | 'cook'
+  const [typeFilter, setTypeFilter] = useState("all");
+  // Category filter: null or category id
+  const [selectedCatFilter, setSelectedCatFilter] = useState(
+    route.params?.selectedCategory || null
+  );
 
-    fetchCategories();
+  // Position client
+  const [clientCoords, setClientCoords] = useState({
+    latitude: dbUser?.latitude || 36.7538,
+    longitude: dbUser?.longitude || 3.0588,
+  });
+
+  useEffect(() => {
+    fetchClientLocation();
+    fetchEstablishments();
   }, []);
+
+  const fetchClientLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (pos?.coords) {
+          setClientCoords({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Client location error:", e);
+    }
+  };
+
+  const fetchEstablishments = async () => {
+    try {
+      const snap = await getDocs(collection(db, "restaurants"));
+      let list = [];
+      snap.forEach((docSnap) => {
+        const data = docSnap.data();
+        const isApproved =
+          data.isVerified === true || data.status === "APPROVED";
+        if (isApproved) {
+          list.push({
+            id: docSnap.id,
+            ...data,
+            lat: Number(data.lat || 36.7538),
+            lng: Number(data.lng || 3.0588),
+          });
+        }
+      });
+      setEstablishments(list);
+    } catch (err) {
+      console.warn("Error fetching establishments:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Liste triée par distance géographique croissante (le plus proche en premier)
+  const sortedEstablishments = useMemo(() => {
+    let list = establishments.map((est) => {
+      const distKm = getDistanceInKm(
+        clientCoords.latitude,
+        clientCoords.longitude,
+        est.lat,
+        est.lng
+      );
+      return {
+        ...est,
+        distanceKm: distKm !== null ? distKm : 9999,
+        formattedDistance: formatDistance(distKm),
+      };
+    });
+
+    // Tri par éloignement géographique croissant
+    list.sort((a, b) => a.distanceKm - b.distanceKm);
+
+    // Filtre par Wilaya si sélectionnée
+    if (selectedWilaya) {
+      const wCode = selectedWilaya.code;
+      const wName = selectedWilaya.name.toLowerCase();
+      list = list.filter((r) => {
+        if (r.wilayaCode === wCode) return true;
+        if (
+          r.wilaya &&
+          (r.wilaya.includes(wCode) || r.wilaya.toLowerCase().includes(wName))
+        )
+          return true;
+        if (r.address && r.address.toLowerCase().includes(wName)) return true;
+        return false;
+      });
+    }
+
+    // Filtre par type (restaurant ou cuisinier maison)
+    if (typeFilter === "cook") {
+      list = list.filter((r) => r.isCook || r.isHomemade);
+    } else if (typeFilter === "restaurant") {
+      list = list.filter((r) => !r.isCook && !r.isHomemade);
+    }
+
+    // Filtre par catégorie culinaire
+    if (selectedCatFilter) {
+      const filterLower = selectedCatFilter.toLowerCase();
+      list = list.filter((r) => {
+        const genre = (r.genre || "").toLowerCase();
+        const desc = (r.description || "").toLowerCase();
+        return genre.includes(filterLower) || desc.includes(filterLower);
+      });
+    }
+
+    return list;
+  }, [
+    establishments,
+    clientCoords,
+    selectedWilaya,
+    typeFilter,
+    selectedCatFilter,
+  ]);
 
   const getModeLabel = () => {
     switch (orderMode) {
@@ -81,10 +198,8 @@ const MenuCategoriesScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
-      <StatusBar barStyle="dark-content" backgroundColor="white" />
-
       {/* Header McDo style */}
-      <View style={{ alignItems: "center", paddingTop: 8, paddingBottom: 12 }}>
+      <View style={{ alignItems: "center", paddingTop: 8, paddingBottom: 10 }}>
         {/* Logo Wajbati en squircle centré */}
         <View
           style={{
@@ -99,7 +214,7 @@ const MenuCategoriesScreen = () => {
             shadowOpacity: 0.15,
             shadowRadius: 4,
             elevation: 3,
-            marginBottom: 12,
+            marginBottom: 8,
             overflow: "hidden",
           }}
         >
@@ -110,7 +225,7 @@ const MenuCategoriesScreen = () => {
           />
         </View>
 
-        {/* Ville / Restaurant */}
+        {/* Ville / Wilaya */}
         <Text
           style={{
             fontSize: 22,
@@ -120,23 +235,27 @@ const MenuCategoriesScreen = () => {
             textAlign: "center",
           }}
         >
-          {selectedWilaya ? selectedWilaya.name.toUpperCase() : "ALGER CENTRE"}
+          {selectedWilaya
+            ? selectedWilaya.name.toUpperCase()
+            : dbUser?.address
+            ? dbUser.address.toUpperCase()
+            : "ALGER & ENVIRONS"}
         </Text>
 
         <Text
           style={{
-            fontSize: 13,
+            fontSize: 12,
             color: "#6B7280",
             marginTop: 2,
             textAlign: "center",
           }}
         >
           {selectedWilaya
-            ? `${selectedWilaya.code} · Algérie`
-            : "10 Rue Didouche Mourad"}
+            ? `Wilaya ${selectedWilaya.code} · Algérie`
+            : "Établissements classés par proximité géographique"}
         </Text>
 
-        {/* Lien vert modifier le restaurant */}
+        {/* Lien vert modifier la Wilaya */}
         <TouchableOpacity
           onPress={() => setWilayaModalVisible(true)}
           style={{ marginTop: 4 }}
@@ -145,10 +264,10 @@ const MenuCategoriesScreen = () => {
             style={{
               fontSize: 13,
               fontWeight: "700",
-              color: "#059669", // Vert menthe / émeraude McDo
+              color: "#059669",
             }}
           >
-            Modifier le restaurant
+            Modifier la wilaya / zone
           </Text>
         </TouchableOpacity>
 
@@ -158,84 +277,429 @@ const MenuCategoriesScreen = () => {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            marginTop: 8,
+            marginTop: 6,
             paddingHorizontal: 12,
             paddingVertical: 4,
+            backgroundColor: "#F3F4F6",
+            borderRadius: 16,
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: "800", color: "#111827" }}>
+          <Text style={{ fontSize: 13, fontWeight: "800", color: "#111827" }}>
             {getModeLabel()}
           </Text>
-          <ChevronDownIcon size={16} color="#111827" style={{ marginLeft: 4 }} />
+          <ChevronDownIcon size={14} color="#111827" style={{ marginLeft: 4 }} />
         </TouchableOpacity>
       </View>
 
       {/* Ligne de séparation fine */}
       <View style={{ height: 1, backgroundColor: "#F3F4F6" }} />
 
-      {/* Liste des catégories façon McDo */}
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 120 }}
+      {/* Filtres par Type (Tous, Restaurants, Cuisiniers) */}
+      <View
+        style={{
+          flexDirection: "row",
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          gap: 8,
+          backgroundColor: "#FAFAFA",
+          borderBottomWidth: 1,
+          borderBottomColor: "#F3F4F6",
+        }}
       >
-        {categories.map((cat, index) => (
-          <TouchableOpacity
-            key={cat.id || index}
-            onPress={() => {
-              // Navigue vers l'accueil ou filtre la catégorie
-              navigation.navigate("Home", { selectedCategory: cat.id || cat.name });
-            }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingVertical: 18,
-              paddingHorizontal: 20,
-              borderBottomWidth: 1,
-              borderBottomColor: "#F3F4F6",
-              backgroundColor: "white",
-            }}
-            activeOpacity={0.7}
-          >
-            {/* Image / Icône détourée du produit */}
-            <View
-              style={{
-                width: 62,
-                height: 52,
-                justifyContent: "center",
-                alignItems: "center",
-                marginRight: 16,
-              }}
-            >
-              <Image
-                source={{ uri: cat.image }}
-                style={{ width: 58, height: 48, borderRadius: 8 }}
-                resizeMode="contain"
-              />
-            </View>
+        <TouchableOpacity
+          onPress={() => setTypeFilter("all")}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 12,
+            backgroundColor: typeFilter === "all" ? "#FFBC0D" : "#E5E7EB",
+          }}
+        >
+          <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
+            🍽️ Tous ({establishments.length})
+          </Text>
+        </TouchableOpacity>
 
-            {/* Nom de la catégorie en gras */}
+        <TouchableOpacity
+          onPress={() => setTypeFilter("restaurant")}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 12,
+            backgroundColor:
+              typeFilter === "restaurant" ? "#059669" : "#E5E7EB",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "800",
+              color: typeFilter === "restaurant" ? "white" : "#111827",
+            }}
+          >
+            🏢 Restaurants
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setTypeFilter("cook")}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 12,
+            backgroundColor: typeFilter === "cook" ? "#EA580C" : "#E5E7EB",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "800",
+              color: typeFilter === "cook" ? "white" : "#111827",
+            }}
+          >
+            🍳 Fait-Maison
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Catégories Culinaires en puces horizontales */}
+      <View style={{ borderBottomWidth: 1, borderBottomColor: "#F3F4F6" }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            gap: 6,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => setSelectedCatFilter(null)}
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: 15,
+              backgroundColor: !selectedCatFilter ? "#111827" : "#F3F4F6",
+            }}
+          >
             <Text
               style={{
-                flex: 1,
-                fontSize: 17,
-                fontWeight: "800",
-                color: "#1F2937",
-                letterSpacing: 0.2,
+                fontSize: 11,
+                fontWeight: "700",
+                color: !selectedCatFilter ? "white" : "#4B5563",
               }}
             >
-              {cat.name}
+              Toutes spécialités
             </Text>
-
-            {/* Chevron droit */}
-            <ChevronRightIcon size={20} color="#9CA3AF" />
           </TouchableOpacity>
-        ))}
+
+          {FOOD_CATEGORIES.map((cat) => {
+            const isSelected = selectedCatFilter === cat.id;
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                onPress={() =>
+                  setSelectedCatFilter(isSelected ? null : cat.id)
+                }
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 15,
+                  backgroundColor: isSelected ? "#059669" : "#F3F4F6",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <Text style={{ fontSize: 12 }}>{cat.icon}</Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "700",
+                    color: isSelected ? "white" : "#4B5563",
+                  }}
+                >
+                  {cat.shortName || cat.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Liste des Établissements classés par éloignement géographique */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
+            Établissements les plus proches
+          </Text>
+          <Text style={{ fontSize: 11, fontWeight: "700", color: "#059669" }}>
+            📍 Trié par distance
+          </Text>
+        </View>
+
+        {loading ? (
+          <View style={{ paddingVertical: 40, alignItems: "center" }}>
+            <ActivityIndicator size="large" color="#059669" />
+            <Text style={{ marginTop: 8, fontSize: 12, color: "#6B7280" }}>
+              Calcul des distances...
+            </Text>
+          </View>
+        ) : sortedEstablishments.length === 0 ? (
+          <View
+            style={{
+              padding: 30,
+              backgroundColor: "#F9FAFB",
+              borderRadius: 16,
+              alignItems: "center",
+              marginTop: 20,
+            }}
+          >
+            <Text style={{ fontSize: 32, marginBottom: 8 }}>📍</Text>
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: "bold",
+                color: "#1F2937",
+                textAlign: "center",
+              }}
+            >
+              Aucun établissement trouvé
+            </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                color: "#6B7280",
+                textAlign: "center",
+                marginTop: 4,
+              }}
+            >
+              Essayez de désactiver les filtres ou choisissez une autre wilaya.
+            </Text>
+          </View>
+        ) : (
+          sortedEstablishments.map((est) => {
+            const isCook = est.isCook || est.isHomemade;
+            const photoUrl =
+              est.image ||
+              est.exteriorImage ||
+              "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400";
+
+            return (
+              <TouchableOpacity
+                key={est.id}
+                onPress={() => {
+                  navigation.navigate("Restaurant", {
+                    id: est.id,
+                    title: est.title || est.name,
+                    rating: est.rating,
+                    description: est.description,
+                    address: est.address,
+                    genre: est.genre,
+                    image: est.image,
+                    lat: est.lat,
+                    lng: est.lng,
+                    minDeliveryTime: est.minDeliveryTime,
+                    maxDeliveryTime: est.maxDeliveryTime,
+                    isCook: est.isCook,
+                    isHomemade: est.isHomemade,
+                  });
+                }}
+                activeOpacity={0.88}
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: 18,
+                  marginBottom: 14,
+                  borderWidth: 1,
+                  borderColor: "#E5E7EB",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 4,
+                  elevation: 2,
+                  overflow: "hidden",
+                }}
+              >
+                <View style={{ flexDirection: "row", padding: 12 }}>
+                  {/* Photo de l'établissement */}
+                  <Image
+                    source={{ uri: photoUrl }}
+                    style={{
+                      width: 95,
+                      height: 95,
+                      borderRadius: 14,
+                      backgroundColor: "#F3F4F6",
+                    }}
+                    resizeMode="cover"
+                  />
+
+                  {/* Détails */}
+                  <View style={{ flex: 1, marginLeft: 12, justifyContent: "space-between" }}>
+                    <div>
+                      {/* Badge Type & Badge Distance */}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginBottom: 4,
+                        }}
+                      >
+                        <View
+                          style={{
+                            backgroundColor: isCook ? "#FEF3C7" : "#ECFDF5",
+                            paddingHorizontal: 7,
+                            paddingVertical: 2,
+                            borderRadius: 6,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              fontWeight: "800",
+                              color: isCook ? "#B45309" : "#065F46",
+                            }}
+                          >
+                            {isCook ? "🍳 Fait-Maison" : "🏢 Restaurant"}
+                          </Text>
+                        </View>
+
+                        {/* Distance calculée mise en avant */}
+                        <View
+                          style={{
+                            backgroundColor: "#DCFCE7",
+                            paddingHorizontal: 8,
+                            paddingVertical: 2,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: "#86EFAC",
+                            flexDirection: "row",
+                            alignItems: "center",
+                          }}
+                        >
+                          <MapPinIcon size={11} color="#15803D" />
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              fontWeight: "900",
+                              color: "#15803D",
+                              marginLeft: 2,
+                            }}
+                          >
+                            {est.formattedDistance}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Nom de l'établissement */}
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          fontWeight: "900",
+                          color: "#111827",
+                        }}
+                        numberOfLines={1}
+                      >
+                        {est.name || est.title}
+                      </Text>
+
+                      {/* Spécialité culinaire */}
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: "#6B7280",
+                          marginTop: 2,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {est.genre || "Cuisine variée"}
+                      </Text>
+                    </div>
+
+                    {/* Ligne inférieure : Note, Temps de livraison & Bouton Commander */}
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginTop: 6,
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                          <StarIcon size={12} color="#F59E0B" />
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              fontWeight: "800",
+                              color: "#111827",
+                              marginLeft: 2,
+                            }}
+                          >
+                            {est.rating || "5.0"}
+                          </Text>
+                        </View>
+
+                        <Text style={{ fontSize: 10, color: "#9CA3AF" }}>•</Text>
+
+                        <Text style={{ fontSize: 11, color: "#6B7280" }}>
+                          {est.minDeliveryTime || 20}-{est.maxDeliveryTime || 35} min
+                        </Text>
+                      </View>
+
+                      {/* Bouton jaune Commander façon McDo */}
+                      <View
+                        style={{
+                          backgroundColor: "#FFBC0D",
+                          paddingHorizontal: 12,
+                          paddingVertical: 5,
+                          borderRadius: 12,
+                          flexDirection: "row",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            fontWeight: "900",
+                            color: "#111827",
+                            marginRight: 2,
+                          }}
+                        >
+                          Commander
+                        </Text>
+                        <ChevronRightIcon size={12} color="#111827" />
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
       </ScrollView>
 
-      {/* Barre de panier jaune flottante au-dessus du menu bas */}
+      {/* Barre de panier flottante */}
       <BasketIcon bottomOffset={60} />
 
-      {/* Barre de navigation 5 onglets McDo */}
+      {/* Barre de navigation McDo */}
       <McDoBottomNav activeTab="menu" />
 
       {/* Modal choix Wilaya */}
@@ -258,4 +722,3 @@ const MenuCategoriesScreen = () => {
 };
 
 export default MenuCategoriesScreen;
-

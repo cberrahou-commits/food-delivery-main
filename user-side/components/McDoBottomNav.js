@@ -29,9 +29,8 @@ const McDoBottomNav = ({ activeTab = "home" }) => {
     },
     {
       id: "restaurants",
-      label: "Cuisines",
-      screen: "Home", // or restaurant list filter
-      params: { tab: "restaurants" },
+      label: "Restaurants",
+      screen: "RestaurantsMap",
       iconOutline: MapPinIcon,
       iconSolid: MapPinSolid,
     },

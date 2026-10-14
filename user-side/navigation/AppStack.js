@@ -14,6 +14,7 @@ import AddCookDishScreen from "../screens/AddCookDishScreen";
 import MenuCategoriesScreen from "../screens/MenuCategoriesScreen";
 import PlusScreen from "../screens/PlusScreen";
 import RestaurantOnboardingScreen from "../screens/RestaurantOnboardingScreen";
+import RestaurantsMapScreen from "../screens/RestaurantsMapScreen";
 import { useNavigation } from "@react-navigation/native";
 
 const AppStack = () => {
@@ -106,6 +107,12 @@ const AppStack = () => {
         <Stack.Screen
           name="RestaurantOnboarding"
           component={RestaurantOnboardingScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="RestaurantsMap"
+          component={RestaurantsMapScreen}
           options={{ headerShown: false }}
         />
       </>
