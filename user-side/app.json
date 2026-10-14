@@ -54,6 +54,11 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#076241"
       },
+      "androidStatusBar": {
+        "barStyle": "dark-content",
+        "backgroundColor": "#FFFFFF",
+        "translucent": false
+      },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

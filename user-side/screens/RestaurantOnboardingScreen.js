@@ -9,8 +9,9 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  StatusBar as RNStatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import MapView, { Marker } from "react-native-maps";
@@ -42,6 +43,7 @@ const RESTAURANT_CATEGORIES = [
 ];
 
 const RestaurantOnboardingScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user, dbUser } = UserAuth();
 
@@ -302,7 +304,16 @@ const RestaurantOnboardingScreen = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#F9FAFB",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       <WilayaSelectorModal
         visible={wilayaModalVisible}
         onClose={() => setWilayaModalVisible(false)}

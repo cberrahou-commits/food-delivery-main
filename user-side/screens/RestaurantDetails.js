@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, Image, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, Image, TouchableOpacity, Platform, StatusBar as RNStatusBar } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useEffect, useLayoutEffect, useState, useMemo } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
@@ -26,6 +27,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 
 const RestaurantDetails = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { t } = useLanguage();
@@ -173,7 +175,16 @@ const RestaurantDetails = () => {
           />
           <TouchableOpacity
             onPress={navigation.goBack}
-            className="absolute top-14 left-5 bg-white p-2 rounded-full shadow-md"
+            style={{
+              position: "absolute",
+              top:
+                Platform.OS === "android"
+                  ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24) + 12
+                  : (insets.top > 0 ? insets.top + 8 : 44),
+              left: 16,
+              zIndex: 10,
+            }}
+            className="bg-white p-2 rounded-full shadow-md"
           >
             <ArrowLeftIcon size={24} color="#059669" />
           </TouchableOpacity>

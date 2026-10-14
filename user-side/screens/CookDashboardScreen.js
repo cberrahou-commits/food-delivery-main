@@ -12,8 +12,9 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  StatusBar as RNStatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import {
   collection,
@@ -93,6 +94,7 @@ const CookOrderDishes = ({ orderId }) => {
 };
 
 const CookDashboardScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const { user, dbUser } = UserAuth();
@@ -547,7 +549,16 @@ const CookDashboardScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#F9FAFB",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       {/* Header avec bascule vers Mode Client */}
       <View className="bg-white px-5 pt-3 pb-4 border-b border-gray-200">
         <View className="flex-row items-center justify-between mb-3">

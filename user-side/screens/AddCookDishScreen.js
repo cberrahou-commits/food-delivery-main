@@ -8,8 +8,10 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Platform,
+  StatusBar as RNStatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
@@ -18,6 +20,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { FOOD_CATEGORIES } from "../constants/categories";
 
 const AddCookDishScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const { kitchenId } = route.params || {};
@@ -152,7 +155,16 @@ const AddCookDishScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#F9FAFB",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         {/* En-tête */}
         <View className="flex-row items-center mb-5">

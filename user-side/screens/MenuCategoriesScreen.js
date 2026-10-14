@@ -6,8 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Platform,
+  StatusBar as RNStatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   ChevronRightIcon,
@@ -51,6 +53,7 @@ function formatDistance(distKm) {
 }
 
 const MenuCategoriesScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const { dbUser } = UserAuth();
@@ -197,7 +200,16 @@ const MenuCategoriesScreen = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "white",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       {/* Header McDo style */}
       <View style={{ alignItems: "center", paddingTop: 8, paddingBottom: 10 }}>
         {/* Logo Wajbati en squircle centré */}
@@ -546,7 +558,7 @@ const MenuCategoriesScreen = () => {
 
                   {/* Détails */}
                   <View style={{ flex: 1, marginLeft: 12, justifyContent: "space-between" }}>
-                    <div>
+                    <View>
                       {/* Badge Type & Badge Distance */}
                       <View
                         style={{
@@ -625,7 +637,7 @@ const MenuCategoriesScreen = () => {
                       >
                         {est.genre || "Cuisine variée"}
                       </Text>
-                    </div>
+                    </View>
 
                     {/* Ligne inférieure : Note, Temps de livraison & Bouton Commander */}
                     <View

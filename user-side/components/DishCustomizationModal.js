@@ -7,14 +7,16 @@ import {
   ScrollView,
   Image,
   TextInput,
-  SafeAreaView,
-  StatusBar,
+  StatusBar as RNStatusBar,
+  Platform,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { XMarkIcon, CheckIcon, MinusIcon, PlusIcon } from "react-native-heroicons/solid";
 import { useLanguage } from "../contexts/LanguageContext";
 import { getDefaultIngredientsForDish } from "../constants/categories";
 
 const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
+  const insets = useSafeAreaInsets();
   const { formatPrice, t } = useLanguage();
 
   const [quantity, setQuantity] = useState(1);
@@ -78,7 +80,16 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: "#F9FAFB",
+          paddingTop:
+            Platform.OS === "android"
+              ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+              : 0,
+        }}
+      >
         <StatusBar barStyle="dark-content" />
 
         {/* Header avec Photo & Bouton Fermer */}

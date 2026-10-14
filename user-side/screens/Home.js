@@ -11,8 +11,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  Platform,
+  StatusBar as RNStatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { XCircleIcon } from "react-native-heroicons/solid";
 
 import { ChevronDownIcon, UserIcon } from "react-native-heroicons/outline";
@@ -31,6 +33,7 @@ import MapView from "react-native-maps";
 import SearchCard from "../components/SearchCard";
 
 const Home = () => {
+  const insets = useSafeAreaInsets();
   const { user, dbUser } = UserAuth();
   const { t, language } = useLanguage();
   const dispatch = useDispatch();
@@ -135,7 +138,16 @@ const Home = () => {
   }, [restaurant, selectedWilaya, establishmentFilter]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "white",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       <StatusBar barStyle="dark-content" backgroundColor="white" />
       <LanguageSelectorModal
         visible={langModalVisible}

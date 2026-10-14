@@ -8,8 +8,10 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Platform,
+  StatusBar as RNStatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../firebase";
@@ -30,6 +32,7 @@ const SPECIALITIES = [
 ];
 
 const CookOnboardingScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user, dbUser } = UserAuth();
 
@@ -180,7 +183,16 @@ const CookOnboardingScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#F9FAFB",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         {/* Header */}
         <View className="flex-row items-center mb-4">

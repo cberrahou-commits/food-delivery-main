@@ -8,8 +8,9 @@ import {
   Dimensions,
   StyleSheet,
   Platform,
+  StatusBar as RNStatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import MapView, { Marker, Callout } from "react-native-maps";
 import * as Location from "expo-location";
 import { useNavigation } from "@react-navigation/native";
@@ -53,6 +54,7 @@ function formatDistance(distKm) {
 }
 
 const RestaurantsMapScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { dbUser } = UserAuth();
   const mapRef = useRef(null);
@@ -169,13 +171,18 @@ const RestaurantsMapScreen = () => {
     return true;
   });
 
+  const topOffset =
+    Platform.OS === "android"
+      ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 36) + 10
+      : (insets.top > 0 ? insets.top + 8 : 50);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
       {/* Top Header avec filtres */}
       <View
         style={{
           position: "absolute",
-          top: Platform.OS === "ios" ? 50 : 20,
+          top: topOffset,
           left: 16,
           right: 16,
           zIndex: 10,
@@ -698,3 +705,4 @@ const RestaurantsMapScreen = () => {
 };
 
 export default RestaurantsMapScreen;
+

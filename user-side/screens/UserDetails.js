@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   View,
   TextInput,
@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  StatusBar as RNStatusBar,
 } from "react-native";
 import { UserAuth } from "../contexts/AuthContext";
 import { db, auth } from "../firebase";
@@ -21,6 +22,7 @@ import { StatusBar } from "expo-status-bar";
 import WhatsAppOtpModal from "../components/WhatsAppOtpModal";
 
 const UserDetails = () => {
+  const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
   const [location, setLocation] = useState(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -223,7 +225,16 @@ const UserDetails = () => {
   };
 
   return (
-    <SafeAreaView className="bg-white flex-1">
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "white",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       <StatusBar style="auto" />
       <KeyboardAvoidingView
         className="flex-1 px-4 pt-4 bg-white"

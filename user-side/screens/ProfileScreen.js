@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   View,
   TextInput,
@@ -11,6 +11,7 @@ import {
   Image,
   Platform,
   ActivityIndicator,
+  StatusBar as RNStatusBar,
 } from "react-native";
 import { UserAuth } from "../contexts/AuthContext";
 import { db } from "../firebase";
@@ -36,6 +37,7 @@ import {
 import WhatsAppOtpModal from "../components/WhatsAppOtpModal";
 
 const ProfileScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const dbUser = useSelector(selectUser);
   const { user } = UserAuth();
@@ -340,7 +342,16 @@ const ProfileScreen = () => {
   }
 
   return (
-    <SafeAreaView className="bg-gray-50 flex-1">
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#F9FAFB",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       <StatusBar style="dark" />
 
       {/* Header */}

@@ -7,14 +7,17 @@ import {
   TextInput,
   Text,
   View,
-  SafeAreaView,
   Alert,
   ActivityIndicator,
+  Platform,
+  StatusBar as RNStatusBar,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { UserAuth } from "../contexts/AuthContext";
 
 const SignIn = () => {
+  const insets = useSafeAreaInsets();
   const [value, setValue] = useState({
     email: "",
     password: "",
@@ -85,7 +88,17 @@ const SignIn = () => {
   };
 
   return (
-    <SafeAreaView className="w-full h-full bg-white flex justify-center ">
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "white",
+        justifyContent: "center",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       <StatusBar style="auto" />
       <View className="mx-4 flex justify-center align-center space-y-6">
         <Text className="text-3xl font-bold text-center text-black">

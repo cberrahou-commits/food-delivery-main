@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, TouchableOpacity, ScrollView, Platform, StatusBar as RNStatusBar } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeftIcon } from "react-native-heroicons/solid";
 import Order from "../components/Order";
 import { useNavigation } from "@react-navigation/native";
@@ -17,6 +17,7 @@ import {
 import { useLanguage } from "../contexts/LanguageContext";
 
 const OrderDetailsScreen = () => {
+  const insets = useSafeAreaInsets();
   const { user } = UserAuth();
   const { t } = useLanguage();
   const navigation = useNavigation();
@@ -47,7 +48,16 @@ const OrderDetailsScreen = () => {
     <>
       <StatusBar style="dark" />
 
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: "white",
+          paddingTop:
+            Platform.OS === "android"
+              ? Math.max(insets.top, RNStatusBar.currentHeight || 0, 24)
+              : 0,
+        }}
+      >
         <View className=" bg-white">
           <View className="p-5 bg-white shadow-xs">
             <TouchableOpacity

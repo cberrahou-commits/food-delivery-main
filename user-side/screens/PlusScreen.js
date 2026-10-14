@@ -5,10 +5,11 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   StatusBar,
   Alert,
+  Platform,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   ChevronRightIcon,
@@ -26,6 +27,7 @@ import McDoBottomNav from "../components/McDoBottomNav";
 import LanguageSelectorModal from "../components/LanguageSelectorModal";
 
 const PlusScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user, dbUser, signOutUser } = UserAuth();
   const { t, language } = useLanguage();
@@ -55,7 +57,16 @@ const PlusScreen = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "white",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, StatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       <StatusBar barStyle="dark-content" backgroundColor="white" />
 
       <ScrollView

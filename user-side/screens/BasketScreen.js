@@ -6,9 +6,10 @@ import {
   ScrollView,
   Alert,
   TextInput,
-  SafeAreaView,
   StatusBar,
+  Platform,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -40,6 +41,7 @@ import { notifyCookForNewOrder } from "../services/notificationService";
 import OrderModeModal from "../components/OrderModeModal";
 
 const BasketScreen = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { t, formatPrice } = useLanguage();
   const basketTotal = useSelector(selectBasketTotal);
@@ -150,7 +152,16 @@ const BasketScreen = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "white",
+        paddingTop:
+          Platform.OS === "android"
+            ? Math.max(insets.top, StatusBar.currentHeight || 0, 24)
+            : 0,
+      }}
+    >
       <StatusBar barStyle="dark-content" backgroundColor="white" />
 
       {/* Header Panier McDo (Image 4) */}
