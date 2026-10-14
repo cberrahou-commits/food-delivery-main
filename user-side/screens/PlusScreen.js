@@ -176,7 +176,7 @@ const PlusScreen = () => {
         </View>
 
         {/* Espace Cuisinier Partenaire */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+        <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
           <TouchableOpacity
             onPress={() => {
               if (dbUser?.isCook) {
@@ -208,6 +208,36 @@ const PlusScreen = () => {
               </View>
             </View>
             <ChevronRightIcon size={18} color="#059669" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Espace Restaurant Partenaire */}
+        <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("RestaurantOnboarding")}
+            style={{
+              backgroundColor: "#F8FAFC",
+              borderWidth: 1.5,
+              borderColor: "#CBD5E1",
+              borderRadius: 14,
+              padding: 14,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+              <Text style={{ fontSize: 26, marginRight: 12 }}>🏢</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "900", color: "#0F172A" }}>
+                  Devenir Restaurant Partenaire
+                </Text>
+                <Text style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>
+                  Inscrire mon restaurant avec RC & position GPS
+                </Text>
+              </View>
+            </View>
+            <ChevronRightIcon size={18} color="#0284C7" />
           </TouchableOpacity>
         </View>
 

@@ -46,6 +46,16 @@ service cloud.firestore {
     //   - description: string (optional)
     //   - restaurantId: string (required)
     //
+    // Collection: categories
+    // Document ID: {categoryId}
+    // Fields:
+    //   - name: string (required)
+    //   - shortName: string (optional)
+    //   - icon: string (optional)
+    //   - image: string (optional)
+    //   - description: string (optional)
+    //   - defaultIngredients: list (optional)
+    //
     // Collection: orders
     // Document ID: {orderId}
     // Fields:
@@ -123,6 +133,12 @@ service cloud.firestore {
     // Public read and write to allow the unauthenticated restaurant dashboard (Vercel)
     // to view, create (AddDishModal), and remove menu items
     match /dishes/{dishId} {
+      allow read, write: if true;
+    }
+
+    // Food categories
+    // Public read and write to allow customer apps and dashboards to view and manage categories
+    match /categories/{categoryId} {
       allow read, write: if true;
     }
 

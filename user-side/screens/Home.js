@@ -20,8 +20,6 @@ import { ChevronRightIcon, FireIcon } from "react-native-heroicons/solid";
 import BasketIcon from "../components/BasketIcon";
 import McDoBottomNav from "../components/McDoBottomNav";
 import Categories from "../components/Categories";
-import featuredData from "../assets/featuredData.json";
-import FeaturedRow from "../components/FeaturedRow";
 import RestaurantItem from "../components/RestaurantItem";
 import { db, auth } from "../firebase";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
@@ -79,15 +77,22 @@ const Home = () => {
   };
 
   const getResData = async () => {
-    const resRef = collection(db, "restaurants");
-
-    await getDocs(resRef).then((querySnapshot) => {
+    try {
+      const resRef = collection(db, "restaurants");
+      const querySnapshot = await getDocs(resRef);
       let restaurants = [];
       querySnapshot.forEach((doc) => {
-        restaurants.push({ ...doc.data(), id: doc.id });
+        const data = doc.data();
+        // N'afficher que les établissements (Restaurants & Cuisiniers) validés par l'administration
+        const isApproved = data.isVerified === true || data.status === "APPROVED";
+        if (isApproved) {
+          restaurants.push({ ...data, id: doc.id });
+        }
       });
       setRestaurant(restaurants);
-    });
+    } catch (err) {
+      console.warn("getResData error:", err);
+    }
   };
 
   const getDishes = async () => {
@@ -258,6 +263,9 @@ const Home = () => {
           })
         ) : (
           <>
+            {/* Catégories Culinaires Wajbati */}
+            <Categories />
+
             {/* McDo Hero Card Banner (Image 1) */}
             <View style={{ marginHorizontal: 16, marginTop: 6, marginBottom: 12 }}>
               <View
@@ -539,18 +547,42 @@ const Home = () => {
               </View>
             </TouchableOpacity>
 
-            {/* Featured Rows */}
-            {featuredData.map((item, index) => {
-              return (
-                <FeaturedRow
-                  key={index}
-                  id={item.id}
-                  title={item.title}
-                  description={item.description}
-                  featuredCategory="featured"
-                />
-              );
-            })}
+            {/* Bannière Mode Restaurant Partenaire */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate("RestaurantOnboarding")}
+              style={{
+                marginHorizontal: 16,
+                marginVertical: 4,
+                backgroundColor: "#1E293B",
+                borderRadius: 16,
+                padding: 14,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.1,
+                shadowRadius: 3,
+                elevation: 2,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, gap: 10 }}>
+                <Text style={{ fontSize: 24 }}>🏢</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>
+                    Vous êtes restaurateur ?
+                  </Text>
+                  <Text style={{ color: "#CBD5E1", fontSize: 11, marginTop: 2 }}>
+                    Inscrivez votre restaurant avec RC & géolocalisation
+                  </Text>
+                </View>
+              </View>
+              <View style={{ backgroundColor: "#FFBC0D", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginLeft: 8 }}>
+                <Text style={{ color: "#0F172A", fontWeight: "900", fontSize: 11 }}>
+                  Inscrire mon resto
+                </Text>
+              </View>
+            </TouchableOpacity>
 
             {/* Cuisines de la Wilaya & Filtre Restaurants / Cuisiniers */}
             <View style={{ paddingHorizontal: 16 }}>

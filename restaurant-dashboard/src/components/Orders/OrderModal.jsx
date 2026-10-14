@@ -171,7 +171,7 @@ const OrderModal = ({ setIsActive, selectedOrder }) => {
                   À scanner par le livreur
                 </h4>
                 <p className="text-xs text-amber-800 mt-1">
-                  Le livreur doit scanner ce QR code avec l'application Driver pour certifier la prise en charge des plats.
+                  Le livreur doit scanner ce QR code avec l&apos;application Driver pour certifier la prise en charge des plats.
                 </p>
                 <div className="mt-2.5 inline-flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-amber-300 shadow-xs">
                   <span className="text-xs text-gray-500 font-semibold">

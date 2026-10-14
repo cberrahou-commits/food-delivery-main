@@ -120,7 +120,7 @@ const CookOnboardingScreen = () => {
 
       const kitchenId = `kitchen_${uid}`;
 
-      // 1. Créer la cuisine dans restaurants
+      // 1. Créer la cuisine dans restaurants en attente de vérification
       await setDoc(doc(db, "restaurants", kitchenId), {
         id: kitchenId,
         ownerId: uid,
@@ -134,12 +134,19 @@ const CookOnboardingScreen = () => {
         phone: phone.trim(),
         phoneNumber: phone.trim(),
         image: kitchenPhotoUri,
+        interiorImage: kitchenPhotoUri,
+        idCardDocument: idCardUri,
         rating: 5.0,
         lat: selectedWilaya?.lat || dbUser?.latitude || 36.7538,
         lng: selectedWilaya?.lng || dbUser?.longitude || 3.0588,
         minDeliveryTime: 25,
         maxDeliveryTime: 40,
+        type: "cook",
+        isCook: true,
+        isHomemade: true,
         isHomeCook: true,
+        isVerified: false,
+        status: "PENDING_VERIFICATION",
         createdAt: serverTimestamp(),
       });
 
@@ -147,7 +154,7 @@ const CookOnboardingScreen = () => {
       await updateDoc(doc(db, "user", uid), {
         isCook: true,
         kitchenId: kitchenId,
-        cookStatus: "APPROVED",
+        cookStatus: "PENDING_VERIFICATION",
         wilaya: selectedWilaya?.name || "Alger",
         wilayaCode: selectedWilaya?.code || "16",
         phoneNumber: phone.trim() || dbUser?.phoneNumber || "",
@@ -155,11 +162,11 @@ const CookOnboardingScreen = () => {
       });
 
       Alert.alert(
-        "Félicitations ! 🎉",
-        "Votre cuisine maison est maintenant active. Vous pouvez ajouter vos premiers plats !",
+        "Dossier transmis pour validation ! ⏳",
+        "Votre cuisine maison a été enregistrée. Notre administration vérifiera votre dossier sous 24h. Vous pouvez déjà accéder à votre espace pour ajouter vos premiers plats.",
         [
           {
-            text: "Accéder à ma cuisine",
+            text: "Gérer mes plats",
             onPress: () => navigation.replace("CookDashboard", { kitchenId }),
           },
         ]

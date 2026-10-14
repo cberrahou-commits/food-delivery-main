@@ -13,6 +13,7 @@ import CookDashboardScreen from "../screens/CookDashboardScreen";
 import AddCookDishScreen from "../screens/AddCookDishScreen";
 import MenuCategoriesScreen from "../screens/MenuCategoriesScreen";
 import PlusScreen from "../screens/PlusScreen";
+import RestaurantOnboardingScreen from "../screens/RestaurantOnboardingScreen";
 import { useNavigation } from "@react-navigation/native";
 
 const AppStack = () => {
@@ -99,6 +100,12 @@ const AppStack = () => {
         <Stack.Screen
           name="AddCookDish"
           component={AddCookDishScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="RestaurantOnboarding"
+          component={RestaurantOnboardingScreen}
           options={{ headerShown: false }}
         />
       </>

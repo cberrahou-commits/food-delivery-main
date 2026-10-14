@@ -5,6 +5,7 @@ import Orders from "./Orders/Orders";
 import OrderHistory from "./OrderHistory/OrderHistory";
 import Menu from "./Menu/Menu";
 import Settings from "./Settings/Settings";
+import PartnerVerifications from "./Verifications/PartnerVerifications";
 import { db } from "../firebase/firebase";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { DEFAULT_RESTAURANT_ID } from "../config/constants";
@@ -148,6 +149,7 @@ const Sidebar = () => {
         {active === 1 && <Menu restaurantId={restaurantId} />}
         {active === 2 && <OrderHistory restaurantId={restaurantId} />}
         {active === 3 && <Settings />}
+        {active === 4 && <PartnerVerifications />}
       </div>
     </div>
   );
