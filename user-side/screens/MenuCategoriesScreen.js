@@ -26,7 +26,8 @@ import McDoBottomNav from "../components/McDoBottomNav";
 import BasketIcon from "../components/BasketIcon";
 import OrderModeModal from "../components/OrderModeModal";
 import WilayaSelectorModal from "../components/WilayaSelectorModal";
-import { FOOD_CATEGORIES } from "../constants/categories";
+import { FOOD_CATEGORIES, getCategoryShortName } from "../constants/categories";
+import { useLanguage } from "../contexts/LanguageContext";
 
 // Calcul de distance Haversine en kilomètres
 function getDistanceInKm(lat1, lon1, lat2, lon2) {
@@ -44,12 +45,13 @@ function getDistanceInKm(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function formatDistance(distKm) {
-  if (distKm === null || distKm === undefined) return "À proximité";
+function formatDistance(distKm, t, language) {
+  if (distKm === null || distKm === undefined) return t("nearby") || "À proximité";
   if (distKm < 1) {
-    return `à ${Math.round(distKm * 1000)} m`;
+    const meters = Math.round(distKm * 1000);
+    return language === "ar" ? `على بعد ${meters} م` : `à ${meters} m`;
   }
-  return `à ${distKm.toFixed(1)} km`;
+  return language === "ar" ? `على بعد ${distKm.toFixed(1)} كم` : `à ${distKm.toFixed(1)} km`;
 }
 
 const MenuCategoriesScreen = () => {
@@ -57,6 +59,7 @@ const MenuCategoriesScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { dbUser } = UserAuth();
+  const { t, language } = useLanguage();
 
   const [establishments, setEstablishments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +142,7 @@ const MenuCategoriesScreen = () => {
       return {
         ...est,
         distanceKm: distKm !== null ? distKm : 9999,
-        formattedDistance: formatDistance(distKm),
+        formattedDistance: formatDistance(distKm, t, language),
       };
     });
 
@@ -191,11 +194,11 @@ const MenuCategoriesScreen = () => {
   const getModeLabel = () => {
     switch (orderMode) {
       case "PICKUP":
-        return "Click & Collect";
+        return t("orderModePickup");
       case "DINE_IN":
-        return "Sur place";
+        return t("orderModeDineIn");
       default:
-        return "Livraison";
+        return t("orderModeDelivery");
     }
   };
 
@@ -265,7 +268,7 @@ const MenuCategoriesScreen = () => {
         >
           {selectedWilaya?.code
             ? `Wilaya ${selectedWilaya.code} · Algérie`
-            : "Établissements classés par proximité géographique"}
+            : t("closestSorted")}
         </Text>
 
         {/* Lien vert modifier la Wilaya */}
@@ -280,7 +283,7 @@ const MenuCategoriesScreen = () => {
               color: "#059669",
             }}
           >
-            Modifier la wilaya / zone
+            {t("changeWilaya")}
           </Text>
         </TouchableOpacity>
 
@@ -329,7 +332,7 @@ const MenuCategoriesScreen = () => {
           }}
         >
           <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
-            🍽️ Tous ({establishments.length})
+            🍽️ {t("filterAll")} ({establishments.length})
           </Text>
         </TouchableOpacity>
 
@@ -350,7 +353,7 @@ const MenuCategoriesScreen = () => {
               color: typeFilter === "restaurant" ? "white" : "#111827",
             }}
           >
-            🏢 Restaurants
+            🏢 {t("filterRestaurants")}
           </Text>
         </TouchableOpacity>
 
@@ -370,7 +373,7 @@ const MenuCategoriesScreen = () => {
               color: typeFilter === "cook" ? "white" : "#111827",
             }}
           >
-            🍳 Fait-Maison
+            🍳 {t("filterHomeCook")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -402,7 +405,7 @@ const MenuCategoriesScreen = () => {
                 color: !selectedCatFilter ? "white" : "#4B5563",
               }}
             >
-              Toutes spécialités
+              {t("allSpecialties")}
             </Text>
           </TouchableOpacity>
 
@@ -432,7 +435,7 @@ const MenuCategoriesScreen = () => {
                     color: isSelected ? "white" : "#4B5563",
                   }}
                 >
-                  {cat.shortName || cat.name}
+                  {getCategoryShortName(cat, language)}
                 </Text>
               </TouchableOpacity>
             );
@@ -455,10 +458,10 @@ const MenuCategoriesScreen = () => {
           }}
         >
           <Text style={{ fontSize: 16, fontWeight: "900", color: "#111827" }}>
-            Établissements les plus proches
+            {t("closestPlaces")}
           </Text>
           <Text style={{ fontSize: 11, fontWeight: "700", color: "#059669" }}>
-            📍 Trié par distance
+            📍 {t("closestSorted")}
           </Text>
         </View>
 
@@ -488,7 +491,7 @@ const MenuCategoriesScreen = () => {
                 textAlign: "center",
               }}
             >
-              Aucun établissement trouvé
+              {t("noEstablishments")}
             </Text>
             <Text
               style={{
@@ -498,7 +501,7 @@ const MenuCategoriesScreen = () => {
                 marginTop: 4,
               }}
             >
-              Essayez de désactiver les filtres ou choisissez une autre wilaya.
+              {t("noEstablishmentsDesc")}
             </Text>
           </View>
         ) : (
@@ -587,7 +590,7 @@ const MenuCategoriesScreen = () => {
                               color: isCook ? "#B45309" : "#065F46",
                             }}
                           >
-                            {isCook ? "🍳 Fait-Maison" : "🏢 Restaurant"}
+                            {isCook ? `🍳 ${t("filterHomeCook")}` : `🏢 ${t("filterRestaurants")}`}
                           </Text>
                         </View>
 
@@ -676,7 +679,7 @@ const MenuCategoriesScreen = () => {
                         <Text style={{ fontSize: 10, color: "#9CA3AF" }}>•</Text>
 
                         <Text style={{ fontSize: 11, color: "#6B7280" }}>
-                          {est.minDeliveryTime || 20}-{est.maxDeliveryTime || 35} min
+                          {est.minDeliveryTime || 20}-{est.maxDeliveryTime || 35} {t("mins")}
                         </Text>
                       </View>
 
@@ -699,7 +702,7 @@ const MenuCategoriesScreen = () => {
                             marginRight: 2,
                           }}
                         >
-                          Commander
+                          {t("tabOrder")}
                         </Text>
                         <ChevronRightIcon size={12} color="#111827" />
                       </View>

@@ -1,27 +1,29 @@
 import React, { useState } from "react";
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from "react-native";
 import { XMarkIcon } from "react-native-heroicons/outline";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const OrderModeModal = ({ visible, onClose, selectedMode = "DELIVERY", onSelectMode }) => {
   const [currentMode, setCurrentMode] = useState(selectedMode);
+  const { t } = useLanguage();
 
   const modes = [
     {
       id: "PICKUP",
-      title: "Click & Collect",
-      subtitle: "Récupérez directement chez le cuisinier",
+      title: t("orderModePickup"),
+      subtitle: t("orderModePickupSub"),
       icon: "🚶‍♂️",
     },
     {
       id: "DELIVERY",
-      title: "Livraison",
-      subtitle: "Livré chez vous rapidement par un coursier",
+      title: t("orderModeDelivery"),
+      subtitle: t("orderModeDeliverySub"),
       icon: "🛵",
     },
     {
       id: "DINE_IN",
-      title: "Service sur place / À table",
-      subtitle: "Dégustez directement sur place",
+      title: t("orderModeDineIn"),
+      subtitle: t("orderModeDineInSub"),
       icon: "🪑",
     },
   ];
@@ -49,7 +51,7 @@ const OrderModeModal = ({ visible, onClose, selectedMode = "DELIVERY", onSelectM
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.title}>CHOISISSEZ VOTRE MODE DE COMMANDE</Text>
+          <Text style={styles.title}>{t("orderModeModalTitle")}</Text>
 
           {/* Options */}
           <View style={styles.optionsList}>
@@ -81,7 +83,7 @@ const OrderModeModal = ({ visible, onClose, selectedMode = "DELIVERY", onSelectM
             style={styles.validateBtn}
             activeOpacity={0.85}
           >
-            <Text style={styles.validateBtnText}>Valider</Text>
+            <Text style={styles.validateBtnText}>{t("validate")}</Text>
           </TouchableOpacity>
         </View>
       </View>

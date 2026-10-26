@@ -20,7 +20,7 @@ const WilayaSelectorModal = ({
   title = "Sélectionnez votre Wilaya",
 }) => {
   const [search, setSearch] = useState("");
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   const filteredWilayas = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -73,7 +73,7 @@ const WilayaSelectorModal = ({
             <TextInput
               value={search}
               onChangeText={setSearch}
-              placeholder="Rechercher par nom ou numéro (ex: 16, Oran)..."
+              placeholder={t("searchWilayaPlaceholder")}
               placeholderTextColor="#9CA3AF"
               className="flex-1 ml-2 text-sm text-gray-900"
               autoCorrect={false}
@@ -103,7 +103,7 @@ const WilayaSelectorModal = ({
                   <View className="flex-row items-center space-x-2">
                     <Text className="text-base">🇩🇿</Text>
                     <Text className="font-bold text-sm text-gray-900">
-                      Toutes les Wilayas (Toute l'Algérie)
+                      {t("allWilayas")}
                     </Text>
                   </View>
                   {!selectedWilaya && <CheckIcon size={18} color="#16a34a" />}

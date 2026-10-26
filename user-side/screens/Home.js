@@ -149,7 +149,7 @@ const Home = () => {
             : Math.max(insets.top, 44),
       }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="white" />
+      <StatusBar style="dark" backgroundColor="white" />
       <LanguageSelectorModal
         visible={langModalVisible}
         onClose={() => setLangModalVisible(false)}
@@ -159,7 +159,7 @@ const Home = () => {
         onClose={() => setWilayaModalVisible(false)}
         selectedWilaya={selectedWilaya}
         onSelectWilaya={setSelectedWilaya}
-        title="Choisissez votre Wilaya"
+        title={t("chooseWilaya")}
       />
 
       {/* Top Header McDo style avec Logo Wajbati centré */}
@@ -181,7 +181,7 @@ const Home = () => {
             <Text style={{ fontSize: 12, fontWeight: "700", color: "#111827", marginRight: 4 }} numberOfLines={1}>
               {selectedWilaya
                 ? `📍 ${selectedWilaya.code} - ${selectedWilaya.name}`
-                : "📍 Alger & Algérie 🇩🇿"}
+                : `📍 ${t("algerAndAll")}`}
             </Text>
             <ChevronDownIcon size={14} color="#059669" />
           </TouchableOpacity>
@@ -246,10 +246,10 @@ const Home = () => {
         {/* Titre Bienvenue chez Wajbati façon McDo */}
         <View style={{ marginTop: 10, marginBottom: 4 }}>
           <Text style={{ fontSize: 24, fontWeight: "900", color: "#111827", letterSpacing: -0.3 }}>
-            Bienvenue chez Wajbati
+            {t("welcomeWajbati")}
           </Text>
           <Text style={{ fontSize: 12, color: "#6B7280", fontWeight: "600", marginTop: 2 }}>
-            مرحباً بكم في وجبتي · Plats faits-maison préparés à la commande
+            {t("welcomeSubtitle")}
           </Text>
         </View>
       </View>
@@ -313,7 +313,7 @@ const Home = () => {
                   >
                     <FireIcon size={12} color="#D97706" style={{ marginRight: 4 }} />
                     <Text style={{ fontSize: 10, fontWeight: "800", color: "#B45309" }}>
-                      SPÉCIALITÉ FAIT-MAISON
+                      {t("homemadeSpecialty")}
                     </Text>
                   </View>
 
@@ -325,7 +325,7 @@ const Home = () => {
                       lineHeight: 22,
                     }}
                   >
-                    Craquez pour un plat fait-maison !
+                    {t("homemadeBannerTitle")}
                   </Text>
                   <Text
                     style={{
@@ -335,7 +335,7 @@ const Home = () => {
                       marginBottom: 14,
                     }}
                   >
-                    Cuisiné avec passion par nos chefs locaux.
+                    {t("homemadeBannerDesc")}
                   </Text>
 
                   {/* Bouton Jaune McDo */}
@@ -365,7 +365,7 @@ const Home = () => {
                         marginRight: 4,
                       }}
                     >
-                      Commander
+                      {t("tabOrder")}
                     </Text>
                     <ChevronRightIcon size={14} color="#111827" />
                   </TouchableOpacity>
@@ -398,10 +398,10 @@ const Home = () => {
                 }}
               >
                 <Text style={{ fontSize: 17, fontWeight: "900", color: "#111827" }}>
-                  En ce moment chez nos cuisiniers
+                  {t("nowAtOurCooks")}
                 </Text>
                 <TouchableOpacity onPress={() => navigation.navigate("MenuCategories")}>
-                  <Text style={{ fontSize: 12, fontWeight: "800", color: "#059669" }}>Tout voir</Text>
+                  <Text style={{ fontSize: 12, fontWeight: "800", color: "#059669" }}>{t("seeAll")}</Text>
                 </TouchableOpacity>
               </View>
 

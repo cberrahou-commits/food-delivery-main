@@ -17,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { UserAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
 import McDoBottomNav from "../components/McDoBottomNav";
 import BasketIcon from "../components/BasketIcon";
 import {
@@ -45,18 +46,20 @@ function getDistanceInKm(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function formatDistance(distKm) {
-  if (distKm === null || distKm === undefined) return "Proche";
+function formatDistance(distKm, t, language) {
+  if (distKm === null || distKm === undefined) return t ? (t("nearby") || "À proximité") : "Proche";
   if (distKm < 1) {
-    return `${Math.round(distKm * 1000)} m`;
+    const meters = Math.round(distKm * 1000);
+    return language === "ar" ? `على بعد ${meters} م` : `à ${meters} m`;
   }
-  return `${distKm.toFixed(1)} km`;
+  return language === "ar" ? `على بعد ${distKm.toFixed(1)} كم` : `à ${distKm.toFixed(1)} km`;
 }
 
 const RestaurantsMapScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { dbUser } = UserAuth();
+  const { t, language } = useLanguage();
   const mapRef = useRef(null);
 
   // Position client
@@ -212,10 +215,10 @@ const RestaurantsMapScreen = () => {
             />
             <View>
               <Text style={{ fontSize: 13, fontWeight: "900", color: "#111827" }}>
-                Restaurants & Cuisines
+                {t("restaurantsAndKitchens")}
               </Text>
               <Text style={{ fontSize: 10, color: "#6B7280" }}>
-                {filteredList.length} établissements autour de vous
+                {filteredList.length} {t("placesAround")}
               </Text>
             </View>
           </View>
@@ -232,7 +235,7 @@ const RestaurantsMapScreen = () => {
               }}
             >
               <Text style={{ fontSize: 10, fontWeight: "800", color: "#111827" }}>
-                Tous
+                {t("filterAll")}
               </Text>
             </TouchableOpacity>
 
@@ -253,7 +256,7 @@ const RestaurantsMapScreen = () => {
                   color: filterType === "restaurant" ? "white" : "#111827",
                 }}
               >
-                🏢 Restos
+                🏢 {t("filterRestaurants")}
               </Text>
             </TouchableOpacity>
 
@@ -273,7 +276,7 @@ const RestaurantsMapScreen = () => {
                   color: filterType === "cook" ? "white" : "#111827",
                 }}
               >
-                🍳 Maison
+                🍳 {t("filterHomeCook")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -297,7 +300,7 @@ const RestaurantsMapScreen = () => {
           {/* Repère Position Client */}
           <Marker
             coordinate={clientLocation}
-            title="Votre position"
+            title={t("yourPosition")}
             description="Lieu de livraison"
             zIndex={100}
           >
@@ -546,8 +549,8 @@ const RestaurantsMapScreen = () => {
                     >
                       {selectedEstablishment.isCook ||
                       selectedEstablishment.isHomemade
-                        ? "🍳 Cuisinier Maison"
-                        : "🏢 Restaurant"}
+                        ? `🍳 ${t("filterHomeCook")}`
+                        : `🏢 ${t("filterRestaurants")}`}
                     </Text>
                   </View>
 
@@ -577,7 +580,9 @@ const RestaurantsMapScreen = () => {
                           clientLocation.longitude,
                           selectedEstablishment.lat,
                           selectedEstablishment.lng
-                        )
+                        ),
+                        t,
+                        language
                       )}
                     </Text>
                   </View>
@@ -687,7 +692,7 @@ const RestaurantsMapScreen = () => {
                   marginRight: 6,
                 }}
               >
-                Commander dans cet établissement
+                {t("viewMenu")}
               </Text>
               <ChevronRightIcon size={16} color="#111827" />
             </TouchableOpacity>

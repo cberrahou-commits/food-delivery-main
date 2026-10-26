@@ -2,6 +2,7 @@ import { View, Text, Pressable, Image, TouchableOpacity, Alert } from "react-nat
 import { MinusCircleIcon, PlusCircleIcon, StarIcon, SparklesIcon } from "react-native-heroicons/solid";
 import React, { useState } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
+import { getLocalizedDish } from "../constants/categories";
 import DishCustomizationModal from "./DishCustomizationModal";
 import {
   addToBasket,
@@ -29,7 +30,8 @@ const DishRow = ({
 }) => {
   const [isPressed, setIsPressed] = useState(false);
   const [customModalVisible, setCustomModalVisible] = useState(false);
-  const { t, formatPrice } = useLanguage();
+  const { t, formatPrice, language } = useLanguage();
+  const localized = getLocalizedDish({ name, description }, language);
 
   const dispatch = useDispatch();
   const items = useSelector((state) => selectBasketItemsWithId(state, id));
@@ -95,8 +97,8 @@ const DishRow = ({
       >
         <View className="flex-row">
           <View className="flex-1 pr-2 justify-center">
-            <Text className="text-xl mb-1 font-semibold">{name}</Text>
-            <Text className="text-gray-400">{description}</Text>
+            <Text className="text-xl mb-1 font-semibold">{localized.name}</Text>
+            <Text className="text-gray-400">{localized.description}</Text>
 
             {/* Badge Personnalisable */}
             <View className="flex-row items-center mt-2">
@@ -114,7 +116,7 @@ const DishRow = ({
               >
                 <SparklesIcon size={12} color="#D97706" style={{ marginRight: 4 }} />
                 <Text style={{ fontSize: 10, fontWeight: "800", color: "#92400E" }}>
-                  Personnalisable (ex: sans tomate)
+                  {t("customizableTag")}
                 </Text>
               </View>
             </View>
@@ -213,8 +215,9 @@ const DishRow = ({
         dish={{
           id,
           restaurantId,
-          name,
-          description,
+          name: localized.name,
+          description: localized.description,
+          originalName: name,
           price,
           image,
           prepTimeMinutes,

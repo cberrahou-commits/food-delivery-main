@@ -15,6 +15,7 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { useLanguage } from "../contexts/LanguageContext";
+import McDoBottomNav from "../components/McDoBottomNav";
 
 const OrderDetailsScreen = () => {
   const insets = useSafeAreaInsets();
@@ -107,6 +108,9 @@ const OrderDetailsScreen = () => {
             </View>
           </ScrollView>
         </View>
+
+        {/* Barre de navigation 5 onglets McDo */}
+        <McDoBottomNav activeTab="orders" />
       </SafeAreaView>
     </>
   );

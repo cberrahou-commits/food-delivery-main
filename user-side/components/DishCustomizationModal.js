@@ -14,11 +14,11 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { XMarkIcon, CheckIcon, MinusIcon, PlusIcon } from "react-native-heroicons/solid";
 import { useLanguage } from "../contexts/LanguageContext";
 import { StatusBar } from "expo-status-bar";
-import { getDefaultIngredientsForDish } from "../constants/categories";
+import { getDefaultIngredientsForDish, translateIngredient, getCategoryName } from "../constants/categories";
 
 const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
   const insets = useSafeAreaInsets();
-  const { formatPrice, t } = useLanguage();
+  const { formatPrice, t, language } = useLanguage();
 
   const [quantity, setQuantity] = useState(1);
   const [availableIngredients, setAvailableIngredients] = useState([]);
@@ -47,10 +47,20 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
     }
   };
 
+  const formatExcludedSummary = (list) => {
+    if (!list || list.length === 0) return "";
+    const translatedList = list.map((item) => translateIngredient(item, language));
+    if (language === "ar") {
+      return `بدون ${translatedList.join("، بدون ")}`;
+    }
+    if (language === "en") {
+      return `Without ${translatedList.join(", no ")}`;
+    }
+    return `Sans ${translatedList.join(", sans ")}`;
+  };
+
   const handleConfirm = () => {
-    const summaryExcluded = excludedIngredients.length > 0
-      ? `Sans ${excludedIngredients.join(", sans ")}`
-      : "";
+    const summaryExcluded = formatExcludedSummary(excludedIngredients);
 
     const fullInstructions = [summaryExcluded, specialNote.trim()]
       .filter(Boolean)
@@ -159,7 +169,7 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
                 }}
               >
                 <Text style={{ fontSize: 11, fontWeight: "700", color: "#065F46" }}>
-                  📂 {dish.category}
+                  📂 {getCategoryName(dish.category, language)}
                 </Text>
               </View>
             ) : null}
@@ -183,10 +193,10 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
           >
             <View style={{ marginBottom: 12 }}>
               <Text style={{ fontSize: 16, fontWeight: "800", color: "#111827" }}>
-                🌿 Personnalisez vos ingrédients
+                🌿 {t("customizeDish")}
               </Text>
               <Text style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
-                Touchez un ingrédient pour le retirer de votre plat (ex: sans salade, sans tomate).
+                {t("customizeSubtitle")}
               </Text>
             </View>
 
@@ -194,6 +204,7 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {availableIngredients.map((ingredient, index) => {
                 const isExcluded = excludedIngredients.includes(ingredient);
+                const translated = translateIngredient(ingredient, language);
 
                 return (
                   <TouchableOpacity
@@ -236,7 +247,7 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
                         textDecorationLine: isExcluded ? "line-through" : "none",
                       }}
                     >
-                      {isExcluded ? `Sans ${ingredient}` : ingredient}
+                      {isExcluded ? `${t("without")} ${translated}` : translated}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -259,7 +270,7 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
               >
                 <Text style={{ fontSize: 14, marginRight: 6 }}>⚠️</Text>
                 <Text style={{ fontSize: 12, color: "#92400E", fontWeight: "700", flex: 1 }}>
-                  Votre choix : Sans {excludedIngredients.join(", sans ")}
+                  {t("yourChoice")} {formatExcludedSummary(excludedIngredients)}
                 </Text>
               </View>
             )}
@@ -282,16 +293,16 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
             }}
           >
             <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827", marginBottom: 2 }}>
-              📝 Instructions spéciales pour la cuisine
+              📝 {t("specialInstructions")}
             </Text>
             <Text style={{ fontSize: 11, color: "#6B7280", marginBottom: 10 }}>
-              Précisez vos préférences de cuisson, d'assaisonnement ou sauce à part.
+              {t("specialSubtitle")}
             </Text>
 
             <TextInput
               value={specialNote}
               onChangeText={setSpecialNote}
-              placeholder="Ex: Sauce à part, viande bien cuite, pas trop de sel..."
+              placeholder={t("specialPlaceholder")}
               placeholderTextColor="#9CA3AF"
               multiline
               numberOfLines={3}
@@ -395,11 +406,11 @@ const DishCustomizationModal = ({ visible, onClose, dish, onAddToCart }) => {
             }}
           >
             <Text style={{ fontSize: 15, fontWeight: "900", color: "#111827" }}>
-              Ajouter au panier • {formatPrice(totalPrice)}
+              {t("addToBasketWithCount")} • {formatPrice(totalPrice)}
             </Text>
             {excludedIngredients.length > 0 && (
               <Text style={{ fontSize: 10, fontWeight: "700", color: "#92400E", marginTop: 2 }} numberOfLines={1}>
-                (Sans {excludedIngredients.join(", sans ")})
+                ({formatExcludedSummary(excludedIngredients)})
               </Text>
             )}
           </TouchableOpacity>

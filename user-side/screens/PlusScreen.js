@@ -37,12 +37,12 @@ const PlusScreen = () => {
 
   const handleLogout = () => {
     Alert.alert(
-      "Déconnexion",
-      "Êtes-vous sûr de vouloir vous déconnecter ?",
+      t("logoutConfirmTitle"),
+      t("logoutConfirmMsg"),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t("cancel"), style: "cancel" },
         {
-          text: "Déconnexion",
+          text: t("logoutConfirmTitle"),
           style: "destructive",
           onPress: async () => {
             try {
@@ -112,7 +112,7 @@ const PlusScreen = () => {
             }}
           >
             {isGuest
-              ? "Mode Invité"
+              ? t("guestMode")
               : `${dbUser?.firstName || "Utilisateur"} ${dbUser?.lastName || ""}`}
           </Text>
 
@@ -125,10 +125,10 @@ const PlusScreen = () => {
             }}
           >
             {isGuest
-              ? "Connectez-vous ou inscrivez-vous pour profiter pleinement de l'application."
+              ? t("guestModeDesc")
               : dbUser?.phoneNumber
-              ? `📞 ${dbUser.phoneNumber} · Compte vérifié`
-              : "Bienvenue sur votre espace Wajbati."}
+              ? `📞 ${dbUser.phoneNumber} · ${t("verifiedAccount")}`
+              : t("welcomeSpace")}
           </Text>
 
           {/* Boutons Connexion / Inscription ou Modifier Profil */}
@@ -146,7 +146,7 @@ const PlusScreen = () => {
                 activeOpacity={0.85}
               >
                 <Text style={{ color: "#111827", fontSize: 14, fontWeight: "900" }}>
-                  Connexion
+                  {t("signIn")}
                 </Text>
               </TouchableOpacity>
 
@@ -164,7 +164,7 @@ const PlusScreen = () => {
                 activeOpacity={0.85}
               >
                 <Text style={{ color: "#111827", fontSize: 14, fontWeight: "900" }}>
-                  Inscription
+                  {t("signUp")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -181,7 +181,7 @@ const PlusScreen = () => {
               }}
             >
               <Text style={{ color: "#1F2937", fontSize: 13, fontWeight: "800" }}>
-                Modifier mes informations
+                {t("editProfile")}
               </Text>
             </TouchableOpacity>
           )}
@@ -212,10 +212,10 @@ const PlusScreen = () => {
               <Text style={{ fontSize: 26, marginRight: 12 }}>🍳</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: "900", color: "#065F46" }}>
-                  {dbUser?.isCook ? "Mon Espace Cuisinier" : "Devenir Cuisinier Partenaire"}
+                  {dbUser?.isCook ? t("cookSpace") : t("becomeHomeCook")}
                 </Text>
                 <Text style={{ fontSize: 11, color: "#047857", marginTop: 2 }}>
-                  {dbUser?.isCook ? "Gérer mes plats et commandes" : "Cuisinez et vendez vos plats à domicile"}
+                  {dbUser?.isCook ? t("manageCookSubtitle") : t("becomeCookSubtitle")}
                 </Text>
               </View>
             </View>
@@ -242,10 +242,10 @@ const PlusScreen = () => {
               <Text style={{ fontSize: 26, marginRight: 12 }}>🏢</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: "900", color: "#0F172A" }}>
-                  Devenir Restaurant Partenaire
+                  {t("becomeRestaurant")}
                 </Text>
                 <Text style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>
-                  Inscrire mon restaurant avec RC & position GPS
+                  {t("becomeRestaurantSub")}
                 </Text>
               </View>
             </View>
@@ -265,7 +265,7 @@ const PlusScreen = () => {
               letterSpacing: 0.3,
             }}
           >
-            Mes paramètres
+            {t("mySettings")}
           </Text>
 
           <View style={{ borderTopWidth: 1, borderTopColor: "#F3F4F6" }}>
@@ -282,7 +282,7 @@ const PlusScreen = () => {
             >
               <UserCircleIcon size={22} color="#4B5563" style={{ marginRight: 14 }} />
               <Text style={{ flex: 1, fontSize: 14, fontWeight: "600", color: "#1F2937" }}>
-                Gestion des données personnelles
+                {t("personalData")}
               </Text>
               <ChevronRightIcon size={18} color="#9CA3AF" />
             </TouchableOpacity>
@@ -300,7 +300,7 @@ const PlusScreen = () => {
             >
               <LanguageIcon size={22} color="#4B5563" style={{ marginRight: 14 }} />
               <Text style={{ flex: 1, fontSize: 14, fontWeight: "600", color: "#1F2937" }}>
-                Langue de l'application
+                {t("appLanguage")}
               </Text>
               <Text style={{ fontSize: 12, fontWeight: "bold", color: "#059669", marginRight: 8 }}>
                 {language === "ar" ? "العربية" : language === "en" ? "English" : "Français"}
@@ -321,7 +321,7 @@ const PlusScreen = () => {
             >
               <MapPinIcon size={22} color="#4B5563" style={{ marginRight: 14 }} />
               <Text style={{ flex: 1, fontSize: 14, fontWeight: "600", color: "#1F2937" }}>
-                Gestion de la localisation & Wilaya
+                {t("locationSettings")}
               </Text>
               <ChevronRightIcon size={18} color="#9CA3AF" />
             </TouchableOpacity>
@@ -340,15 +340,15 @@ const PlusScreen = () => {
               letterSpacing: 0.3,
             }}
           >
-            Informations Générales
+            {t("generalInfo")}
           </Text>
 
           <View style={{ borderTopWidth: 1, borderTopColor: "#F3F4F6" }}>
             <TouchableOpacity
               onPress={() => {
                 Alert.alert(
-                  "À propos de Wajbati",
-                  "Wajbati (وجبتي) est la première plateforme de livraison de plats faits maison préparés avec amour par nos cuisiniers partenaires en Algérie."
+                  t("aboutAlertTitle"),
+                  t("aboutAlertDesc")
                 );
               }}
               style={{
@@ -362,7 +362,7 @@ const PlusScreen = () => {
             >
               <QuestionMarkCircleIcon size={22} color="#4B5563" style={{ marginRight: 14 }} />
               <Text style={{ flex: 1, fontSize: 14, fontWeight: "600", color: "#1F2937" }}>
-                Aide & Support Wajbati
+                {t("helpSupport")}
               </Text>
               <ChevronRightIcon size={18} color="#9CA3AF" />
             </TouchableOpacity>
@@ -381,7 +381,7 @@ const PlusScreen = () => {
               >
                 <ArrowRightOnRectangleIcon size={22} color="#DC2626" style={{ marginRight: 14 }} />
                 <Text style={{ flex: 1, fontSize: 14, fontWeight: "700", color: "#DC2626" }}>
-                  Déconnexion
+                  {t("signOut")}
                 </Text>
                 <ChevronRightIcon size={18} color="#DC2626" />
               </TouchableOpacity>

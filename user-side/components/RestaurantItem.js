@@ -5,6 +5,7 @@ import {
   SparklesIcon,
 } from "react-native-heroicons/solid";
 import { useNavigation } from "@react-navigation/native";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const RestaurantItem = ({
   id,
@@ -22,6 +23,7 @@ const RestaurantItem = ({
   isHomemade,
 }) => {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600";
 
   const isCookEstablishment = isCook || isHomemade;
@@ -70,7 +72,7 @@ const RestaurantItem = ({
               color: isCookEstablishment ? "#065F46" : "#1D4ED8",
             }}
           >
-            {isCookEstablishment ? "🍳 Cuisinier Maison" : "🍽️ Restaurant"}
+            {isCookEstablishment ? `🍳 ${t("filterHomeCook")}` : `🍽️ ${t("filterRestaurants")}`}
           </Text>
         </View>
 
@@ -82,7 +84,7 @@ const RestaurantItem = ({
           <StarIcon color="#F59E0B" size={16} />
           <Text className="text-xs text-gray-500 font-semibold">
             <Text className="text-amber-600 font-bold">{rating || 5.0}</Text> ·{" "}
-            {minDeliveryTime || 20} - {maxDeliveryTime || 35} mins
+            {minDeliveryTime || 20} - {maxDeliveryTime || 35} {t("mins")}
           </Text>
         </View>
 

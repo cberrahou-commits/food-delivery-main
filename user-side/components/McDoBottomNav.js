@@ -1,6 +1,7 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { View, Text, TouchableOpacity } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { useLanguage } from "../contexts/LanguageContext";
 import {
   SparklesIcon,
   MapPinIcon,
@@ -18,39 +19,40 @@ import {
 
 const McDoBottomNav = ({ activeTab = "home" }) => {
   const navigation = useNavigation();
+  const { t } = useLanguage();
 
   const tabs = [
     {
       id: "home",
-      label: "Pour vous",
+      label: t("tabForYou"),
       screen: "Home",
       iconOutline: SparklesIcon,
       iconSolid: SparklesSolid,
     },
     {
       id: "restaurants",
-      label: "Restaurants",
+      label: t("tabRestaurants"),
       screen: "RestaurantsMap",
       iconOutline: MapPinIcon,
       iconSolid: MapPinSolid,
     },
     {
       id: "menu",
-      label: "Commander",
+      label: t("tabOrder"),
       screen: "MenuCategories",
       iconOutline: QueueListIcon,
       iconSolid: QueueListSolid,
     },
     {
       id: "orders",
-      label: "Commandes",
+      label: t("tabOrders"),
       screen: "Order Details",
       iconOutline: ReceiptPercentIcon,
       iconSolid: ReceiptPercentSolid,
     },
     {
       id: "plus",
-      label: "Plus",
+      label: t("tabPlus"),
       screen: "Plus",
       iconOutline: EllipsisHorizontalIcon,
       iconSolid: EllipsisHorizontalSolid,

@@ -13,7 +13,7 @@ import BasketIcon from "../components/BasketIcon";
 import { useDispatch } from "react-redux";
 import { setRestaurant } from "../features/restaurantSlice";
 import { useLanguage } from "../contexts/LanguageContext";
-import { FOOD_CATEGORIES } from "../constants/categories";
+import { FOOD_CATEGORIES, getCategoryName, getCategoryShortName } from "../constants/categories";
 import { db } from "../firebase";
 import {
   collection,
@@ -30,7 +30,7 @@ const RestaurantDetails = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const dispatch = useDispatch();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const restaurantUid = route.params?.id || "";
   const [restaurantInfo, setRestaurantInfo] = useState(route.params || {});
@@ -135,7 +135,7 @@ const RestaurantDetails = () => {
       const catObj = FOOD_CATEGORIES.find((c) => c.id === selectedCategory);
       return [
         {
-          title: catObj ? `${catObj.icon} ${catObj.name}` : "Menu",
+          title: catObj ? `${catObj.icon} ${getCategoryName(catObj, language)}` : (t("menu") || "Menu"),
           dishes: filteredDishes,
         },
       ];
@@ -146,7 +146,7 @@ const RestaurantDetails = () => {
       const catDishes = dishes.filter((d) => getDishCategory(d) === cat.id);
       if (catDishes.length > 0) {
         groups.push({
-          title: `${cat.icon} ${cat.name}`,
+          title: `${cat.icon} ${getCategoryName(cat, language)}`,
           dishes: catDishes,
         });
       }
@@ -155,13 +155,13 @@ const RestaurantDetails = () => {
     const otherDishes = dishes.filter((d) => getDishCategory(d) === "autre");
     if (otherDishes.length > 0) {
       groups.push({
-        title: "✨ Autres Spécialités",
+        title: language === "ar" ? "✨ أطباق وتخصصات أخرى" : "✨ Autres Spécialités",
         dishes: otherDishes,
       });
     }
 
     return groups.length > 0 ? groups : [{ title: t("menu") || "Menu", dishes }];
-  }, [dishes, filteredDishes, selectedCategory]);
+  }, [dishes, filteredDishes, selectedCategory, language]);
 
   const isCook = restaurantInfo?.isCook || restaurantInfo?.isHomemade;
   const heroImage =
@@ -226,8 +226,8 @@ const RestaurantDetails = () => {
               }}
             >
               {isCook
-                ? "🍳 Cuisinier Partenaire · Fait Maison"
-                : "🍽️ Restaurant Partenaire"}
+                ? `🍳 ${t("partnerCook")}`
+                : `🍽️ ${t("partnerRestaurant")}`}
             </Text>
           </View>
 
@@ -261,7 +261,7 @@ const RestaurantDetails = () => {
           {categoriesPresent.length > 0 && (
             <View className="border-t border-gray-100 pt-3 pb-2">
               <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                Catégories du menu :
+                {t("menuCategories")}
               </Text>
               <ScrollView
                 horizontal
@@ -284,7 +284,7 @@ const RestaurantDetails = () => {
                       color: "#111827",
                     }}
                   >
-                    🍽️ Tout ({dishes.length})
+                    🍽️ {t("allMenu")} ({dishes.length})
                   </Text>
                 </TouchableOpacity>
 
@@ -310,7 +310,7 @@ const RestaurantDetails = () => {
                           color: "#111827",
                         }}
                       >
-                        {cat.icon} {cat.shortName} ({count})
+                        {cat.icon} {getCategoryShortName(cat, language)} ({count})
                       </Text>
                     </TouchableOpacity>
                   );
@@ -325,14 +325,14 @@ const RestaurantDetails = () => {
           {loading ? (
             <View className="py-12 items-center justify-center">
               <ActivityIndicator size="large" color="#059669" />
-              <Text className="text-gray-400 text-xs mt-3">Chargement de la carte...</Text>
+              <Text className="text-gray-400 text-xs mt-3">{t("loadingMenu")}</Text>
             </View>
           ) : dishes.length === 0 ? (
             <View className="py-12 px-6 items-center justify-center">
               <Text style={{ fontSize: 32 }}>🍲</Text>
-              <Text className="text-gray-700 font-bold text-base mt-2">Aucun plat disponible</Text>
+              <Text className="text-gray-700 font-bold text-base mt-2">{t("noDishesAvailable")}</Text>
               <Text className="text-gray-400 text-xs text-center mt-1">
-                La carte de cet établissement est en cours de mise à jour.
+                {t("menuUpdating")}
               </Text>
             </View>
           ) : (
@@ -343,7 +343,7 @@ const RestaurantDetails = () => {
                     {group.title}
                   </Text>
                   <Text className="text-xs font-bold text-gray-400">
-                    {group.dishes.length} plat{group.dishes.length > 1 ? "s" : ""}
+                    {group.dishes.length} {group.dishes.length > 1 ? t("dishCountPlural") : t("dishCountSingle")}
                   </Text>
                 </View>
 

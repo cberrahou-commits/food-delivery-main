@@ -1,7 +1,8 @@
 import { ScrollView, Text, TouchableOpacity, Image, View } from "react-native";
 import React from "react";
 import { useNavigation } from "@react-navigation/native";
-import { FOOD_CATEGORIES } from "../constants/categories";
+import { FOOD_CATEGORIES, getCategoryShortName } from "../constants/categories";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const CATEGORY_IMAGES = {
   burger: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300",
@@ -16,6 +17,7 @@ const CATEGORY_IMAGES = {
 
 const Categories = () => {
   const navigation = useNavigation();
+  const { language } = useLanguage();
 
   return (
     <ScrollView
@@ -79,7 +81,7 @@ const Categories = () => {
               }}
               numberOfLines={1}
             >
-              {category.shortName || category.name}
+              {getCategoryShortName(category, language)}
             </Text>
           </TouchableOpacity>
         );
