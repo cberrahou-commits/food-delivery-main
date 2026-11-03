@@ -35,6 +35,7 @@ import {
   triggerLocalNotification,
 } from "../services/notificationService";
 import WhatsAppOtpModal from "../components/WhatsAppOtpModal";
+import { uploadImageToCloudinary } from "../services/cloudinaryService";
 
 const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
@@ -304,7 +305,13 @@ const ProfileScreen = () => {
       };
 
       if (profileImage) {
-        dataToUpdate.profileImage = profileImage;
+        try {
+          const uploadedUrl = await uploadImageToCloudinary(profileImage, "profiles");
+          dataToUpdate.profileImage = uploadedUrl;
+        } catch (uploadErr) {
+          console.warn("Échec upload Cloudinary pour le profil, repli sur image locale:", uploadErr);
+          dataToUpdate.profileImage = profileImage;
+        }
       }
 
       if (userLocation.latitude && userLocation.longitude) {

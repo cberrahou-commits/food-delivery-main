@@ -18,6 +18,7 @@ import { db } from "../firebase";
 import { ArrowLeftIcon, CameraIcon, PhotoIcon, SparklesIcon } from "react-native-heroicons/solid";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { FOOD_CATEGORIES } from "../constants/categories";
+import { uploadImageToCloudinary } from "../services/cloudinaryService";
 
 const AddCookDishScreen = () => {
   const insets = useSafeAreaInsets();
@@ -113,10 +114,16 @@ const AddCookDishScreen = () => {
 
     setLoading(true);
     try {
-      // Image par défaut si aucune photo prise
-      const finalImage =
-        imageUri ||
-        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80";
+      // 1. Upload vers Cloudinary si une photo a été prise ou sélectionnée
+      let finalImage = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80";
+      if (imageUri) {
+        try {
+          finalImage = await uploadImageToCloudinary(imageUri, "dishes");
+        } catch (uploadErr) {
+          console.warn("Échec upload Cloudinary, repli sur image locale:", uploadErr);
+          finalImage = imageUri;
+        }
+      }
 
       const selectedCatObj = FOOD_CATEGORIES.find((c) => c.id === category);
       const ingredientsList = customizableIngredientsText

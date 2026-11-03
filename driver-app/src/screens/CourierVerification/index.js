@@ -14,6 +14,7 @@ import * as ImagePicker from "expo-image-picker";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../../firebase/firebase";
 import { MaterialIcons, FontAwesome5, Ionicons } from "@expo/vector-icons";
+import { uploadMultipleImagesToCloudinary } from "../../services/cloudinaryService";
 
 const VEHICLE_TYPES = [
   { id: "velo", label: "Vélo 🚲", motorized: false },
@@ -114,12 +115,32 @@ const CourierVerificationScreen = ({ navigation, onStatusUpdate }) => {
 
       const status = quickApprove ? "APPROVED" : "PENDING_VERIFICATION";
 
+      // Upload vers Cloudinary des justificatifs livreur
+      let finalIdCard = idCardUri || "https://images.unsplash.com/photo-1544717305-2782549b5136?w=400";
+      let finalLicense = licenseUri || "https://images.unsplash.com/photo-1544717305-2782549b5136?w=400";
+
+      if (idCardUri || licenseUri) {
+        try {
+          const uploaded = await uploadMultipleImagesToCloudinary(
+            {
+              idCard: idCardUri,
+              license: licenseUri,
+            },
+            "couriers"
+          );
+          if (uploaded.idCard) finalIdCard = uploaded.idCard;
+          if (uploaded.license) finalLicense = uploaded.license;
+        } catch (uploadErr) {
+          console.warn("Échec upload Cloudinary pour le livreur:", uploadErr);
+        }
+      }
+
       await updateDoc(doc(db, "user", uid), {
         courierStatus: status,
         vehicleType: vehicle,
         iban: iban || "FR76 3000 4000 5000 6000 7000 123",
-        idCardUri: idCardUri || "https://images.unsplash.com/photo-1544717305-2782549b5136?w=400",
-        licenseUri: licenseUri || "https://images.unsplash.com/photo-1544717305-2782549b5136?w=400",
+        idCardUri: finalIdCard,
+        licenseUri: finalLicense,
         verificationSubmittedAt: serverTimestamp(),
       });
 

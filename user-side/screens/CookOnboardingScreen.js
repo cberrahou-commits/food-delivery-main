@@ -20,6 +20,7 @@ import { ArrowLeftIcon, CameraIcon, PhotoIcon, CheckBadgeIcon, MapPinIcon, Phone
 import { useNavigation } from "@react-navigation/native";
 import WilayaSelectorModal from "../components/WilayaSelectorModal";
 import { ALGERIA_WILAYAS } from "../constants/wilayas";
+import { uploadMultipleImagesToCloudinary } from "../services/cloudinaryService";
 
 const SPECIALITIES = [
   "Cuisine Orientale & Maghreb",
@@ -123,7 +124,19 @@ const CookOnboardingScreen = () => {
 
       const kitchenId = `kitchen_${uid}`;
 
-      // 1. Créer la cuisine dans restaurants en attente de vérification
+      // 1. Upload vers Cloudinary de la photo de cuisine et de la pièce d'identité
+      const uploadedImages = await uploadMultipleImagesToCloudinary(
+        {
+          kitchen: kitchenPhotoUri,
+          idCard: idCardUri,
+        },
+        "cooks"
+      );
+
+      const finalKitchen = uploadedImages.kitchen || kitchenPhotoUri;
+      const finalIdCard = uploadedImages.idCard || idCardUri;
+
+      // 2. Créer la cuisine dans restaurants en attente de vérification
       await setDoc(doc(db, "restaurants", kitchenId), {
         id: kitchenId,
         ownerId: uid,
@@ -136,9 +149,9 @@ const CookOnboardingScreen = () => {
         wilayaCode: selectedWilaya?.code || "16",
         phone: phone.trim(),
         phoneNumber: phone.trim(),
-        image: kitchenPhotoUri,
-        interiorImage: kitchenPhotoUri,
-        idCardDocument: idCardUri,
+        image: finalKitchen,
+        interiorImage: finalKitchen,
+        idCardDocument: finalIdCard,
         rating: 5.0,
         lat: selectedWilaya?.lat || dbUser?.latitude || 36.7538,
         lng: selectedWilaya?.lng || dbUser?.longitude || 3.0588,
@@ -153,7 +166,7 @@ const CookOnboardingScreen = () => {
         createdAt: serverTimestamp(),
       });
 
-      // 2. Mettre à jour le profil utilisateur
+      // 3. Mettre à jour le profil utilisateur
       await updateDoc(doc(db, "user", uid), {
         isCook: true,
         kitchenId: kitchenId,

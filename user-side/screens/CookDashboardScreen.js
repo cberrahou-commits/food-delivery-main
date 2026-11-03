@@ -48,6 +48,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import DishInfo from "../components/DishInfo";
 import WilayaSelectorModal from "../components/WilayaSelectorModal";
 import { ALGERIA_WILAYAS } from "../constants/wilayas";
+import { uploadImageToCloudinary } from "../services/cloudinaryService";
 import {
   MapPinIcon,
   PhoneIcon,
@@ -192,13 +193,22 @@ const CookDashboardScreen = () => {
 
     setSavingDish(true);
     try {
+      let finalDishImage = editDishImageUri || editingDish.image;
+      if (editDishImageUri && !editDishImageUri.startsWith("http://") && !editDishImageUri.startsWith("https://")) {
+        try {
+          finalDishImage = await uploadImageToCloudinary(editDishImageUri, "dishes");
+        } catch (uploadErr) {
+          console.warn("Échec upload Cloudinary pour le plat:", uploadErr);
+        }
+      }
+
       await updateDoc(doc(db, "dishes", editingDish.id), {
         name: editDishName.trim(),
         description: editDishDesc.trim(),
         price: parsedPrice,
         prepTimeMinutes: parseInt(editDishPrepTime) || 25,
         portionsAvailable: parseInt(editDishPortions) || 4,
-        image: editDishImageUri || editingDish.image,
+        image: finalDishImage,
         updatedAt: new Date(),
       });
       setEditDishModalVisible(false);
@@ -315,7 +325,15 @@ const CookDashboardScreen = () => {
         updateData.lng = editKitchenWilaya.lng;
       }
       if (editKitchenImageUri) {
-        updateData.image = editKitchenImageUri;
+        let finalKitchenImage = editKitchenImageUri;
+        if (!editKitchenImageUri.startsWith("http://") && !editKitchenImageUri.startsWith("https://")) {
+          try {
+            finalKitchenImage = await uploadImageToCloudinary(editKitchenImageUri, "cooks");
+          } catch (uploadErr) {
+            console.warn("Échec upload Cloudinary pour la cuisine:", uploadErr);
+          }
+        }
+        updateData.image = finalKitchenImage;
       }
 
       await updateDoc(doc(db, "restaurants", kitchenId), updateData);

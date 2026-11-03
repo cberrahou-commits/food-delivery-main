@@ -30,6 +30,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import WilayaSelectorModal from "../components/WilayaSelectorModal";
 import { ALGERIA_WILAYAS } from "../constants/wilayas";
+import { uploadMultipleImagesToCloudinary } from "../services/cloudinaryService";
 
 const RESTAURANT_CATEGORIES = [
   "Burgers & Fast Food",
@@ -247,13 +248,22 @@ const RestaurantOnboardingScreen = () => {
 
     setSubmitting(true);
     try {
+      // 1. Upload vers Cloudinary des photos et justificatifs
+      const uploadedImages = await uploadMultipleImagesToCloudinary(
+        {
+          exterior: exteriorPhotoUri,
+          interior: interiorPhotoUri,
+          rc: rcDocumentUri,
+        },
+        "restaurants"
+      );
+
+      const finalExterior = uploadedImages.exterior || defaultExterior;
+      const finalInterior = uploadedImages.interior || defaultInterior;
+      const finalRc = uploadedImages.rc || "";
+
       const uid = user?.uid || auth.currentUser?.uid || `owner_${Date.now()}`;
       const restaurantId = `resto_${Date.now()}`;
-
-      const defaultExterior =
-        "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800";
-      const defaultInterior =
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800";
 
       await setDoc(doc(db, "restaurants", restaurantId), {
         id: restaurantId,
@@ -269,10 +279,10 @@ const RestaurantOnboardingScreen = () => {
         phoneNumber: phone.trim(),
         lat: markerCoords.latitude,
         lng: markerCoords.longitude,
-        image: exteriorPhotoUri || defaultExterior,
-        exteriorImage: exteriorPhotoUri || defaultExterior,
-        interiorImage: interiorPhotoUri || defaultInterior,
-        rcDocument: rcDocumentUri || "",
+        image: finalExterior,
+        exteriorImage: finalExterior,
+        interiorImage: finalInterior,
+        rcDocument: finalRc,
         type: "restaurant",
         isCook: false,
         isHomemade: false,
