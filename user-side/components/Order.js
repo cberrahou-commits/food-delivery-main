@@ -8,12 +8,14 @@ import { notifyCookClientConfirmed } from "../services/notificationService";
 import { StarIcon } from "react-native-heroicons/solid";
 import OrderRatingModal from "./OrderRatingModal";
 import OrderQrModal from "./OrderQrModal";
+import LiveOrderTrackingModal from "./LiveOrderTrackingModal";
 import { openWhatsApp } from "../constants/wilayas";
 
 const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => {
   const [dishes, setDishes] = useState([]);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [trackingModalVisible, setTrackingModalVisible] = useState(false);
   const [hasRatedLocal, setHasRatedLocal] = useState(Boolean(order?.hasRated));
   const { t, formatPrice, language } = useLanguage();
 
@@ -310,11 +312,56 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
                 </Text>
               ) : null}
 
+              {/* BOUTON SUIVI EN DIRECT DU LIVREUR SUR LA CARTE INTERACTIVE */}
+              <TouchableOpacity
+                onPress={() => setTrackingModalVisible(true)}
+                activeOpacity={0.85}
+                style={{
+                  backgroundColor: "#059669",
+                  paddingVertical: 12,
+                  paddingHorizontal: 14,
+                  borderRadius: 14,
+                  marginTop: 10,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  shadowColor: "#059669",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Text style={{ fontSize: 20 }}>🛵</Text>
+                  <View>
+                    <Text style={{ color: "white", fontWeight: "900", fontSize: 13 }}>
+                      Suivre mon livreur sur la carte
+                    </Text>
+                    <Text style={{ color: "#D1FAE5", fontSize: 10, fontWeight: "600" }}>
+                      Position GPS en temps réel
+                    </Text>
+                  </View>
+                </View>
+                <View
+                  style={{
+                    backgroundColor: "white",
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 20,
+                  }}
+                >
+                  <Text style={{ color: "#065F46", fontWeight: "900", fontSize: 10 }}>
+                    ● EN DIRECT
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
               {/* BOUTON QR CODE DE LIVRAISON POUR LE CLIENT */}
               <TouchableOpacity
                 onPress={() => setQrModalVisible(true)}
                 activeOpacity={0.8}
-                className="mt-2.5 bg-emerald-600 py-2.5 px-3 rounded-xl flex-row items-center justify-between shadow-xs"
+                className="mt-2.5 bg-gray-800 py-2.5 px-3 rounded-xl flex-row items-center justify-between shadow-xs"
               >
                 <View className="flex-row items-center space-x-2">
                   <Text className="text-base">📱</Text>
@@ -424,6 +471,15 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
             orderCode={order?.deliveryCode}
             restaurantName={restaurantName}
             customerName={`${order?.userFirstName || ""} ${order?.userLastName || ""}`.trim()}
+          />
+
+          {/* Modal de Suivi GPS en direct du Livreur assigné */}
+          <LiveOrderTrackingModal
+            visible={trackingModalVisible}
+            onClose={() => setTrackingModalVisible(false)}
+            orderId={orderId}
+            initialOrder={{ ...order, id: orderId, restaurantName }}
+            onOpenQrCode={() => setQrModalVisible(true)}
           />
         </View>
       </View>

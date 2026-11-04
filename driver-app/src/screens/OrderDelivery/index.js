@@ -116,6 +116,30 @@ const OrderDelivery = ({ route }) => {
     deliveryStatus === "DELIVERED" || deliveryStatus === "COMPLETE";
   const isAssignedToMe = isEnRouteToCook || isEnRouteToClient;
 
+  const lastPosSyncRef = useRef(0);
+
+  // Synchronisation GPS en direct du livreur vers la commande pour le client
+  const syncDriverPositionToOrder = async (coords) => {
+    if (!order?.id || !coords?.latitude || !coords?.longitude) return;
+    const now = Date.now();
+    // Limiter l'envoi à maximum 1 fois toutes les 3 secondes pour préserver la batterie et Firestore
+    if (now - lastPosSyncRef.current < 3000) return;
+    lastPosSyncRef.current = now;
+
+    try {
+      const orderRef = doc(db, "orders", order.id);
+      await updateDoc(orderRef, {
+        driverLatitude: Number(coords.latitude),
+        driverLongitude: Number(coords.longitude),
+        driverHeading: Number(coords.heading || 0),
+        driverSpeed: Number(coords.speed || 0),
+        driverUpdatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn("Échec synchronisation position livreur:", err);
+    }
+  };
+
   // Région initiale sécurisée pour MapView (jamais d'accès null)
   const initialRegion = useMemo(() => {
     const lat =
@@ -148,14 +172,23 @@ const OrderDelivery = ({ route }) => {
           foregroundSubscription = await Location.watchPositionAsync(
             {
               accuracy: Location.Accuracy.High,
-              distanceInterval: 100,
+              distanceInterval: 10, // Envoi tous les 10 mètres
+              timeInterval: 3000,   // Ou toutes les 3 secondes
             },
             (updatedLocation) => {
               if (updatedLocation?.coords) {
-                setDriverLocation({
+                const newCoords = {
                   latitude: updatedLocation.coords.latitude,
                   longitude: updatedLocation.coords.longitude,
-                });
+                  heading: updatedLocation.coords.heading || 0,
+                  speed: updatedLocation.coords.speed || 0,
+                };
+                setDriverLocation(newCoords);
+
+                // Diffuser la position au client qui a commandé
+                if (isAssignedToMe) {
+                  syncDriverPositionToOrder(newCoords);
+                }
               }
             }
           );
@@ -250,6 +283,9 @@ const OrderDelivery = ({ route }) => {
         assignedDriverId: user?.uid || "driver_uid",
         driverName: driverDisplayName,
         driverPhone: user?.phoneNumber || "",
+        driverLatitude: driverLocation?.latitude ? Number(driverLocation.latitude) : null,
+        driverLongitude: driverLocation?.longitude ? Number(driverLocation.longitude) : null,
+        driverHeading: Number(driverLocation?.heading || 0),
         assignedAt: serverTimestamp(),
       });
 
@@ -312,6 +348,8 @@ const OrderDelivery = ({ route }) => {
       const orderRef = doc(db, "orders", order.id);
       await updateDoc(orderRef, {
         status: "DRIVERPICKEDUP",
+        driverLatitude: driverLocation?.latitude ? Number(driverLocation.latitude) : null,
+        driverLongitude: driverLocation?.longitude ? Number(driverLocation.longitude) : null,
         pickedUpAt: serverTimestamp(),
       });
       setDeliveryStatus("DRIVERPICKEDUP");

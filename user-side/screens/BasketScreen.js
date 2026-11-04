@@ -122,10 +122,10 @@ const BasketScreen = () => {
         restaurantWilayaCode: restaurant?.wilayaCode || "16",
         restaurantWilaya: restaurant?.wilaya || "Alger",
         restaurantAddress: restaurant?.address || "",
-        restaurantLatitude: restaurant?.latitude || 36.7538,
-        restaurantLongitude: restaurant?.longitude || 3.0588,
-        userLatitude: dbUser?.latitude || 36.7538,
-        userLongitude: dbUser?.longitude || 3.0588,
+        restaurantLatitude: Number(restaurant?.lat || restaurant?.latitude || 36.7538),
+        restaurantLongitude: Number(restaurant?.lng || restaurant?.longitude || 3.0588),
+        userLatitude: Number(dbUser?.latitude || dbUser?.lat || 36.7538),
+        userLongitude: Number(dbUser?.longitude || dbUser?.lng || 3.0588),
       });
 
       for (const item of items) {
