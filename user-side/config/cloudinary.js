@@ -3,7 +3,7 @@
 
 export const CLOUDINARY_CONFIG = {
   // Nom de votre cloud Cloudinary (visible sur le tableau de bord Cloudinary : "Cloud name")
-  cloudName: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "wajbati",
+  cloudName: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "ib2iw1fx",
 
   // Nom de votre Upload Preset NON SIGNÉ (Unsigned)
   // Dans la console Cloudinary : Settings > Upload > Upload presets > Add upload preset > Signing Mode: "Unsigned"
@@ -12,3 +12,4 @@ export const CLOUDINARY_CONFIG = {
   // Dossier racine pour organiser toutes les photos du projet
   defaultFolder: "wajbati",
 };
+

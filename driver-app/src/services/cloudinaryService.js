@@ -97,3 +97,4 @@ export const uploadMultipleImagesToCloudinary = async (imagesMap, folder = "cour
 
   return results;
 };
+
