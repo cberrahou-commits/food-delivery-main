@@ -36,7 +36,7 @@ const PartnerVerifications = () => {
     return () => unsub();
   }, []);
 
-  const handleApprove = async (partnerId) => {
+  const handleApprove = async (partnerId, partner) => {
     setActionLoading((prev) => ({ ...prev, [partnerId]: "approving" }));
     try {
       await updateDoc(doc(db, "restaurants", partnerId), {
@@ -44,6 +44,20 @@ const PartnerVerifications = () => {
         status: "APPROVED",
         verifiedAt: serverTimestamp(),
       });
+
+      // Synchroniser le statut du compte utilisateur lié si présent
+      if (partner?.ownerId) {
+        try {
+          await updateDoc(doc(db, "user", partner.ownerId), {
+            isVerified: true,
+            cookStatus: "APPROVED",
+            restaurantStatus: "APPROVED",
+            verifiedAt: serverTimestamp(),
+          });
+        } catch (userErr) {
+          console.warn("Mise à jour du document utilisateur ignorée :", userErr);
+        }
+      }
     } catch (err) {
       console.error("Error approving partner:", err);
       alert("Erreur lors de l'approbation : " + err.message);
@@ -52,7 +66,7 @@ const PartnerVerifications = () => {
     }
   };
 
-  const handleReject = async (partnerId) => {
+  const handleReject = async (partnerId, partner) => {
     if (!window.confirm("Êtes-vous sûr de vouloir rejeter cette demande de partenariat ?")) {
       return;
     }
@@ -63,6 +77,20 @@ const PartnerVerifications = () => {
         status: "REJECTED",
         rejectedAt: serverTimestamp(),
       });
+
+      // Synchroniser le statut du compte utilisateur lié si présent
+      if (partner?.ownerId) {
+        try {
+          await updateDoc(doc(db, "user", partner.ownerId), {
+            isVerified: false,
+            cookStatus: "REJECTED",
+            restaurantStatus: "REJECTED",
+            rejectedAt: serverTimestamp(),
+          });
+        } catch (userErr) {
+          console.warn("Mise à jour du document utilisateur ignorée :", userErr);
+        }
+      }
     } catch (err) {
       console.error("Error rejecting partner:", err);
       alert("Erreur lors du rejet : " + err.message);
@@ -447,7 +475,7 @@ const PartnerVerifications = () => {
                   <div className="flex items-center gap-2">
                     {!isApproved && (
                       <button
-                        onClick={() => handleApprove(item.id)}
+                        onClick={() => handleApprove(item.id, item)}
                         disabled={actionLoading[item.id] === "approving"}
                         className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
@@ -461,7 +489,7 @@ const PartnerVerifications = () => {
 
                     {!isRejected && (
                       <button
-                        onClick={() => handleReject(item.id)}
+                        onClick={() => handleReject(item.id, item)}
                         disabled={actionLoading[item.id] === "rejecting"}
                         className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-extrabold text-xs px-3 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                       >
