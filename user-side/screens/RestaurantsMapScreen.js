@@ -15,7 +15,7 @@ import MapView, { Marker, Callout } from "react-native-maps";
 import * as Location from "expo-location";
 import { useNavigation } from "@react-navigation/native";
 import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import { UserAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import McDoBottomNav from "../components/McDoBottomNav";
@@ -77,7 +77,35 @@ const RestaurantsMapScreen = () => {
 
   useEffect(() => {
     fetchClientLocation();
-    fetchEstablishments();
+
+    // Écoute en temps réel des établissements
+    const unsub = onSnapshot(
+      collection(db, "restaurants"),
+      (snap) => {
+        let list = [];
+        snap.forEach((doc) => {
+          const data = doc.data();
+          const isApproved =
+            data.isVerified === true || data.status === "APPROVED";
+          if (isApproved && data.lat && data.lng) {
+            list.push({
+              id: doc.id,
+              ...data,
+              lat: Number(data.lat),
+              lng: Number(data.lng),
+            });
+          }
+        });
+        setEstablishments(list);
+        setLoading(false);
+      },
+      (err) => {
+        console.warn("fetchEstablishments error:", err);
+        setLoading(false);
+      }
+    );
+
+    return () => unsub();
   }, []);
 
   const fetchClientLocation = async () => {
@@ -108,31 +136,6 @@ const RestaurantsMapScreen = () => {
       }
     } catch (e) {
       console.warn("Location error:", e);
-    }
-  };
-
-  const fetchEstablishments = async () => {
-    try {
-      const snap = await getDocs(collection(db, "restaurants"));
-      let list = [];
-      snap.forEach((doc) => {
-        const data = doc.data();
-        const isApproved =
-          data.isVerified === true || data.status === "APPROVED";
-        if (isApproved && data.lat && data.lng) {
-          list.push({
-            id: doc.id,
-            ...data,
-            lat: Number(data.lat),
-            lng: Number(data.lng),
-          });
-        }
-      });
-      setEstablishments(list);
-    } catch (err) {
-      console.warn("fetchEstablishments error:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -167,8 +170,17 @@ const RestaurantsMapScreen = () => {
     }
   };
 
+  const isCookEstablishment = (item) =>
+    Boolean(
+      item.isCook ||
+      item.isHomemade ||
+      item.isHomeCook ||
+      item.type === "cook" ||
+      (typeof item.id === "string" && (item.id.startsWith("kitchen_") || item.id.startsWith("cook_")))
+    );
+
   const filteredList = establishments.filter((item) => {
-    const isCook = item.isCook || item.isHomemade || item.type === "cook";
+    const isCook = isCookEstablishment(item);
     if (filterType === "restaurant" && isCook) return false;
     if (filterType === "cook" && !isCook) return false;
     return true;

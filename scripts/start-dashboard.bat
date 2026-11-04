@@ -23,3 +23,4 @@ start http://localhost:3000
 echo.
 echo Demarrage du serveur Next.js...
 call npm run dev
+

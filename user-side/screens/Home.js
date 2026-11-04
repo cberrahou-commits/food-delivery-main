@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
+  RefreshControl,
   StatusBar as RNStatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,7 +25,7 @@ import McDoBottomNav from "../components/McDoBottomNav";
 import Categories from "../components/Categories";
 import RestaurantItem from "../components/RestaurantItem";
 import { db, auth } from "../firebase";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, onSnapshot } from "firebase/firestore";
 import Search from "../components/Search";
 import { useDispatch } from "react-redux";
 import { setUser } from "../features/userSlice";
@@ -46,12 +47,44 @@ const Home = () => {
   const [dishes, setDishes] = useState([]);
   const [searchInputHasValue, setSearchInputHasValue] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Écoute en temps réel (onSnapshot) de la collection restaurants
   useEffect(() => {
     getUserData();
-    getResData();
     getDishes();
+
+    const unsub = onSnapshot(
+      collection(db, "restaurants"),
+      (snapshot) => {
+        let restaurants = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const isApproved = data.isVerified === true || data.status === "APPROVED";
+          if (isApproved) {
+            restaurants.push({ ...data, id: doc.id });
+          }
+        });
+        setRestaurant(restaurants);
+      },
+      (err) => {
+        console.warn("Realtime restaurants listener error:", err);
+      }
+    );
+
+    return () => unsub();
   }, [user]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([getUserData(), getDishes()]);
+    } catch (e) {
+      console.warn("onRefresh error:", e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getUserData = async () => {
     const currentUid = user?.uid || auth.currentUser?.uid;
@@ -79,25 +112,6 @@ const Home = () => {
     }
   };
 
-  const getResData = async () => {
-    try {
-      const resRef = collection(db, "restaurants");
-      const querySnapshot = await getDocs(resRef);
-      let restaurants = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        // N'afficher que les établissements (Restaurants & Cuisiniers) validés par l'administration
-        const isApproved = data.isVerified === true || data.status === "APPROVED";
-        if (isApproved) {
-          restaurants.push({ ...data, id: doc.id });
-        }
-      });
-      setRestaurant(restaurants);
-    } catch (err) {
-      console.warn("getResData error:", err);
-    }
-  };
-
   const getDishes = async () => {
     const dishesRef = collection(db, "dishes");
 
@@ -112,27 +126,35 @@ const Home = () => {
 
   const [establishmentFilter, setEstablishmentFilter] = useState("all"); // 'all' | 'restaurant' | 'cook'
 
+  const isCookEstablishment = (r) =>
+    Boolean(
+      r.isCook ||
+      r.isHomemade ||
+      r.isHomeCook ||
+      r.type === "cook" ||
+      (typeof r.id === "string" && (r.id.startsWith("kitchen_") || r.id.startsWith("cook_")))
+    );
+
   const filteredRestaurants = useMemo(() => {
     let list = restaurant;
     if (selectedWilaya) {
-      const wCode = selectedWilaya.code;
-      const wName = selectedWilaya.name.toLowerCase();
+      const wCode = String(selectedWilaya.code || "").trim();
+      const wName = String(selectedWilaya.name || "").trim().toLowerCase();
       list = list.filter((r) => {
-        if (r.wilayaCode === wCode) return true;
-        if (
-          r.wilaya &&
-          (r.wilaya.includes(wCode) || r.wilaya.toLowerCase().includes(wName))
-        )
-          return true;
-        if (r.address && r.address.toLowerCase().includes(wName)) return true;
+        const rCode = String(r.wilayaCode || "").trim();
+        const rWilaya = String(r.wilaya || "").toLowerCase();
+        const rAddress = String(r.address || "").toLowerCase();
+        if (rCode && rCode === wCode) return true;
+        if (rWilaya && (rWilaya.includes(wCode) || rWilaya.includes(wName))) return true;
+        if (rAddress && (rAddress.includes(wName) || (wCode && rAddress.includes(wCode)))) return true;
         return false;
       });
     }
 
     if (establishmentFilter === "cook") {
-      return list.filter((r) => r.isCook || r.isHomemade);
+      return list.filter(isCookEstablishment);
     } else if (establishmentFilter === "restaurant") {
-      return list.filter((r) => !r.isCook && !r.isHomemade);
+      return list.filter((r) => !isCookEstablishment(r));
     }
     return list;
   }, [restaurant, selectedWilaya, establishmentFilter]);
@@ -261,6 +283,14 @@ const Home = () => {
           paddingBottom: 150,
         }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#059669"]}
+            tintColor="#059669"
+          />
+        }
       >
         {/* Search */}
         <Search

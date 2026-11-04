@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Platform,
+  RefreshControl,
   StatusBar as RNStatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,7 +20,7 @@ import {
   MapPinIcon,
 } from "react-native-heroicons/solid";
 import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import * as Location from "expo-location";
 import { UserAuth } from "../contexts/AuthContext";
 import McDoBottomNav from "../components/McDoBottomNav";
@@ -80,11 +81,51 @@ const MenuCategoriesScreen = () => {
     latitude: dbUser?.latitude || 36.7538,
     longitude: dbUser?.longitude || 3.0588,
   });
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchClientLocation();
-    fetchEstablishments();
+
+    // Écoute en direct des restaurants approuvés
+    const unsub = onSnapshot(
+      collection(db, "restaurants"),
+      (snap) => {
+        let list = [];
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          const isApproved =
+            data.isVerified === true || data.status === "APPROVED";
+          if (isApproved) {
+            list.push({
+              id: docSnap.id,
+              ...data,
+              lat: Number(data.lat || 36.7538),
+              lng: Number(data.lng || 3.0588),
+            });
+          }
+        });
+        setEstablishments(list);
+        setLoading(false);
+      },
+      (err) => {
+        console.warn("Realtime establishments error:", err);
+        setLoading(false);
+      }
+    );
+
+    return () => unsub();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchClientLocation();
+    } catch (e) {
+      console.warn("onRefresh error:", e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const fetchClientLocation = async () => {
     try {
@@ -105,30 +146,14 @@ const MenuCategoriesScreen = () => {
     }
   };
 
-  const fetchEstablishments = async () => {
-    try {
-      const snap = await getDocs(collection(db, "restaurants"));
-      let list = [];
-      snap.forEach((docSnap) => {
-        const data = docSnap.data();
-        const isApproved =
-          data.isVerified === true || data.status === "APPROVED";
-        if (isApproved) {
-          list.push({
-            id: docSnap.id,
-            ...data,
-            lat: Number(data.lat || 36.7538),
-            lng: Number(data.lng || 3.0588),
-          });
-        }
-      });
-      setEstablishments(list);
-    } catch (err) {
-      console.warn("Error fetching establishments:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const isCookEstablishment = (r) =>
+    Boolean(
+      r.isCook ||
+      r.isHomemade ||
+      r.isHomeCook ||
+      r.type === "cook" ||
+      (typeof r.id === "string" && (r.id.startsWith("kitchen_") || r.id.startsWith("cook_")))
+    );
 
   // Liste triée par distance géographique croissante (le plus proche en premier)
   const sortedEstablishments = useMemo(() => {
@@ -151,25 +176,28 @@ const MenuCategoriesScreen = () => {
 
     // Filtre par Wilaya si sélectionnée
     if (selectedWilaya) {
-      const wCode = String(selectedWilaya.code || "");
-      const wName = String(selectedWilaya.name || "").toLowerCase();
+      const wCode = String(selectedWilaya.code || "").trim();
+      const wName = String(selectedWilaya.name || "").trim().toLowerCase();
       list = list.filter((r) => {
-        if (r.wilayaCode && String(r.wilayaCode) === wCode) return true;
+        const rCode = String(r.wilayaCode || "").trim();
+        const rWilaya = String(r.wilaya || "").toLowerCase();
+        const rAddress = String(r.address || "").toLowerCase();
+        if (rCode && rCode === wCode) return true;
         if (
-          r.wilaya &&
-          (String(r.wilaya).includes(wCode) || String(r.wilaya).toLowerCase().includes(wName))
+          rWilaya &&
+          (rWilaya.includes(wCode) || rWilaya.includes(wName))
         )
           return true;
-        if (r.address && String(r.address).toLowerCase().includes(wName)) return true;
+        if (rAddress && (rAddress.includes(wName) || (wCode && rAddress.includes(wCode)))) return true;
         return false;
       });
     }
 
     // Filtre par type (restaurant ou cuisinier maison)
     if (typeFilter === "cook") {
-      list = list.filter((r) => r.isCook || r.isHomemade);
+      list = list.filter(isCookEstablishment);
     } else if (typeFilter === "restaurant") {
-      list = list.filter((r) => !r.isCook && !r.isHomemade);
+      list = list.filter((r) => !isCookEstablishment(r));
     }
 
     // Filtre par catégorie culinaire
@@ -448,6 +476,14 @@ const MenuCategoriesScreen = () => {
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#059669"]}
+            tintColor="#059669"
+          />
+        }
       >
         <View
           style={{
