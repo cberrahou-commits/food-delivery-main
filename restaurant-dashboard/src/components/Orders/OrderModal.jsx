@@ -46,6 +46,42 @@ const OrderModal = ({ setIsActive, selectedOrder }) => {
     }
   };
 
+  // Annulation du coursier s'il ne vient pas, pour libérer la course dans le pool
+  const handleCancelDriverNoShow = async () => {
+    if (
+      !window.confirm(
+        `Le livreur "${selectedOrder?.driverName || "actuel"}" ne s'est pas présenté ?\n\nConfirmez-vous l'annulation de ce livreur afin de remettre immédiatement la commande dans le pool des courses pour tous les autres livreurs ?`
+      )
+    ) {
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const orderRef = doc(db, "orders", selectedOrder.id);
+      await updateDoc(orderRef, {
+        status: "READY_FOR_PICKUP",
+        assignedDriverId: null,
+        driverName: null,
+        driverPhone: null,
+        driverLatitude: null,
+        driverLongitude: null,
+        driverHeading: null,
+        driverCancelledAt: new Date(),
+        reassignedAt: new Date(),
+        cancelReason: "DRIVER_NO_SHOW",
+        updatedAt: new Date(),
+      });
+      setStatus("READY_FOR_PICKUP");
+      alert("✅ Course libérée avec succès ! Elle est de nouveau visible par tous les autres livreurs.");
+    } catch (err) {
+      console.error("Erreur réassignation coursier:", err);
+      alert("Erreur : " + err.message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const getStatusInfo = (st) => {
     switch (st) {
       case "PENDING_COOK_APPROVAL":
@@ -246,20 +282,37 @@ const OrderModal = ({ setIsActive, selectedOrder }) => {
                 🛵 Livreur Assigné
               </span>
               {selectedOrder?.assignedDriverId || selectedOrder?.driverName ? (
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-semibold text-indigo-900">
-                      {selectedOrder?.driverName || "Livreur Partenaire"}
-                    </span>
-                    {selectedOrder?.driverPhone && (
-                      <span className="text-gray-600 ml-2">
-                        📞 {selectedOrder.driverPhone}
+                <div>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="font-semibold text-indigo-900">
+                        {selectedOrder?.driverName || "Livreur Partenaire"}
                       </span>
-                    )}
+                      {selectedOrder?.driverPhone && (
+                        <span className="text-gray-600 ml-2">
+                          📞 {selectedOrder.driverPhone}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md font-semibold">
+                      Verrouillé (Assignation exclusive)
+                    </span>
                   </div>
-                  <span className="text-[11px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md font-semibold">
-                    Verrouillé (Assignation exclusive)
-                  </span>
+
+                  {/* Bouton d'annulation du livreur si absent */}
+                  {status !== "DELIVERED" && status !== "COMPLETE" && (
+                    <div className="mt-2.5 pt-2 border-t border-gray-200/60 flex justify-end">
+                      <button
+                        type="button"
+                        disabled={isUpdating}
+                        onClick={handleCancelDriverNoShow}
+                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <span>⚠️</span>
+                        <span>Le livreur ne vient pas ? Réassigner aux autres coursiers</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-gray-500 italic">

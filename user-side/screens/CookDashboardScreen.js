@@ -545,6 +545,52 @@ const CookDashboardScreen = () => {
     }
   };
 
+  // Annuler le livreur actuel s'il ne se présente pas et remettre la course à disposition
+  const handleCancelDriverNoShow = (order) => {
+    Alert.alert(
+      "Réassigner la livraison ? 🛵",
+      `Le livreur "${order?.driverName || "actuel"}" ne s'est pas présenté ?\n\nCette action va libérer immédiatement la commande pour que tous les autres livreurs disponibles puissent la prendre en charge.`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Oui, réassigner",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await updateDoc(doc(db, "orders", order.id), {
+                status: "READY_FOR_PICKUP",
+                assignedDriverId: null,
+                driverName: null,
+                driverPhone: null,
+                driverLatitude: null,
+                driverLongitude: null,
+                driverHeading: null,
+                driverCancelledAt: new Date(),
+                reassignedAt: new Date(),
+                cancelReason: "DRIVER_NO_SHOW",
+              });
+
+              // Diffuser immédiatement l'alerte aux autres livreurs du secteur
+              broadcastOrderReadyToDrivers(
+                order.id,
+                order?.restaurantName || kitchenName,
+                order?.restaurantAddress
+              );
+
+              Alert.alert(
+                "Course remise en ligne ! 🎉",
+                "La commande est de nouveau disponible dans le pool des courses pour tous les autres livreurs."
+              );
+            } catch (err) {
+              console.error("Erreur réassignation coursier:", err);
+              Alert.alert("Erreur", "Impossible de réassigner la commande.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleDeleteDish = async (dishId, dishName) => {
     Alert.alert(
       "Supprimer le plat",
@@ -1050,6 +1096,18 @@ const CookDashboardScreen = () => {
                             </Text>
                           </View>
                         </TouchableOpacity>
+
+                        {/* BOUTON D'ANNULATION DU LIVREUR EN CAS D'ABSENCE */}
+                        <TouchableOpacity
+                          onPress={() => handleCancelDriverNoShow(order)}
+                          activeOpacity={0.8}
+                          className="mt-2.5 bg-rose-50 border border-rose-300 py-2.5 px-3 rounded-xl flex-row items-center justify-center space-x-1.5"
+                        >
+                          <Text style={{ fontSize: 13 }}>⚠️</Text>
+                          <Text className="text-xs font-extrabold text-rose-700">
+                            Le livreur ne vient pas ? Réassigner la course
+                          </Text>
+                        </TouchableOpacity>
                       </View>
                     )}
 
@@ -1085,6 +1143,18 @@ const CookDashboardScreen = () => {
                               PIN : {order.pickupCode || order.id.slice(-4).toUpperCase()}
                             </Text>
                           </View>
+                        </TouchableOpacity>
+
+                        {/* BOUTON D'ANNULATION DU LIVREUR EN CAS D'ABSENCE */}
+                        <TouchableOpacity
+                          onPress={() => handleCancelDriverNoShow(order)}
+                          activeOpacity={0.8}
+                          className="mt-2.5 bg-rose-50 border border-rose-300 py-2.5 px-3 rounded-xl flex-row items-center justify-center space-x-1.5"
+                        >
+                          <Text style={{ fontSize: 13 }}>⚠️</Text>
+                          <Text className="text-xs font-extrabold text-rose-700">
+                            Le livreur ne vient pas ? Réassigner la course
+                          </Text>
                         </TouchableOpacity>
                       </View>
                     )}

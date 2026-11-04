@@ -68,10 +68,27 @@ const OrderDelivery = ({ route }) => {
         if (data.status) setDeliveryStatus(data.status);
         if (data.pickupCode) setOrderPickupCode(data.pickupCode);
         if (data.deliveryCode) setOrderDeliveryCode(data.deliveryCode);
+
+        // Si le restaurateur a annulé l'assignation du coursier car il ne s'est pas présenté
+        if (
+          data.status === "READY_FOR_PICKUP" &&
+          (!data.assignedDriverId || (user?.uid && data.assignedDriverId !== user.uid))
+        ) {
+          Alert.alert(
+            "Course Réassignée ⚠️",
+            "Le restaurateur a réassigné cette commande à un autre coursier car le délai d'enlèvement a été dépassé.",
+            [
+              {
+                text: "Retour aux courses",
+                onPress: () => navigation.navigate("Orders"),
+              },
+            ]
+          );
+        }
       }
     });
     return unsub;
-  }, [order?.id]);
+  }, [order?.id, user?.uid]);
 
   const bottomSheetRef = useRef(null);
   const { width, height } = useWindowDimensions();
