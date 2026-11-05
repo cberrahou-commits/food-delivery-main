@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -76,6 +76,7 @@ const RestaurantsMapScreen = () => {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("all"); // 'all' | 'restaurant' | 'cook'
   const [selectedEstablishment, setSelectedEstablishment] = useState(null);
+  const [selectedWilaya, setSelectedWilaya] = useState(null);
 
   useEffect(() => {
     const initWilayaCenter = async () => {
@@ -83,13 +84,22 @@ const RestaurantsMapScreen = () => {
         const savedWilayaStr = await AsyncStorage.getItem("@wajbati_user_wilaya");
         if (savedWilayaStr) {
           const parsed = JSON.parse(savedWilayaStr);
-          if (parsed?.lat && parsed?.lng) {
-            setClientLocation((prev) => {
-              if (prev.latitude === 36.7538 && prev.longitude === 3.0588) {
-                return { latitude: parsed.lat, longitude: parsed.lng };
+          if (parsed) {
+            setSelectedWilaya(parsed);
+            if (parsed.lat && parsed.lng) {
+              setClientLocation({ latitude: parsed.lat, longitude: parsed.lng });
+              if (mapRef.current) {
+                mapRef.current.animateToRegion(
+                  {
+                    latitude: parsed.lat,
+                    longitude: parsed.lng,
+                    latitudeDelta: 0.12,
+                    longitudeDelta: 0.12,
+                  },
+                  500
+                );
               }
-              return prev;
-            });
+            }
           }
         }
       } catch (e) {}
@@ -198,12 +208,31 @@ const RestaurantsMapScreen = () => {
       (typeof item.id === "string" && (item.id.startsWith("kitchen_") || item.id.startsWith("cook_")))
     );
 
-  const filteredList = establishments.filter((item) => {
-    const isCook = isCookEstablishment(item);
-    if (filterType === "restaurant" && isCook) return false;
-    if (filterType === "cook" && !isCook) return false;
-    return true;
-  });
+  const wilayaList = useMemo(() => {
+    if (!selectedWilaya) return establishments;
+    const wCode = String(selectedWilaya.code || "").trim();
+    const wName = String(selectedWilaya.name || "").trim().toLowerCase();
+    const wNameAr = String(selectedWilaya.nameAr || "").trim().toLowerCase();
+    const filtered = establishments.filter((r) => {
+      const rCode = String(r.wilayaCode || "").trim();
+      const rWilaya = String(r.wilaya || "").toLowerCase();
+      const rAddress = String(r.address || "").toLowerCase();
+      if (rCode && rCode === wCode) return true;
+      if (rWilaya && (rWilaya.includes(wCode) || rWilaya.includes(wName) || (wNameAr && rWilaya.includes(wNameAr)))) return true;
+      if (rAddress && (rAddress.includes(wName) || (wCode && rAddress.includes(wCode)) || (wNameAr && rAddress.includes(wNameAr)))) return true;
+      return false;
+    });
+    return filtered.length > 0 ? filtered : establishments;
+  }, [establishments, selectedWilaya]);
+
+  const filteredList = useMemo(() => {
+    return wilayaList.filter((item) => {
+      const isCook = isCookEstablishment(item);
+      if (filterType === "restaurant" && isCook) return false;
+      if (filterType === "cook" && !isCook) return false;
+      return true;
+    });
+  }, [wilayaList, filterType]);
 
   const topOffset =
     Platform.OS === "android"

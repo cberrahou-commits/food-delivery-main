@@ -17,10 +17,12 @@ const WilayaSelectorModal = ({
   selectedWilaya,
   onSelectWilaya,
   includeAllOption = true,
-  title = "Sélectionnez votre Wilaya",
+  title,
 }) => {
   const [search, setSearch] = useState("");
   const { language, t } = useLanguage();
+
+  const modalTitle = title || t("chooseWilaya");
 
   const filteredWilayas = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -53,9 +55,9 @@ const WilayaSelectorModal = ({
             <View className="flex-row items-center space-x-2">
               <MapPinIcon size={24} color="#16a34a" />
               <View>
-                <Text className="text-lg font-bold text-gray-900">{title}</Text>
+                <Text className="text-lg font-bold text-gray-900">{modalTitle}</Text>
                 <Text className="text-xs text-gray-500">
-                  58 Wilayas d'Algérie 🇩🇿
+                  {language === "ar" ? "58 ولاية جزائرية 🇩🇿" : "58 Wilayas d'Algérie 🇩🇿"}
                 </Text>
               </View>
             </View>

@@ -216,6 +216,25 @@ export const translations = {
     aboutAlertDesc: "Wajbati (وجبتي) est la première plateforme de livraison de plats faits maison préparés avec amour par nos cuisiniers partenaires en Algérie.",
     logoutConfirmTitle: "Déconnexion",
     logoutConfirmMsg: "Êtes-vous sûr de vouloir vous déconnecter ?",
+
+    // Carousel cards Home
+    carouselCard1Title: "Tajines & Couscous",
+    carouselCard1Sub: "Recettes traditionnelles",
+    carouselCard2Title: "Burgers & Sandwiches",
+    carouselCard2Sub: "Pains frais & viandes marinées",
+    carouselCard3Title: "Pâtisseries & Desserts",
+    carouselCard3Sub: "Gâteaux orientaux & douceurs",
+
+    // Bannière restaurateur
+    restaurantBannerTitle: "Vous êtes restaurateur ?",
+    restaurantBannerSub: "Inscrivez votre restaurant avec RC & géolocalisation",
+    registerMyRestaurant: "Inscrire mon resto",
+
+    // Section établissements
+    allEstablishments: "Tous les établissements",
+    establishmentsIn: "Établissements à",
+    noEstablishmentsForNow: "Aucun établissement pour le moment",
+    noEstablishmentsWilaya: "Aucune cuisine enregistrée dans cette Wilaya. Choisissez \"Toutes les Wilayas\" pour explorer toute l'Algérie.",
   },
 
   ar: {
@@ -430,6 +449,25 @@ export const translations = {
     aboutAlertDesc: "وجبتي هي المنصة الجزائرية الرائدة لتوصيل المأكولات المنزلية والتقليدية المحضرة بشغف.",
     logoutConfirmTitle: "تسجيل الخروج",
     logoutConfirmMsg: "هل أنت متأكد من رغبتك في تسجيل الخروج؟",
+
+    // Carousel cards Home
+    carouselCard1Title: "طواجن وكسكسي",
+    carouselCard1Sub: "وصفات تقليدية أصيلة",
+    carouselCard2Title: "برغر وساندويتشات",
+    carouselCard2Sub: "خبز طازج ولحوم متبلة",
+    carouselCard3Title: "حلويات ومخبوزات",
+    carouselCard3Sub: "حلويات شرقية وتقليدية",
+
+    // Bannière restaurateur
+    restaurantBannerTitle: "هل تمتلك مطعماً؟",
+    restaurantBannerSub: "سجل مطعمك بالسجل التجاري والموقع الجغرافي",
+    registerMyRestaurant: "تسجيل مطعمي",
+
+    // Section établissements
+    allEstablishments: "جميع المطاعم والمطابخ",
+    establishmentsIn: "المطاعم في",
+    noEstablishmentsForNow: "لا توجد مطاعم أو مطابخ حالياً",
+    noEstablishmentsWilaya: "لا يوجد مطبخ مسجل في هذه الولاية حالياً. اختر \"كل الولايات\" لاستكشاف كل الجزائر.",
   },
 
   en: {
@@ -644,6 +682,25 @@ export const translations = {
     aboutAlertDesc: "Wajbati (وجبتي) is Algeria's leading food delivery platform for homemade and traditional meals prepared with love.",
     logoutConfirmTitle: "Sign Out",
     logoutConfirmMsg: "Are you sure you want to sign out?",
+
+    // Carousel cards Home
+    carouselCard1Title: "Tajines & Couscous",
+    carouselCard1Sub: "Traditional recipes",
+    carouselCard2Title: "Burgers & Sandwiches",
+    carouselCard2Sub: "Fresh breads & marinated meats",
+    carouselCard3Title: "Pastries & Desserts",
+    carouselCard3Sub: "Oriental sweets & treats",
+
+    // Bannière restaurateur
+    restaurantBannerTitle: "Are you a restaurant owner?",
+    restaurantBannerSub: "Register your restaurant with trade register & GPS",
+    registerMyRestaurant: "Register my restaurant",
+
+    // Section établissements
+    allEstablishments: "All establishments",
+    establishmentsIn: "Establishments in",
+    noEstablishmentsForNow: "No establishments for now",
+    noEstablishmentsWilaya: "No kitchen registered in this Wilaya yet. Choose \"All Wilayas\" to explore all of Algeria.",
   },
 };
 

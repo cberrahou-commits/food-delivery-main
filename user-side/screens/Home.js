@@ -192,29 +192,43 @@ const Home = () => {
       (typeof r.id === "string" && (r.id.startsWith("kitchen_") || r.id.startsWith("cook_")))
     );
 
-  const filteredRestaurants = useMemo(() => {
-    let list = restaurant;
-    if (selectedWilaya) {
-      const wCode = String(selectedWilaya.code || "").trim();
-      const wName = String(selectedWilaya.name || "").trim().toLowerCase();
-      list = list.filter((r) => {
-        const rCode = String(r.wilayaCode || "").trim();
-        const rWilaya = String(r.wilaya || "").toLowerCase();
-        const rAddress = String(r.address || "").toLowerCase();
-        if (rCode && rCode === wCode) return true;
-        if (rWilaya && (rWilaya.includes(wCode) || rWilaya.includes(wName))) return true;
-        if (rAddress && (rAddress.includes(wName) || (wCode && rAddress.includes(wCode)))) return true;
-        return false;
-      });
-    }
+  // 1. Établissements filtrés selon la Wilaya sélectionnée
+  const wilayaRestaurants = useMemo(() => {
+    if (!selectedWilaya) return restaurant;
+    const wCode = String(selectedWilaya.code || "").trim();
+    const wName = String(selectedWilaya.name || "").trim().toLowerCase();
+    const wNameAr = String(selectedWilaya.nameAr || "").trim().toLowerCase();
+    return restaurant.filter((r) => {
+      const rCode = String(r.wilayaCode || "").trim();
+      const rWilaya = String(r.wilaya || "").toLowerCase();
+      const rAddress = String(r.address || "").toLowerCase();
+      if (rCode && rCode === wCode) return true;
+      if (rWilaya && (rWilaya.includes(wCode) || rWilaya.includes(wName) || (wNameAr && rWilaya.includes(wNameAr)))) return true;
+      if (rAddress && (rAddress.includes(wName) || (wCode && rAddress.includes(wCode)) || (wNameAr && rAddress.includes(wNameAr)))) return true;
+      return false;
+    });
+  }, [restaurant, selectedWilaya]);
 
+  // 2. Filtrage selon le bouton d'onglet actif (Tous, Restaurants, Cuisiniers)
+  const filteredRestaurants = useMemo(() => {
     if (establishmentFilter === "cook") {
-      return list.filter(isCookEstablishment);
+      return wilayaRestaurants.filter(isCookEstablishment);
     } else if (establishmentFilter === "restaurant") {
-      return list.filter((r) => !isCookEstablishment(r));
+      return wilayaRestaurants.filter((r) => !isCookEstablishment(r));
     }
-    return list;
-  }, [restaurant, selectedWilaya, establishmentFilter]);
+    return wilayaRestaurants;
+  }, [wilayaRestaurants, establishmentFilter]);
+
+  // 3. Comptes dynamiques calculés UNIQUEMENT sur la wilaya sélectionnée
+  const countAll = wilayaRestaurants.length;
+  const countRestaurants = useMemo(
+    () => wilayaRestaurants.filter((r) => !isCookEstablishment(r)).length,
+    [wilayaRestaurants]
+  );
+  const countCooks = useMemo(
+    () => wilayaRestaurants.filter(isCookEstablishment).length,
+    [wilayaRestaurants]
+  );
 
   return (
     <SafeAreaView
@@ -259,7 +273,7 @@ const Home = () => {
           >
             <Text style={{ fontSize: 12, fontWeight: "700", color: "#111827", marginRight: 4 }} numberOfLines={1}>
               {selectedWilaya
-                ? `📍 ${selectedWilaya.code} - ${selectedWilaya.name}`
+                ? `📍 ${selectedWilaya.code} - ${language === "ar" ? (selectedWilaya.nameAr || selectedWilaya.name) : selectedWilaya.name}`
                 : `📍 ${t("allWilayas")}`}
             </Text>
             <ChevronDownIcon size={14} color="#059669" />
@@ -538,10 +552,10 @@ const Home = () => {
                   />
                   <View style={{ padding: 10 }}>
                     <Text style={{ fontSize: 13, fontWeight: "800", color: "#111827" }} numberOfLines={1}>
-                      Tajines & Couscous
+                      {t("carouselCard1Title")}
                     </Text>
                     <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }} numberOfLines={1}>
-                      Recettes traditionnelles
+                      {t("carouselCard1Sub")}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -573,10 +587,10 @@ const Home = () => {
                   />
                   <View style={{ padding: 10 }}>
                     <Text style={{ fontSize: 13, fontWeight: "800", color: "#111827" }} numberOfLines={1}>
-                      Burgers & Sandwiches
+                      {t("carouselCard2Title")}
                     </Text>
                     <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }} numberOfLines={1}>
-                      Pains frais & viandes marinées
+                      {t("carouselCard2Sub")}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -608,10 +622,10 @@ const Home = () => {
                   />
                   <View style={{ padding: 10 }}>
                     <Text style={{ fontSize: 13, fontWeight: "800", color: "#111827" }} numberOfLines={1}>
-                      Pâtisseries & Desserts
+                      {t("carouselCard3Title")}
                     </Text>
                     <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }} numberOfLines={1}>
-                      Gâteaux orientaux & douceurs
+                      {t("carouselCard3Sub")}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -684,16 +698,16 @@ const Home = () => {
                 <Text style={{ fontSize: 24 }}>🏢</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>
-                    Vous êtes restaurateur ?
+                    {t("restaurantBannerTitle")}
                   </Text>
                   <Text style={{ color: "#CBD5E1", fontSize: 11, marginTop: 2 }}>
-                    Inscrivez votre restaurant avec RC & géolocalisation
+                    {t("restaurantBannerSub")}
                   </Text>
                 </View>
               </View>
               <View style={{ backgroundColor: "#FFBC0D", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginLeft: 8 }}>
                 <Text style={{ color: "#0F172A", fontWeight: "900", fontSize: 11 }}>
-                  Inscrire mon resto
+                  {t("registerMyRestaurant")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -702,8 +716,10 @@ const Home = () => {
             <View style={{ paddingHorizontal: 16 }}>
               <Text style={{ marginTop: 14, marginBottom: 10, fontWeight: "900", fontSize: 20, color: "#111827" }}>
                 {selectedWilaya
-                  ? `Établissements à ${selectedWilaya.name}`
-                  : "Tous les établissements"}
+                  ? language === "ar"
+                    ? `${t("establishmentsIn")} ${selectedWilaya.nameAr || selectedWilaya.name}`
+                    : `${t("establishmentsIn")} ${selectedWilaya.name}`
+                  : t("allEstablishments")}
               </Text>
 
               {/* Filtres : Tous / Restaurants / Cuisiniers Fait-Maison */}
@@ -718,7 +734,7 @@ const Home = () => {
                   }}
                 >
                   <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
-                    🍽️ Tous ({restaurant.length})
+                    🍽️ {t("filterAll")} ({countAll})
                   </Text>
                 </TouchableOpacity>
 
@@ -732,7 +748,7 @@ const Home = () => {
                   }}
                 >
                   <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
-                    🏢 Restaurants ({restaurant.filter((r) => !r.isCook && !r.isHomemade).length})
+                    🏢 {t("filterRestaurants")} ({countRestaurants})
                   </Text>
                 </TouchableOpacity>
 
@@ -746,7 +762,7 @@ const Home = () => {
                   }}
                 >
                   <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
-                    🍳 Fait-Maison ({restaurant.filter((r) => r.isCook || r.isHomemade).length})
+                    🍳 {t("filterHomeCook")} ({countCooks})
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -755,12 +771,12 @@ const Home = () => {
                 <View style={{ backgroundColor: "#F9FAFB", padding: 24, borderRadius: 16, alignItems: "center", borderWidth: 1, borderColor: "#E5E7EB", marginVertical: 12 }}>
                   <Text style={{ fontSize: 28, marginBottom: 8 }}>📍</Text>
                   <Text style={{ fontWeight: "bold", color: "#1F2937", fontSize: 15, textAlign: "center" }}>
-                    Aucun établissement pour le moment
+                    {t("noEstablishmentsForNow")}
                   </Text>
                   <Text style={{ color: "#6B7280", fontSize: 12, textAlign: "center", marginTop: 4 }}>
                     {selectedWilaya
-                      ? `Aucune cuisine enregistrée dans la Wilaya de ${selectedWilaya.name}. Choisissez "Toutes les Wilayas" pour explorer toute l'Algérie.`
-                      : "Aucun établissement n'est disponible pour le moment."}
+                      ? t("noEstablishmentsWilaya")
+                      : t("noEstablishmentsDesc")}
                   </Text>
                 </View>
               ) : (

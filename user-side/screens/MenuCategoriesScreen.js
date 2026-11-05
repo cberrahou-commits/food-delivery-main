@@ -200,9 +200,37 @@ const MenuCategoriesScreen = () => {
       (typeof r.id === "string" && (r.id.startsWith("kitchen_") || r.id.startsWith("cook_")))
     );
 
+  // 1. Établissements filtrés selon la Wilaya sélectionnée
+  const wilayaEstablishments = useMemo(() => {
+    if (!selectedWilaya) return establishments;
+    const wCode = String(selectedWilaya.code || "").trim();
+    const wName = String(selectedWilaya.name || "").trim().toLowerCase();
+    const wNameAr = String(selectedWilaya.nameAr || "").trim().toLowerCase();
+    return establishments.filter((r) => {
+      const rCode = String(r.wilayaCode || "").trim();
+      const rWilaya = String(r.wilaya || "").toLowerCase();
+      const rAddress = String(r.address || "").toLowerCase();
+      if (rCode && rCode === wCode) return true;
+      if (rWilaya && (rWilaya.includes(wCode) || rWilaya.includes(wName) || (wNameAr && rWilaya.includes(wNameAr)))) return true;
+      if (rAddress && (rAddress.includes(wName) || (wCode && rAddress.includes(wCode)) || (wNameAr && rAddress.includes(wNameAr)))) return true;
+      return false;
+    });
+  }, [establishments, selectedWilaya]);
+
+  // Comptes dynamiques pour la wilaya en cours
+  const countAll = wilayaEstablishments.length;
+  const countRestaurants = useMemo(
+    () => wilayaEstablishments.filter((r) => !isCookEstablishment(r)).length,
+    [wilayaEstablishments]
+  );
+  const countCooks = useMemo(
+    () => wilayaEstablishments.filter(isCookEstablishment).length,
+    [wilayaEstablishments]
+  );
+
   // Liste triée par distance géographique croissante (le plus proche en premier)
   const sortedEstablishments = useMemo(() => {
-    let list = establishments.map((est) => {
+    let list = wilayaEstablishments.map((est) => {
       const distKm = getDistanceInKm(
         clientCoords.latitude,
         clientCoords.longitude,
@@ -218,25 +246,6 @@ const MenuCategoriesScreen = () => {
 
     // Tri par éloignement géographique croissant
     list.sort((a, b) => a.distanceKm - b.distanceKm);
-
-    // Filtre par Wilaya si sélectionnée
-    if (selectedWilaya) {
-      const wCode = String(selectedWilaya.code || "").trim();
-      const wName = String(selectedWilaya.name || "").trim().toLowerCase();
-      list = list.filter((r) => {
-        const rCode = String(r.wilayaCode || "").trim();
-        const rWilaya = String(r.wilaya || "").toLowerCase();
-        const rAddress = String(r.address || "").toLowerCase();
-        if (rCode && rCode === wCode) return true;
-        if (
-          rWilaya &&
-          (rWilaya.includes(wCode) || rWilaya.includes(wName))
-        )
-          return true;
-        if (rAddress && (rAddress.includes(wName) || (wCode && rAddress.includes(wCode)))) return true;
-        return false;
-      });
-    }
 
     // Filtre par type (restaurant ou cuisinier maison)
     if (typeFilter === "cook") {
@@ -257,11 +266,11 @@ const MenuCategoriesScreen = () => {
 
     return list;
   }, [
-    establishments,
+    wilayaEstablishments,
     clientCoords,
-    selectedWilaya,
     typeFilter,
     selectedCatFilter,
+    language,
   ]);
 
   const getModeLabel = () => {
@@ -324,8 +333,10 @@ const MenuCategoriesScreen = () => {
             textAlign: "center",
           }}
         >
-          {selectedWilaya?.name
-            ? String(selectedWilaya.name).toUpperCase()
+          {selectedWilaya
+            ? language === "ar"
+              ? String(selectedWilaya.nameAr || selectedWilaya.name).toUpperCase()
+              : String(selectedWilaya.name).toUpperCase()
             : dbUser?.address
             ? String(dbUser.address).toUpperCase()
             : String(t("allWilayas")).toUpperCase()}
@@ -340,7 +351,9 @@ const MenuCategoriesScreen = () => {
           }}
         >
           {selectedWilaya?.code
-            ? `Wilaya ${selectedWilaya.code} · Algérie`
+            ? language === "ar"
+              ? `ولاية ${selectedWilaya.code} · الجزائر`
+              : `Wilaya ${selectedWilaya.code} · Algérie`
             : t("closestSorted")}
         </Text>
 
@@ -405,7 +418,7 @@ const MenuCategoriesScreen = () => {
           }}
         >
           <Text style={{ fontSize: 12, fontWeight: "800", color: "#111827" }}>
-            🍽️ {t("filterAll")} ({establishments.length})
+            🍽️ {t("filterAll")} ({countAll})
           </Text>
         </TouchableOpacity>
 
@@ -426,7 +439,7 @@ const MenuCategoriesScreen = () => {
               color: typeFilter === "restaurant" ? "white" : "#111827",
             }}
           >
-            🏢 {t("filterRestaurants")}
+            🏢 {t("filterRestaurants")} ({countRestaurants})
           </Text>
         </TouchableOpacity>
 
@@ -446,7 +459,7 @@ const MenuCategoriesScreen = () => {
               color: typeFilter === "cook" ? "white" : "#111827",
             }}
           >
-            🍳 {t("filterHomeCook")}
+            🍳 {t("filterHomeCook")} ({countCooks})
           </Text>
         </TouchableOpacity>
       </View>
