@@ -15,6 +15,8 @@ import MenuCategoriesScreen from "../screens/MenuCategoriesScreen";
 import PlusScreen from "../screens/PlusScreen";
 import RestaurantOnboardingScreen from "../screens/RestaurantOnboardingScreen";
 import RestaurantsMapScreen from "../screens/RestaurantsMapScreen";
+import SignIn from "../screens/SignIn";
+import SignUp from "../screens/SignUp";
 
 const Stack = createNativeStackNavigator();
 
@@ -56,6 +58,16 @@ const AppStack = () => {
         name="User Details"
         component={UserDetails}
         options={{ presentation: "fullScreenModal" }}
+      />
+      <Stack.Screen
+        name="SignIn"
+        component={SignIn}
+        options={{ presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="SignUp"
+        component={SignUp}
+        options={{ presentation: "modal" }}
       />
     </Stack.Navigator>
   );

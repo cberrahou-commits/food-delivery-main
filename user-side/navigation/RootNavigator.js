@@ -15,7 +15,9 @@ const RootNavigator = () => {
     );
   }
 
-  return !user ? <AuthStack /> : <AppStack />;
+  // Navigation libre dès le premier lancement : AppStack accessible à tous les visiteurs.
+  // La création de compte ou connexion sera requise uniquement au moment de valider une commande.
+  return <AppStack />;
 };
 
 export default RootNavigator;

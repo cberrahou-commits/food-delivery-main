@@ -99,6 +99,26 @@ const BasketScreen = () => {
       return;
     }
 
+    if (!user || !user?.uid) {
+      Alert.alert(
+        "Compte requis",
+        "Pour valider votre commande et assurer sa livraison, veuillez vous connecter ou créer un compte. Vos articles restent bien au chaud dans votre panier !",
+        [
+          { text: "Annuler", style: "cancel" },
+          {
+            text: "Se connecter",
+            onPress: () => navigation.navigate("SignIn", { returnTo: "Basket" }),
+          },
+          {
+            text: "Créer un compte",
+            style: "default",
+            onPress: () => navigation.navigate("SignUp", { returnTo: "Basket" }),
+          },
+        ]
+      );
+      return;
+    }
+
     try {
       const pickupCode = String(Math.floor(1000 + Math.random() * 9000));
       const deliveryCode = String(Math.floor(1000 + Math.random() * 9000));
@@ -518,7 +538,7 @@ const BasketScreen = () => {
               onPress={createOrder}
               activeOpacity={0.88}
               style={{
-                backgroundColor: "#FFBC0D", // Jaune signature McDo
+                backgroundColor: !user ? "#10B981" : "#FFBC0D",
                 paddingVertical: 15,
                 borderRadius: 10,
                 alignItems: "center",
@@ -533,11 +553,11 @@ const BasketScreen = () => {
                 style={{
                   fontSize: 16,
                   fontWeight: "900",
-                  color: "#111827",
+                  color: !user ? "#FFFFFF" : "#111827",
                   letterSpacing: 0.2,
                 }}
               >
-                Valider le panier
+                {!user ? "Créer un compte pour commander 🛍️" : "Valider le panier"}
               </Text>
             </TouchableOpacity>
           </View>

@@ -137,7 +137,7 @@ const PlusScreen = () => {
 
             {/* Photo de profil de l'utilisateur */}
             <TouchableOpacity
-              onPress={() => navigation.navigate(isGuest ? "Options" : "Profile")}
+              onPress={() => navigation.navigate(isGuest ? "SignIn" : "Profile")}
               activeOpacity={0.85}
               style={{
                 shadowColor: "#000",
@@ -184,7 +184,7 @@ const PlusScreen = () => {
           {isGuest ? (
             <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
               <TouchableOpacity
-                onPress={() => navigation.navigate("Options")}
+                onPress={() => navigation.navigate("SignIn")}
                 style={{
                   flex: 1,
                   backgroundColor: "#FFBC0D", // Jaune signature McDo
@@ -200,7 +200,7 @@ const PlusScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => navigation.navigate("Options")}
+                onPress={() => navigation.navigate("SignUp")}
                 style={{
                   flex: 1,
                   backgroundColor: "white",

@@ -15,7 +15,7 @@ import {
 import { UserAuth } from "../contexts/AuthContext";
 import { db, auth } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { StatusBar } from "expo-status-bar";
@@ -23,6 +23,7 @@ import WhatsAppOtpModal from "../components/WhatsAppOtpModal";
 
 const UserDetails = () => {
   const insets = useSafeAreaInsets();
+  const route = useRoute();
   const mapRef = useRef(null);
   const [location, setLocation] = useState(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -213,9 +214,13 @@ const UserDetails = () => {
         { merge: true }
       );
 
-      navigation.navigate("Home", {
-        userId: currentUid,
-      });
+      if (route?.params?.returnTo) {
+        navigation.navigate(route.params.returnTo);
+      } else {
+        navigation.navigate("Home", {
+          userId: currentUid,
+        });
+      }
     } catch (err) {
       console.error("Error saving user details:", err);
       Alert.alert("Erreur", "Impossible d'enregistrer les détails : " + err.message);

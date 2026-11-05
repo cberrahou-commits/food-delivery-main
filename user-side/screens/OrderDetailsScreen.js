@@ -83,15 +83,65 @@ const OrderDetailsScreen = () => {
 
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
             <View className="mb-20">
-              {orders.length === 0 && (
+              {!user ? (
+                <View className="flex-1 bg-white justify-center items-center py-16 px-6">
+                  <View
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 36,
+                      backgroundColor: "#FEF3C7",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <Text style={{ fontSize: 32 }}>📦</Text>
+                  </View>
+                  <Text className="text-xl font-black text-gray-900 text-center mb-2">
+                    Suivez vos commandes en direct
+                  </Text>
+                  <Text className="text-sm text-gray-500 text-center mb-6 leading-5">
+                    Connectez-vous ou créez votre compte pour suivre le livreur en temps réel et retrouver tout votre historique.
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 12, width: "100%", maxWidth: 320 }}>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate("SignIn")}
+                      style={{
+                        flex: 1,
+                        backgroundColor: "#FFBC0D",
+                        paddingVertical: 12,
+                        borderRadius: 10,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontWeight: "900", color: "#111827" }}>Se connecter</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate("SignUp")}
+                      style={{
+                        flex: 1,
+                        backgroundColor: "white",
+                        borderWidth: 1.5,
+                        borderColor: "#D1D5DB",
+                        paddingVertical: 12,
+                        borderRadius: 10,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontWeight: "900", color: "#111827" }}>S'inscrire</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : orders.length === 0 ? (
                 <View className="flex-1 bg-white justify-center items-center py-20">
                   <Text className="text-lg font-bold text-gray-500">
                     {t("noOrdersYet")}
                   </Text>
                 </View>
-              )}
+              ) : null}
 
-              {orders.map((order, index) => {
+              {user && orders.map((order, index) => {
                 return (
                   <Order
                     key={index}

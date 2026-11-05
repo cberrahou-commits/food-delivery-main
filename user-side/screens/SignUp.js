@@ -13,11 +13,12 @@ import {
   StatusBar as RNStatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { UserAuth } from "../contexts/AuthContext";
 
 const SignUp = () => {
   const insets = useSafeAreaInsets();
+  const route = useRoute();
   const [value, setValue] = useState({
     email: "",
     password: "",
@@ -67,7 +68,11 @@ const SignUp = () => {
     setLoading(true);
     try {
       await createUser(cleanEmail, value.password);
-      // Navigation vers User Details / AppStack se fait automatiquement dès la création du compte
+      if (route?.params?.returnTo) {
+        navigation.navigate("User Details", { returnTo: route.params.returnTo });
+      } else {
+        navigation.navigate("User Details");
+      }
     } catch (error) {
       console.error("SignUp error:", error);
       let message = error.message;
@@ -99,6 +104,30 @@ const SignUp = () => {
       }}
     >
       <StatusBar style="auto" />
+
+      {/* Bouton retour pour navigation libre */}
+      <TouchableOpacity
+        onPress={() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate("Home");
+          }
+        }}
+        style={{
+          position: "absolute",
+          top: Platform.OS === "android" ? Math.max(insets.top + 8, 48) : 52,
+          left: 20,
+          zIndex: 20,
+          backgroundColor: "#F3F4F6",
+          padding: 8,
+          borderRadius: 20,
+        }}
+        activeOpacity={0.7}
+      >
+        <Icon name="arrow-left" size={22} color="#374151" />
+      </TouchableOpacity>
+
       <View className="mx-4 flex justify-center align-center space-y-6">
         <Text className="text-3xl font-bold text-center text-black">
           Inscription
@@ -171,8 +200,8 @@ const SignUp = () => {
         <Text className="text-center text-gray-700 font-semibold text-base">
           Vous avez déjà un compte ?{" "}
           <Text
-            className="text-blue underline"
-            onPress={() => navigation.navigate("SignIn")}
+            className="text-blue underline font-bold"
+            onPress={() => navigation.navigate("SignIn", { returnTo: route?.params?.returnTo })}
           >
             Se connecter
           </Text>
