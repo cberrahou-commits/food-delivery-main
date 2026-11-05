@@ -57,6 +57,7 @@ import {
   notifyClientForCookEstimate,
   broadcastOrderReadyToDrivers,
   notifyClientOrderReady,
+  notifyClientOrderReassigned,
 } from "../services/notificationService";
 import OrderQrModal from "../components/OrderQrModal";
 
@@ -576,6 +577,14 @@ const CookDashboardScreen = () => {
                 order?.restaurantName || kitchenName,
                 order?.restaurantAddress
               );
+
+              // Notifier le client de la réassignation
+              if (order?.userId) {
+                notifyClientOrderReassigned(
+                  order.userId,
+                  order?.restaurantName || kitchenName
+                );
+              }
 
               Alert.alert(
                 "Course remise en ligne ! 🎉",

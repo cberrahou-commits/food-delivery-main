@@ -95,7 +95,7 @@ const ProfileScreen = () => {
           setLastName(dbUser.lastName || "");
           setPhoneNumber(dbUser.phoneNumber || "");
           setAddress(dbUser.address || "");
-          setProfileImage(dbUser.profileImage || null);
+          setProfileImage(dbUser.profileImage || dbUser.photoURL || user?.photoURL || null);
         }
       } catch (err) {
         console.warn("Erreur chargement profil:", err);

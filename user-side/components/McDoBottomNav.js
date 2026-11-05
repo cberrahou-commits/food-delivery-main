@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useLanguage } from "../contexts/LanguageContext";
+import { UserAuth } from "../contexts/AuthContext";
 import {
   SparklesIcon,
   MapPinIcon,
@@ -20,6 +21,8 @@ import {
 const McDoBottomNav = ({ activeTab = "home" }) => {
   const navigation = useNavigation();
   const { t } = useLanguage();
+  const { user, dbUser } = UserAuth();
+  const avatarUrl = dbUser?.profileImage || dbUser?.photoURL || user?.photoURL;
 
   const tabs = [
     {
@@ -78,7 +81,29 @@ const McDoBottomNav = ({ activeTab = "home" }) => {
             className="items-center justify-center flex-1 py-1"
             activeOpacity={0.7}
           >
-            <Icon size={24} color={isActive ? activeColor : inactiveColor} />
+            {tab.id === "plus" && avatarUrl ? (
+              <View
+                style={{
+                  width: 25,
+                  height: 25,
+                  borderRadius: 12.5,
+                  borderWidth: isActive ? 2 : 1,
+                  borderColor: isActive ? activeColor : inactiveColor,
+                  overflow: "hidden",
+                  backgroundColor: "#F3F4F6",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="cover"
+                />
+              </View>
+            ) : (
+              <Icon size={24} color={isActive ? activeColor : inactiveColor} />
+            )}
             <Text
               style={{
                 color: isActive ? "#111827" : inactiveColor,

@@ -286,14 +286,36 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
             </View>
           )}
 
-          {/* ETAPE 4 : READY_FOR_PICKUP -> Repas prêt, attente livreur */}
+          {/* ETAPE 4 : READY_FOR_PICKUP -> Repas prêt, attente livreur ou réassignation */}
           {isReady && (
-            <View className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
-              <Text className="text-xs text-blue-900 font-bold">
-                🛵 Vos plats sont prêts et emballés !
+            <View
+              className={`mt-3 p-3 rounded-xl border ${
+                order?.cancelReason === "DRIVER_NO_SHOW" || order?.reassignedAt
+                  ? "bg-amber-50 border-amber-300"
+                  : "bg-blue-50 border-blue-200"
+              }`}
+            >
+              <Text
+                className={`text-xs font-bold ${
+                  order?.cancelReason === "DRIVER_NO_SHOW" || order?.reassignedAt
+                    ? "text-amber-900"
+                    : "text-blue-900"
+                }`}
+              >
+                {order?.cancelReason === "DRIVER_NO_SHOW" || order?.reassignedAt
+                  ? "🔄 Réassignation de la livraison en cours !"
+                  : "🛵 Vos plats sont prêts et emballés !"}
               </Text>
-              <Text className="text-xs text-blue-700 mt-0.5">
-                En attente qu'un livreur disponible prenne en charge la course.
+              <Text
+                className={`text-xs mt-0.5 ${
+                  order?.cancelReason === "DRIVER_NO_SHOW" || order?.reassignedAt
+                    ? "text-amber-800"
+                    : "text-blue-700"
+                }`}
+              >
+                {order?.cancelReason === "DRIVER_NO_SHOW" || order?.reassignedAt
+                  ? "Le premier coursier ayant eu un empêchement, votre commande est immédiatement réassignée à un nouveau livreur disponible."
+                  : "En attente qu'un livreur disponible prenne en charge la course."}
               </Text>
             </View>
           )}

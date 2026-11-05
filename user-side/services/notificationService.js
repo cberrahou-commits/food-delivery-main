@@ -399,3 +399,27 @@ export const notifyClientOrderReady = async (userId, restaurantName) => {
   }
 };
 
+/**
+ * 6. Notifier le client que sa commande a été réassignée à un nouveau livreur
+ */
+export const notifyClientOrderReassigned = async (userId, restaurantName) => {
+  try {
+    if (!userId) return;
+    const userDoc = await getDoc(doc(db, "user", userId));
+    if (userDoc.exists()) {
+      const token = userDoc.data()?.pushToken;
+      if (token) {
+        await sendPushNotification(
+          token,
+          "🔄 Recherche d'un nouveau coursier !",
+          `Le premier livreur ne s'étant pas présenté, votre commande chez "${restaurantName || "le chef"}" est immédiatement réassignée à un nouveau livreur disponible.`,
+          { type: "ORDER_REASSIGNED" }
+        );
+      }
+    }
+  } catch (e) {
+    console.warn("Erreur notification client (réassignation):", e);
+  }
+};
+
+

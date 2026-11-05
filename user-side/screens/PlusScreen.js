@@ -34,6 +34,7 @@ const PlusScreen = () => {
   const [langModalVisible, setLangModalVisible] = useState(false);
 
   const isGuest = !user;
+  const avatarUrl = dbUser?.profileImage || dbUser?.photoURL || user?.photoURL;
 
   const handleLogout = () => {
     Alert.alert(
@@ -101,35 +102,83 @@ const PlusScreen = () => {
           </View>
         </View>
 
-        {/* Section En-tête Utilisateur / Mode Invité */}
+        {/* Section En-tête Utilisateur / Mode Invité avec Photo de Profil */}
         <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
-          <Text
-            style={{
-              fontSize: 26,
-              fontWeight: "900",
-              color: "#111827",
-              letterSpacing: 0.2,
-            }}
-          >
-            {isGuest
-              ? t("guestMode")
-              : `${dbUser?.firstName || "Utilisateur"} ${dbUser?.lastName || ""}`}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontWeight: "900",
+                  color: "#111827",
+                  letterSpacing: 0.2,
+                }}
+              >
+                {isGuest
+                  ? t("guestMode")
+                  : `${dbUser?.firstName || "Utilisateur"} ${dbUser?.lastName || ""}`}
+              </Text>
 
-          <Text
-            style={{
-              fontSize: 13,
-              color: "#4B5563",
-              marginTop: 4,
-              lineHeight: 18,
-            }}
-          >
-            {isGuest
-              ? t("guestModeDesc")
-              : dbUser?.phoneNumber
-              ? `📞 ${dbUser.phoneNumber} · ${t("verifiedAccount")}`
-              : t("welcomeSpace")}
-          </Text>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: "#4B5563",
+                  marginTop: 4,
+                  lineHeight: 18,
+                }}
+              >
+                {isGuest
+                  ? t("guestModeDesc")
+                  : dbUser?.phoneNumber
+                  ? `📞 ${dbUser.phoneNumber} · ${t("verifiedAccount")}`
+                  : t("welcomeSpace")}
+              </Text>
+            </View>
+
+            {/* Photo de profil de l'utilisateur */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate(isGuest ? "Options" : "Profile")}
+              activeOpacity={0.85}
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 5,
+                elevation: 4,
+              }}
+            >
+              {avatarUrl ? (
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 32,
+                    borderWidth: 2.5,
+                    borderColor: "#10B981",
+                  }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 32,
+                    backgroundColor: "#ECFDF5",
+                    borderWidth: 2,
+                    borderColor: "#A7F3D0",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 24, fontWeight: "900", color: "#065F46" }}>
+                    {(dbUser?.firstName?.[0] || user?.email?.[0] || "U").toUpperCase()}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
 
           {/* Boutons Connexion / Inscription ou Modifier Profil */}
           {isGuest ? (

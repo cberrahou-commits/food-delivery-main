@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import DishInfo from "./DishInfo";
 import { db } from "../../firebase/firebase";
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, getDoc, doc, updateDoc } from "firebase/firestore";
 
 const OrderModal = ({ setIsActive, selectedOrder }) => {
   const [dishes, setDishes] = useState([]);
@@ -73,6 +73,33 @@ const OrderModal = ({ setIsActive, selectedOrder }) => {
         updatedAt: new Date(),
       });
       setStatus("READY_FOR_PICKUP");
+
+      // Notifier le client via Expo Push si userId présent
+      if (selectedOrder?.userId) {
+        try {
+          const userSnap = await getDoc(doc(db, "user", selectedOrder.userId));
+          if (userSnap.exists() && userSnap.data()?.pushToken) {
+            const pushToken = userSnap.data().pushToken;
+            fetch("https://exp.host/--/api/v2/push/send", {
+              method: "POST",
+              headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                to: pushToken,
+                sound: "default",
+                title: "🔄 Recherche d'un nouveau coursier !",
+                body: "Le livreur précédent ne s'étant pas présenté, votre commande est immédiatement réassignée à un nouveau coursier !",
+                data: { orderId: selectedOrder.id, type: "ORDER_REASSIGNED" },
+              }),
+            }).catch((err) => console.warn("Erreur push web:", err));
+          }
+        } catch (pushErr) {
+          console.warn("Erreur récupération token client:", pushErr);
+        }
+      }
+
       alert("✅ Course libérée avec succès ! Elle est de nouveau visible par tous les autres livreurs.");
     } catch (err) {
       console.error("Erreur réassignation coursier:", err);

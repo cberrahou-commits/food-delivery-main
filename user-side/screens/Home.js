@@ -49,6 +49,8 @@ const Home = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  const userAvatar = dbUser?.profileImage || dbUser?.photoURL || user?.photoURL;
+
   // Écoute en temps réel (onSnapshot) de la collection restaurants
   useEffect(() => {
     getUserData();
@@ -254,13 +256,27 @@ const Home = () => {
             <TouchableOpacity
               onPress={() => navigation.navigate("Plus")}
               style={{
-                backgroundColor: "#F3F4F6",
-                padding: 7,
                 borderRadius: 20,
+                overflow: "hidden",
+                borderWidth: userAvatar ? 1.5 : 0,
+                borderColor: "#10B981",
+                backgroundColor: "#F3F4F6",
+                width: 36,
+                height: 36,
+                alignItems: "center",
+                justifyContent: "center",
               }}
               activeOpacity={0.8}
             >
-              <UserIcon size={20} color="#374151" />
+              {userAvatar ? (
+                <Image
+                  source={{ uri: userAvatar }}
+                  style={{ width: "100%", height: "100%", borderRadius: 18 }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <UserIcon size={20} color="#374151" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
