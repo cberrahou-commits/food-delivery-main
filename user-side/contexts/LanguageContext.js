@@ -182,7 +182,7 @@ export const translations = {
     homemadeBannerTitle: "Craquez pour un plat fait-maison !",
     homemadeBannerDesc: "Cuisiné avec passion par nos chefs locaux.",
     nowAtOurCooks: "En ce moment chez nos cuisiniers",
-    algerAndAll: "Alger & Algérie 🇩🇿",
+    algerAndAll: "Toutes les Wilayas 🇩🇿",
     chooseWilaya: "Choisissez votre Wilaya",
 
     // Modes de commande & Wilayas
@@ -194,7 +194,7 @@ export const translations = {
     orderModeDineIn: "Sur place / À table",
     orderModeDineInSub: "Dégustez directement sur place",
     validate: "Valider",
-    allWilayas: "Toutes les Wilayas (Toute l'Algérie)",
+    allWilayas: "Toutes les Wilayas 🇩🇿",
     searchWilayaPlaceholder: "Rechercher par nom ou numéro (ex: 16, Oran)...",
 
     // Écran Plus & Paramètres
@@ -396,7 +396,7 @@ export const translations = {
     homemadeBannerTitle: "استمتع بأشهى الأكلات المنزلية!",
     homemadeBannerDesc: "مُعدة بحب وشغف بأيدي طباخينا المحليين.",
     nowAtOurCooks: "أطباق مميزة متوفرة الآن",
-    algerAndAll: "الجزائر وكل الولايات 🇩🇿",
+    algerAndAll: "كل الولايات 🇩🇿",
     chooseWilaya: "اختر ولايتك",
 
     // Modes de commande & Wilayas
@@ -408,7 +408,7 @@ export const translations = {
     orderModeDineIn: "تناول في المطعم / على الطاولة",
     orderModeDineInSub: "استمتع بوجبتك في عين المكان",
     validate: "تأكيد",
-    allWilayas: "كل الولايات (كامل التراب الوطني)",
+    allWilayas: "كل الولايات 🇩🇿",
     searchWilayaPlaceholder: "ابحث بالاسم أو بالرقم (مثال: 16، وهران)...",
 
     // Écran Plus & Paramètres
@@ -610,7 +610,7 @@ export const translations = {
     homemadeBannerTitle: "Craving a delicious homemade meal!",
     homemadeBannerDesc: "Cooked with passion by our local cooks.",
     nowAtOurCooks: "Currently from our cooks",
-    algerAndAll: "Algiers & Algeria 🇩🇿",
+    algerAndAll: "All Wilayas 🇩🇿",
     chooseWilaya: "Select your Wilaya",
 
     // Modes de commande & Wilayas
@@ -622,7 +622,7 @@ export const translations = {
     orderModeDineIn: "Dine-in / At table",
     orderModeDineInSub: "Enjoy your meal directly on-site",
     validate: "Confirm",
-    allWilayas: "All Wilayas (All Algeria)",
+    allWilayas: "All Wilayas 🇩🇿",
     searchWilayaPlaceholder: "Search by name or number (e.g. 16, Oran)...",
 
     // Écran Plus & Paramètres

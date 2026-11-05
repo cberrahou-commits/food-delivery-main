@@ -107,7 +107,7 @@ const BasketScreen = () => {
         userId: user?.uid || "guest",
         userFirstName: dbUser?.firstName || "Client",
         userLastName: dbUser?.lastName || "Wajbati",
-        userAddress: dbUser?.address || "Alger",
+        userAddress: dbUser?.address || "",
         userPhoneNumber: phoneNumber || dbUser?.phoneNumber || "",
         total: basketTotal + deliveryFee,
         subtotal: basketTotal,
@@ -119,8 +119,8 @@ const BasketScreen = () => {
         createdAt: serverTimestamp(),
         restaurantId: restaurant?.id || "default",
         restaurantName: restaurant?.name || restaurant?.title || "Cuisine Wajbati",
-        restaurantWilayaCode: restaurant?.wilayaCode || "16",
-        restaurantWilaya: restaurant?.wilaya || "Alger",
+        restaurantWilayaCode: restaurant?.wilayaCode || "",
+        restaurantWilaya: restaurant?.wilaya || "",
         restaurantAddress: restaurant?.address || "",
         restaurantLatitude: Number(restaurant?.lat || restaurant?.latitude || 36.7538),
         restaurantLongitude: Number(restaurant?.lng || restaurant?.longitude || 3.0588),
@@ -216,10 +216,10 @@ const BasketScreen = () => {
         >
           {restaurant?.name
             ? restaurant.name.toUpperCase()
-            : "ALGER CENTRE"}
+            : "RESTAURANT"}
         </Text>
         <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-          {restaurant?.address || "10 Rue Didouche Mourad"}
+          {restaurant?.address || ""}
         </Text>
 
         {/* Dropdown mode de commande */}

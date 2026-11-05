@@ -27,6 +27,8 @@ import {
   ClockIcon,
   MapPinIcon,
 } from "react-native-heroicons/solid";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { detectClientWilaya } from "../constants/wilayas";
 
 const { width, height } = Dimensions.get("window");
 
@@ -76,6 +78,23 @@ const RestaurantsMapScreen = () => {
   const [selectedEstablishment, setSelectedEstablishment] = useState(null);
 
   useEffect(() => {
+    const initWilayaCenter = async () => {
+      try {
+        const savedWilayaStr = await AsyncStorage.getItem("@wajbati_user_wilaya");
+        if (savedWilayaStr) {
+          const parsed = JSON.parse(savedWilayaStr);
+          if (parsed?.lat && parsed?.lng) {
+            setClientLocation((prev) => {
+              if (prev.latitude === 36.7538 && prev.longitude === 3.0588) {
+                return { latitude: parsed.lat, longitude: parsed.lng };
+              }
+              return prev;
+            });
+          }
+        }
+      } catch (e) {}
+    };
+    initWilayaCenter();
     fetchClientLocation();
 
     // Écoute en temps réel des établissements

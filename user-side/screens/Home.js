@@ -32,6 +32,9 @@ import { setUser } from "../features/userSlice";
 import { StatusBar } from "expo-status-bar";
 import MapView from "react-native-maps";
 import SearchCard from "../components/SearchCard";
+import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { detectClientWilaya } from "../constants/wilayas";
 
 const Home = () => {
   const insets = useSafeAreaInsets();
@@ -50,6 +53,58 @@ const Home = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const userAvatar = dbUser?.profileImage || dbUser?.photoURL || user?.photoURL;
+
+  // Détection automatique de la Wilaya du client à la connexion
+  useEffect(() => {
+    let isMounted = true;
+
+    const initWilaya = async () => {
+      try {
+        // 1. Vérifier si une wilaya a déjà été enregistrée par l'utilisateur
+        const savedWilayaStr = await AsyncStorage.getItem("@wajbati_user_wilaya");
+        if (savedWilayaStr) {
+          const parsed = JSON.parse(savedWilayaStr);
+          if (parsed && isMounted) {
+            setSelectedWilaya(parsed);
+            return;
+          }
+        }
+
+        // 2. Détecter automatiquement selon la géolocalisation GPS en direct et le profil
+        const detected = await detectClientWilaya({
+          user,
+          dbUser,
+          LocationModule: Location,
+        });
+
+        if (detected && isMounted) {
+          console.log("Wilaya client détectée automatiquement :", detected.code, detected.name);
+          setSelectedWilaya(detected);
+        }
+      } catch (err) {
+        console.warn("Erreur auto-détection wilaya client:", err);
+      }
+    };
+
+    initWilaya();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.uid, dbUser?.address, dbUser?.wilaya, dbUser?.latitude]);
+
+  const handleSelectWilaya = async (wilaya) => {
+    setSelectedWilaya(wilaya);
+    try {
+      if (wilaya) {
+        await AsyncStorage.setItem("@wajbati_user_wilaya", JSON.stringify(wilaya));
+      } else {
+        await AsyncStorage.removeItem("@wajbati_user_wilaya");
+      }
+    } catch (e) {
+      console.warn("AsyncStorage save wilaya error:", e);
+    }
+  };
 
   // Écoute en temps réel (onSnapshot) de la collection restaurants
   useEffect(() => {
@@ -182,7 +237,7 @@ const Home = () => {
         visible={wilayaModalVisible}
         onClose={() => setWilayaModalVisible(false)}
         selectedWilaya={selectedWilaya}
-        onSelectWilaya={setSelectedWilaya}
+        onSelectWilaya={handleSelectWilaya}
         title={t("chooseWilaya")}
       />
 
@@ -205,7 +260,7 @@ const Home = () => {
             <Text style={{ fontSize: 12, fontWeight: "700", color: "#111827", marginRight: 4 }} numberOfLines={1}>
               {selectedWilaya
                 ? `📍 ${selectedWilaya.code} - ${selectedWilaya.name}`
-                : `📍 ${t("algerAndAll")}`}
+                : `📍 ${t("allWilayas")}`}
             </Text>
             <ChevronDownIcon size={14} color="#059669" />
           </TouchableOpacity>

@@ -98,7 +98,7 @@ const RestaurantItem = ({
         <View className="flex-row items-center space-x-1 mt-0.5">
           <MapPinIcon color="#9CA3AF" size={14} />
           <Text className="text-xs text-gray-400" numberOfLines={1}>
-            {address || "Alger, Algérie"}
+            {address || "Algérie"}
           </Text>
         </View>
       </View>

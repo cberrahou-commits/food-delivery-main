@@ -29,6 +29,8 @@ import OrderModeModal from "../components/OrderModeModal";
 import WilayaSelectorModal from "../components/WilayaSelectorModal";
 import { FOOD_CATEGORIES, getCategoryShortName } from "../constants/categories";
 import { useLanguage } from "../contexts/LanguageContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { detectClientWilaya } from "../constants/wilayas";
 
 // Calcul de distance Haversine en kilomètres
 function getDistanceInKm(lat1, lon1, lat2, lon2) {
@@ -82,6 +84,49 @@ const MenuCategoriesScreen = () => {
     longitude: dbUser?.longitude || 3.0588,
   });
   const [refreshing, setRefreshing] = useState(false);
+
+  // Auto-détection et persistance de la Wilaya du client
+  useEffect(() => {
+    let isMounted = true;
+    const initWilaya = async () => {
+      try {
+        if (selectedWilaya) return;
+        const savedWilayaStr = await AsyncStorage.getItem("@wajbati_user_wilaya");
+        if (savedWilayaStr) {
+          const parsed = JSON.parse(savedWilayaStr);
+          if (parsed && isMounted) {
+            setSelectedWilaya(parsed);
+            return;
+          }
+        }
+        const detected = await detectClientWilaya({
+          user,
+          dbUser,
+          LocationModule: Location,
+        });
+        if (detected && isMounted) {
+          setSelectedWilaya(detected);
+        }
+      } catch (e) {
+        console.warn("initWilaya error MenuCategoriesScreen:", e);
+      }
+    };
+    initWilaya();
+    return () => { isMounted = false; };
+  }, [user?.uid, dbUser?.address, dbUser?.wilaya, dbUser?.latitude]);
+
+  const handleSelectWilaya = async (wilaya) => {
+    setSelectedWilaya(wilaya);
+    try {
+      if (wilaya) {
+        await AsyncStorage.setItem("@wajbati_user_wilaya", JSON.stringify(wilaya));
+      } else {
+        await AsyncStorage.removeItem("@wajbati_user_wilaya");
+      }
+    } catch (e) {
+      console.warn("AsyncStorage save wilaya error:", e);
+    }
+  };
 
   useEffect(() => {
     fetchClientLocation();
@@ -283,7 +328,7 @@ const MenuCategoriesScreen = () => {
             ? String(selectedWilaya.name).toUpperCase()
             : dbUser?.address
             ? String(dbUser.address).toUpperCase()
-            : "ALGER & ENVIRONS"}
+            : String(t("allWilayas")).toUpperCase()}
         </Text>
 
         <Text
@@ -762,7 +807,7 @@ const MenuCategoriesScreen = () => {
         visible={wilayaModalVisible}
         onClose={() => setWilayaModalVisible(false)}
         selectedWilaya={selectedWilaya}
-        onSelectWilaya={setSelectedWilaya}
+        onSelectWilaya={handleSelectWilaya}
       />
 
       {/* Modal choix mode de commande */}
