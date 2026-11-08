@@ -51,32 +51,50 @@ jobs:
           cd user-side
           npx expo prebuild -p android --clean
 
-      - name: ⚡ Optimisation du Gradle Wrapper (Timeout & Taille)
+      - name: ⚡ Pré-téléchargement résilient de Gradle 7.5.1 via Miroirs
         run: |
-          cd user-side/android
-          # 1. Remplacer -all.zip par -bin.zip (55 Mo au lieu de 135 Mo = téléchargement 2.5x plus rapide)
-          sed -i 's/-all.zip/-bin.zip/g' gradle/wrapper/gradle-wrapper.properties || true
-          # 2. Augmenter le timeout réseau du wrapper de 10s par défaut à 120s
-          if ! grep -q "networkTimeout=" gradle/wrapper/gradle-wrapper.properties; then
-            echo "networkTimeout=120000" >> gradle/wrapper/gradle-wrapper.properties
+          cd user-side/android/gradle/wrapper
+          GRADLE_ZIP="gradle-7.5.1-bin.zip"
+          DOWNLOADED=false
+          URLS=(
+            "https://mirrors.cloud.tencent.com/gradle/gradle-7.5.1-bin.zip"
+            "https://repo.huaweicloud.com/gradle/gradle-7.5.1-bin.zip"
+            "https://services.gradle.org/distributions/gradle-7.5.1-bin.zip"
+          )
+          for URL in "${URLS[@]}"; do
+            echo "Téléchargement de Gradle depuis $URL..."
+            if curl -fL --retry 3 --retry-delay 2 --connect-timeout 15 -m 180 "$URL" -o "$GRADLE_ZIP"; then
+              echo "✓ Téléchargement réussi : $(ls -lh $GRADLE_ZIP | awk '{print $5}')"
+              DOWNLOADED=true
+              break
+            else
+              echo "⚠️ Échec depuis $URL, essai du miroir suivant..."
+            fi
+          done
+
+          if [ "$DOWNLOADED" = true ]; then
+            # Pointer distributionUrl sur le fichier local déjà présent
+            sed -i 's|distributionUrl=.*|distributionUrl=gradle-7.5.1-bin.zip|' gradle-wrapper.properties
+          else
+            # Secours : pointer directement sur le miroir Tencent dans les properties
+            sed -i 's|distributionUrl=.*|distributionUrl=https\\://mirrors.cloud.tencent.com/gradle/gradle-7.5.1-bin.zip|' gradle-wrapper.properties
           fi
-          cat gradle/wrapper/gradle-wrapper.properties
+
+          if ! grep -q "networkTimeout=" gradle-wrapper.properties; then
+            echo "networkTimeout=120000" >> gradle-wrapper.properties
+          fi
+          cat gradle-wrapper.properties
 
       - name: 🐘 Configuration de Gradle avec Cache GitHub
         uses: gradle/actions/setup-gradle@v4
         with:
-          build-root-directory: user-side/android
           cache-read-only: false
 
       - name: 🔨 Compilation de l'APK Android Standalone avec Gradle
         run: |
           cd user-side/android
           chmod +x gradlew
-          # Télécharger le wrapper avec jusqu'à 3 tentatives en cas de fluctuation réseau
-          for i in 1 2 3; do
-            echo "Tentative $i d'initialisation du Gradle Wrapper..."
-            ./gradlew --version && break || (echo "Échec tentative $i, nouvelle tentative dans 5 secondes..." && sleep 5)
-          done
+          ./gradlew --version
           ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: 📋 Préparation du fichier APK Standalone
@@ -133,32 +151,50 @@ jobs:
           cd driver-app
           npx expo prebuild -p android --clean
 
-      - name: ⚡ Optimisation du Gradle Wrapper (Timeout & Taille)
+      - name: ⚡ Pré-téléchargement résilient de Gradle 7.5.1 via Miroirs
         run: |
-          cd driver-app/android
-          # 1. Remplacer -all.zip par -bin.zip (55 Mo au lieu de 135 Mo = téléchargement 2.5x plus rapide)
-          sed -i 's/-all.zip/-bin.zip/g' gradle/wrapper/gradle-wrapper.properties || true
-          # 2. Augmenter le timeout réseau du wrapper de 10s par défaut à 120s
-          if ! grep -q "networkTimeout=" gradle/wrapper/gradle-wrapper.properties; then
-            echo "networkTimeout=120000" >> gradle/wrapper/gradle-wrapper.properties
+          cd driver-app/android/gradle/wrapper
+          GRADLE_ZIP="gradle-7.5.1-bin.zip"
+          DOWNLOADED=false
+          URLS=(
+            "https://mirrors.cloud.tencent.com/gradle/gradle-7.5.1-bin.zip"
+            "https://repo.huaweicloud.com/gradle/gradle-7.5.1-bin.zip"
+            "https://services.gradle.org/distributions/gradle-7.5.1-bin.zip"
+          )
+          for URL in "${URLS[@]}"; do
+            echo "Téléchargement de Gradle depuis $URL..."
+            if curl -fL --retry 3 --retry-delay 2 --connect-timeout 15 -m 180 "$URL" -o "$GRADLE_ZIP"; then
+              echo "✓ Téléchargement réussi : $(ls -lh $GRADLE_ZIP | awk '{print $5}')"
+              DOWNLOADED=true
+              break
+            else
+              echo "⚠️ Échec depuis $URL, essai du miroir suivant..."
+            fi
+          done
+
+          if [ "$DOWNLOADED" = true ]; then
+            # Pointer distributionUrl sur le fichier local déjà présent
+            sed -i 's|distributionUrl=.*|distributionUrl=gradle-7.5.1-bin.zip|' gradle-wrapper.properties
+          else
+            # Secours : pointer directement sur le miroir Tencent dans les properties
+            sed -i 's|distributionUrl=.*|distributionUrl=https\\://mirrors.cloud.tencent.com/gradle/gradle-7.5.1-bin.zip|' gradle-wrapper.properties
           fi
-          cat gradle/wrapper/gradle-wrapper.properties
+
+          if ! grep -q "networkTimeout=" gradle-wrapper.properties; then
+            echo "networkTimeout=120000" >> gradle-wrapper.properties
+          fi
+          cat gradle-wrapper.properties
 
       - name: 🐘 Configuration de Gradle avec Cache GitHub
         uses: gradle/actions/setup-gradle@v4
         with:
-          build-root-directory: driver-app/android
           cache-read-only: false
 
       - name: 🔨 Compilation de l'APK Android Standalone avec Gradle
         run: |
           cd driver-app/android
           chmod +x gradlew
-          # Télécharger le wrapper avec jusqu'à 3 tentatives en cas de fluctuation réseau
-          for i in 1 2 3; do
-            echo "Tentative $i d'initialisation du Gradle Wrapper..."
-            ./gradlew --version && break || (echo "Échec tentative $i, nouvelle tentative dans 5 secondes..." && sleep 5)
-          done
+          ./gradlew --version
           ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: 📋 Préparation du fichier APK Standalone
