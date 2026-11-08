@@ -27,6 +27,7 @@ const DishRow = ({
   category,
   customizableIngredients,
   ingredients,
+  isOwner = false,
 }) => {
   const [isPressed, setIsPressed] = useState(false);
   const [customModalVisible, setCustomModalVisible] = useState(false);
@@ -39,6 +40,14 @@ const DishRow = ({
   const basketRestaurantId = useSelector(selectBasketRestaurantId);
 
   const handleCustomizedAddToCart = (customizedDish) => {
+    if (isOwner) {
+      Alert.alert(
+        "Auto-commande impossible 🛑",
+        "Vous êtes le propriétaire ou cuisinier de cet établissement. Vous ne pouvez pas commander vos propres plats."
+      );
+      return;
+    }
+
     if (
       basketItems.length > 0 &&
       basketRestaurantId &&
@@ -80,6 +89,13 @@ const DishRow = ({
   };
 
   const addItems = () => {
+    if (isOwner) {
+      Alert.alert(
+        "Auto-commande impossible 🛑",
+        "Vous êtes le propriétaire ou cuisinier de cet établissement. Vous ne pouvez pas commander vos propres plats."
+      );
+      return;
+    }
     // Toujours ouvrir la personnalisation pour permettre de choisir sans salade, tomate, etc.
     setCustomModalVisible(true);
   };
@@ -92,7 +108,16 @@ const DishRow = ({
   return (
     <>
       <Pressable
-        onPress={() => setCustomModalVisible(true)}
+        onPress={() => {
+          if (isOwner) {
+            Alert.alert(
+              "Auto-commande impossible 🛑",
+              "Vous êtes le propriétaire ou cuisinier de cet établissement. Vous ne pouvez pas commander vos propres plats."
+            );
+            return;
+          }
+          setCustomModalVisible(true);
+        }}
         className="m-2 rounded-3xl bg-white shadow shadow-slate-200 p-4 border border-gray-200"
       >
         <View className="flex-row">
@@ -158,51 +183,69 @@ const DishRow = ({
               className="w-28 h-28 bg-gray-300 p-4 rounded-xl"
             />
             <View className="bg-white pt-2">
-              <View className="flex-row items-center justify-end space-x-2">
-                {items.length > 0 && (
-                  <>
-                    <TouchableOpacity
-                      onPress={removeItemFromBasket}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        borderWidth: 1.5,
-                        borderColor: "#D1D5DB",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: "white",
-                      }}
-                    >
-                      <Text style={{ fontSize: 16, fontWeight: "900", color: "#374151", marginTop: -2 }}>-</Text>
-                    </TouchableOpacity>
-
-                    <Text style={{ fontSize: 14, fontWeight: "900", color: "#111827", minWidth: 18, textAlign: "center" }}>
-                      {items.length}
-                    </Text>
-                  </>
-                )}
-
-                <TouchableOpacity
-                  onPress={addItems}
+              {isOwner ? (
+                <View
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: "#FFBC0D",
+                    backgroundColor: "#F3F4F6",
+                    paddingHorizontal: 8,
+                    paddingVertical: 5,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: "#E5E7EB",
                     alignItems: "center",
-                    justifyContent: "center",
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 2,
-                    elevation: 2,
                   }}
-                  activeOpacity={0.8}
                 >
-                  <Text style={{ fontSize: 18, fontWeight: "900", color: "#111827", marginTop: -2 }}>+</Text>
-                </TouchableOpacity>
-              </View>
+                  <Text style={{ fontSize: 11, fontWeight: "800", color: "#6B7280" }}>
+                    {language === "ar" ? "طبقك 👨‍🍳" : "Votre plat 👨‍🍳"}
+                  </Text>
+                </View>
+              ) : (
+                <View className="flex-row items-center justify-end space-x-2">
+                  {items.length > 0 && (
+                    <>
+                      <TouchableOpacity
+                        onPress={removeItemFromBasket}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          borderWidth: 1.5,
+                          borderColor: "#D1D5DB",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: "white",
+                        }}
+                      >
+                        <Text style={{ fontSize: 16, fontWeight: "900", color: "#374151", marginTop: -2 }}>-</Text>
+                      </TouchableOpacity>
+
+                      <Text style={{ fontSize: 14, fontWeight: "900", color: "#111827", minWidth: 18, textAlign: "center" }}>
+                        {items.length}
+                      </Text>
+                    </>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={addItems}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: "#FFBC0D",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 2,
+                      elevation: 2,
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={{ fontSize: 18, fontWeight: "900", color: "#111827", marginTop: -2 }}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         </View>

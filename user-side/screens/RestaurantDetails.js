@@ -13,6 +13,7 @@ import BasketIcon from "../components/BasketIcon";
 import { useDispatch } from "react-redux";
 import { setRestaurant } from "../features/restaurantSlice";
 import { useLanguage } from "../contexts/LanguageContext";
+import { UserAuth } from "../contexts/AuthContext";
 import { FOOD_CATEGORIES, getCategoryName, getCategoryShortName } from "../constants/categories";
 import { db } from "../firebase";
 import {
@@ -31,6 +32,7 @@ const RestaurantDetails = () => {
   const route = useRoute();
   const dispatch = useDispatch();
   const { t, language } = useLanguage();
+  const { user, dbUser } = UserAuth();
 
   const restaurantUid = route.params?.id || "";
   const [restaurantInfo, setRestaurantInfo] = useState(route.params || {});
@@ -39,6 +41,17 @@ const RestaurantDetails = () => {
   const [loading, setLoading] = useState(true);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const isOwner = Boolean(
+    user?.uid && (
+      restaurantInfo.ownerId === user.uid ||
+      restaurantInfo.userId === user.uid ||
+      restaurantUid === user.uid ||
+      dbUser?.kitchenId === restaurantUid ||
+      dbUser?.restaurantId === restaurantUid ||
+      (dbUser?.restaurantIds && Array.isArray(dbUser.restaurantIds) && dbUser.restaurantIds.includes(restaurantUid))
+    )
+  );
 
   useEffect(() => {
     if (!restaurantUid) return;
@@ -205,7 +218,7 @@ const RestaurantDetails = () => {
   return (
     <>
       <StatusBar style="auto" />
-      <BasketIcon />
+      {!isOwner && <BasketIcon />}
 
       <ScrollView className="bg-white" showsVerticalScrollIndicator={false}>
         <View className="relative">
@@ -230,6 +243,35 @@ const RestaurantDetails = () => {
             <ArrowLeftIcon size={24} color="#059669" />
           </TouchableOpacity>
         </View>
+
+        {isOwner && (
+          <View
+            style={{
+              marginHorizontal: 16,
+              marginTop: 12,
+              marginBottom: 4,
+              padding: 12,
+              backgroundColor: "#FEF3C7",
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: "#F59E0B",
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontSize: 22, marginRight: 10 }}>👑</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: "800", color: "#92400E" }}>
+                {language === "ar" ? "أنت مالك هذا المكان (وضع المعاينة)" : "Votre Établissement (Mode Consultation)"}
+              </Text>
+              <Text style={{ fontSize: 11, color: "#B45309", marginTop: 2 }}>
+                {language === "ar"
+                  ? "لا يمكنك إجراء طلبات أو تقييم أطباقك ومطعمك بنفسك."
+                  : "Vous êtes le gérant ou cuisinier de cet établissement. Vous ne pouvez pas commander ni évaluer vos propres plats."}
+              </Text>
+            </View>
+          </View>
+        )}
 
         <View className="bg-white px-4 pt-4">
           {/* Badge Type d'établissement : Restaurant vs Cuisinier Partenaire */}
@@ -405,6 +447,7 @@ const RestaurantDetails = () => {
                       category={dish.category}
                       customizableIngredients={dish.customizableIngredients}
                       ingredients={dish.ingredients}
+                      isOwner={isOwner}
                     />
                   );
                 })}

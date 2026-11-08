@@ -279,12 +279,12 @@ const Home = () => {
             <ChevronDownIcon size={14} color="#059669" />
           </TouchableOpacity>
 
-          {/* Logo centré dans son squircle émeraude façon McDo */}
+          {/* Logo centré dans son médaillon émeraude */}
           <View
             style={{
               width: 46,
               height: 46,
-              borderRadius: 13,
+              borderRadius: 23,
               backgroundColor: "#076241",
               justifyContent: "center",
               alignItems: "center",
@@ -298,7 +298,7 @@ const Home = () => {
           >
             <Image
               source={require("../assets/logo.png")}
-              style={{ width: 42, height: 42, borderRadius: 11 }}
+              style={{ width: 44, height: 44, borderRadius: 22 }}
               resizeMode="cover"
             />
           </View>

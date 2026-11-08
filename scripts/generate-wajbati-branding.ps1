@@ -80,33 +80,63 @@ function Create-AdaptiveIcon([string]$srcPath, [string]$outPath, [System.Drawing
     Write-Output "Created Adaptive: $outPath"
 }
 
-# 4. Splash Screen (1284x2778)
-function Create-SplashScreen([string]$srcPath, [string]$outPath, [string]$subtitle, [System.Drawing.Color]$topColor, [System.Drawing.Color]$bottomColor, [bool]$isUser) {
+# 4. Splash Screen (1284x2778) - Seamless feathered embedding (no square outline)
+function Create-SplashScreen([string]$srcPath, [string]$outPath, [string]$subtitle, [System.Drawing.Color]$bgColor, [bool]$isUser) {
+    $src = [System.Drawing.Bitmap]::FromFile($srcPath)
     $dest = New-Object System.Drawing.Bitmap(1284, 2778, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $g = [System.Drawing.Graphics]::FromImage($dest)
     $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
     $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
     $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
 
-    # Background gradient
-    $rect = New-Object System.Drawing.Rectangle(0, 0, 1284, 2778)
-    $gradBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush($rect, $topColor, $bottomColor, [System.Drawing.Drawing2D.LinearGradientMode]::Vertical)
-    $g.FillRectangle($gradBrush, $rect)
-    $gradBrush.Dispose()
+    # Fill entire background with solid color matching app.json
+    $bgBrush = New-Object System.Drawing.SolidBrush($bgColor)
+    $g.FillRectangle($bgBrush, 0, 0, 1284, 2778)
+    $bgBrush.Dispose()
 
-    # Emblem centered in middle 40%
-    $src = [System.Drawing.Bitmap]::FromFile($srcPath)
-    $emblemSize = 860
-    $emblemX = [int]((1284 - $emblemSize) / 2)
-    $emblemY = [int](2778 * 0.32)
-    $destRect = New-Object System.Drawing.Rectangle($emblemX, $emblemY, $emblemSize, $emblemSize)
+    # Extract emblem with smooth radial alpha feathering so NO square border exists
+    $cropW = 900
+    $cropH = 900
+    $cropX = [int]((1024 - $cropW) / 2)
+    $cropY = [int]((1024 - $cropH) / 2)
 
-    if ($isUser) {
-        $cropRect = New-Object System.Drawing.Rectangle(60, 60, 904, 904)
-        $g.DrawImage($src, $destRect, $cropRect, [System.Drawing.GraphicsUnit]::Pixel)
-    } else {
-        $g.DrawImage($src, $destRect, 0, 0, $src.Width, $src.Height, [System.Drawing.GraphicsUnit]::Pixel)
+    $emblemBmp = New-Object System.Drawing.Bitmap($cropW, $cropH, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $centerX = $cropW / 2.0
+    $centerY = $cropH / 2.0
+    $innerR = 360.0
+    $outerR = 435.0
+
+    for ($y = 0; $y -lt $cropH; $y++) {
+        for ($x = 0; $x -lt $cropW; $x++) {
+            $srcPixel = $src.GetPixel($cropX + $x, $cropY + $y)
+            $dx = $x - $centerX
+            $dy = $y - $centerY
+            $dist = [Math]::Sqrt($dx * $dx + $dy * $dy)
+
+            if ($dist -le $innerR) {
+                $alpha = 255
+            } elseif ($dist -ge $outerR) {
+                $alpha = 0
+            } else {
+                $t = ($dist - $innerR) / ($outerR - $innerR)
+                $smooth = (1.0 + [Math]::Cos($t * [Math]::PI)) / 2.0
+                $alpha = [int]($smooth * 255)
+            }
+
+            if ($alpha -gt 0) {
+                $pixColor = [System.Drawing.Color]::FromArgb($alpha, $srcPixel.R, $srcPixel.G, $srcPixel.B)
+                $emblemBmp.SetPixel($x, $y, $pixColor)
+            }
+        }
     }
+
+    $emblemDrawSize = 880
+    $emblemDrawX = [int]((1284 - $emblemDrawSize) / 2)
+    $emblemDrawY = [int](2778 * 0.33)
+    $destRect = New-Object System.Drawing.Rectangle($emblemDrawX, $emblemDrawY, $emblemDrawSize, $emblemDrawSize)
+    $g.DrawImage($emblemBmp, $destRect, 0, 0, $cropW, $cropH, [System.Drawing.GraphicsUnit]::Pixel)
+
+    $emblemBmp.Dispose()
     $src.Dispose()
 
     # Bottom subtitle
@@ -130,18 +160,13 @@ function Create-SplashScreen([string]$srcPath, [string]$outPath, [string]$subtit
 }
 
 $userBgColor = [System.Drawing.Color]::FromArgb(7, 98, 65)
-$userSplashTop = [System.Drawing.Color]::FromArgb(6, 78, 59)
-$userSplashBottom = [System.Drawing.Color]::FromArgb(5, 150, 105)
-
 $driverBgColor = [System.Drawing.Color]::FromArgb(7, 112, 79)
-$driverSplashTop = [System.Drawing.Color]::FromArgb(4, 85, 60)
-$driverSplashBottom = [System.Drawing.Color]::FromArgb(16, 185, 129)
 
 # 1. USER-SIDE ASSETS
 Write-Output "--- Exporting user-side assets ---"
 Create-FullBleedIcon $userMasterPath "user-side/assets/icon.png" 1024 1024
 Create-AdaptiveIcon $userMasterPath "user-side/assets/adaptive-icon.png" $userBgColor $true
-Create-SplashScreen $userMasterPath "user-side/assets/splash.png" "Cuisine Maison - Produits Sains & Frais" $userSplashTop $userSplashBottom $true
+Create-SplashScreen $userMasterPath "user-side/assets/splash.png" "Cuisine Maison - Produits Sains & Frais" $userBgColor $true
 Create-FullBleedIcon $userMasterPath "user-side/assets/logo.png" 500 500
 Create-FullBleedIcon $userMasterPath "user-side/assets/favicon.png" 48 48
 
@@ -149,7 +174,7 @@ Create-FullBleedIcon $userMasterPath "user-side/assets/favicon.png" 48 48
 Write-Output "--- Exporting driver-app assets ---"
 Create-DriverIcon $driverMasterPath "driver-app/assets/icon.png" 1024 1024
 Create-AdaptiveIcon $driverMasterPath "driver-app/assets/adaptive-icon.png" $driverBgColor $false
-Create-SplashScreen $driverMasterPath "driver-app/assets/splash.png" "Livraison Rapide & Securisee" $driverSplashTop $driverSplashBottom $false
+Create-SplashScreen $driverMasterPath "driver-app/assets/splash.png" "Livraison Rapide & Securisee" $driverBgColor $false
 Create-DriverIcon $driverMasterPath "driver-app/assets/favicon.png" 48 48
 
 # 3. RESTAURANT-DASHBOARD ASSETS

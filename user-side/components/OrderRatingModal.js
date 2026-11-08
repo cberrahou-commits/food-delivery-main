@@ -67,7 +67,43 @@ const OrderRatingModal = ({ visible, onClose, order, onRatedSuccess }) => {
   const [driverRating, setDriverRating] = useState(5);
   const [driverComment, setDriverComment] = useState("");
 
+  const [isOwnerOfRestaurant, setIsOwnerOfRestaurant] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Vérifier si l'utilisateur connecté est le propriétaire du restaurant ou de la cuisine
+  useEffect(() => {
+    if (!visible || !order?.restaurantId) return;
+    let isMounted = true;
+    const checkOwnership = async () => {
+      try {
+        const currentUid = auth.currentUser?.uid;
+        if (!currentUid) return;
+
+        if (
+          order.restaurantOwnerId === currentUid ||
+          order.cookId === currentUid ||
+          order.restaurantId === currentUid
+        ) {
+          if (isMounted) setIsOwnerOfRestaurant(true);
+          return;
+        }
+
+        const restDoc = await getDoc(doc(db, "restaurants", order.restaurantId));
+        if (restDoc.exists() && isMounted) {
+          const data = restDoc.data();
+          if (data.ownerId === currentUid || data.userId === currentUid) {
+            setIsOwnerOfRestaurant(true);
+          }
+        }
+      } catch (e) {
+        console.warn("checkOwnership error:", e);
+      }
+    };
+    checkOwnership();
+    return () => {
+      isMounted = false;
+    };
+  }, [visible, order?.restaurantId]);
 
   // Charger les plats de la commande
   useEffect(() => {
@@ -151,6 +187,71 @@ const OrderRatingModal = ({ visible, onClose, order, onRatedSuccess }) => {
       const user = auth.currentUser;
       const userId = user?.uid || order.userId || "client_uid";
       const userName = user?.displayName || user?.email?.split("@")[0] || "Client";
+
+      // 0. VÉRIFICATION ANTI-AUTO-NOTATION
+      if (isOwnerOfRestaurant) {
+        if (order.assignedDriverId) {
+          // Le propriétaire peut seulement noter la course du livreur
+          await addDoc(collection(db, "reviews"), {
+            orderId: order.id,
+            userId: userId,
+            userName: userName,
+            restaurantId: order.restaurantId || null,
+            restaurantName: order.restaurantName || "Cuisine",
+            cookRating: null,
+            cookComment: null,
+            dishesRatings: [],
+            driverId: order.assignedDriverId,
+            driverName: order.driverName || null,
+            driverRating: driverRating,
+            driverComment: driverComment.trim() || null,
+            isOwnerSelfOrderIgnored: true,
+            createdAt: serverTimestamp(),
+          });
+
+          await updateDoc(doc(db, "orders", order.id), {
+            hasRated: true,
+            ratedAt: serverTimestamp(),
+            ratings: {
+              cookRating: null,
+              driverRating: driverRating,
+            },
+          });
+
+          try {
+            const driverRef = doc(db, "user", order.assignedDriverId);
+            const driverSnap = await getDoc(driverRef);
+            if (driverSnap.exists()) {
+              const data = driverSnap.data();
+              const prevRating = typeof data.driverRating === "number" ? data.driverRating : driverRating;
+              const prevCount = typeof data.driverRatingCount === "number" ? data.driverRatingCount : 0;
+              const newCount = prevCount + 1;
+              const newRating = prevCount > 0 ? Number(((prevRating * prevCount + driverRating) / newCount).toFixed(1)) : driverRating;
+              await updateDoc(driverRef, { driverRating: newRating, driverRatingCount: newCount });
+            }
+          } catch (e) {
+            console.warn("Erreur mise à jour note livreur:", e);
+          }
+
+          Alert.alert(
+            "Avis Livreur Enregistré ⭐",
+            "Votre avis sur la livraison a bien été pris en compte. L'auto-notation du restaurant a été ignorée car vous êtes le gérant de cet établissement."
+          );
+        } else {
+          await updateDoc(doc(db, "orders", order.id), {
+            hasRated: true,
+            ratedAt: serverTimestamp(),
+          });
+          Alert.alert(
+            "Auto-notation refusée 🛑",
+            "Vous êtes le propriétaire ou cuisinier de cet établissement. Vous ne pouvez pas noter votre propre cuisine."
+          );
+        }
+
+        if (onRatedSuccess) onRatedSuccess();
+        onClose();
+        return;
+      }
 
       // 1. Enregistrer dans la collection 'reviews'
       await addDoc(collection(db, "reviews"), {
@@ -287,101 +388,117 @@ const OrderRatingModal = ({ visible, onClose, order, onRatedSuccess }) => {
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} className="mt-3">
-            {/* 1. NOTER LE CUISINIER / RESTAURANT */}
-            <View className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200/80 mb-4">
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="text-base font-bold text-gray-800">
-                  👨‍🍳 Le Cuisinier & la Cuisine
+            {isOwnerOfRestaurant ? (
+              <View className="bg-red-50 p-4 rounded-2xl border border-red-200 mb-4">
+                <Text className="text-base font-bold text-red-900 mb-1">
+                  🛑 Auto-notation impossible
                 </Text>
-                <View className="bg-amber-100 px-2 py-0.5 rounded-md">
-                  <Text className="text-xs font-semibold text-amber-800">
-                    {order?.restaurantName || "Cuisine"}
-                  </Text>
-                </View>
+                <Text className="text-xs text-red-700 leading-4">
+                  Vous êtes le propriétaire ou cuisinier de cet établissement. L'auto-évaluation de votre propre cuisine et de vos plats n'est pas autorisée.
+                  {hasDriver
+                    ? "\n\nVous pouvez en revanche évaluer le soin et la ponctualité de votre livreur ci-dessous."
+                    : ""}
+                </Text>
               </View>
-              <Text className="text-xs text-gray-500 mb-2">
-                Comment évaluez-vous la fraîcheur, la qualité et la générosité des plats ?
-              </Text>
-
-              <StarRatingRow rating={cookRating} onChange={setCookRating} />
-
-              <TextInput
-                value={cookComment}
-                onChangeText={setCookComment}
-                placeholder="Laissez un message d'encouragement au chef (optionnel)..."
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={2}
-                className="bg-white border border-gray-200 rounded-xl p-3 text-sm text-gray-800 mt-2"
-              />
-            </View>
-
-            {/* 2. NOTER LES PLATS */}
-            <View className="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200/80 mb-4">
-              <Text className="text-base font-bold text-gray-800 mb-1">
-                🍲 Les Plats Commandés
-              </Text>
-              <Text className="text-xs text-gray-500 mb-3">
-                Donnez une note spécifique à chaque plat dégusté :
-              </Text>
-
-              {loadingDishes ? (
-                <View className="py-4 items-center">
-                  <ActivityIndicator size="small" color="#059669" />
-                  <Text className="text-xs text-gray-500 mt-2">
-                    Chargement des plats...
-                  </Text>
-                </View>
-              ) : dishes.length === 0 ? (
-                <Text className="text-xs text-gray-500 italic">
-                  Aucun détail de plat disponible pour cette commande.
-                </Text>
-              ) : (
-                dishes.map((dishItem, idx) => (
-                  <View
-                    key={dishItem.dishId || idx}
-                    className="bg-white p-3 rounded-xl border border-emerald-100 mb-3 shadow-xs"
-                  >
-                    <View className="flex-row items-center space-x-3 mb-2">
-                      <Image
-                        source={{
-                          uri:
-                            dishItem.image &&
-                            (dishItem.image.startsWith("http") ||
-                              dishItem.image.startsWith("data:image"))
-                              ? dishItem.image
-                              : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80",
-                        }}
-                        className="w-12 h-12 rounded-xl bg-gray-100"
-                        resizeMode="cover"
-                      />
-                      <View className="flex-1">
-                        <Text className="font-bold text-sm text-gray-800">
-                          {dishItem.name}
-                        </Text>
-                        <Text className="text-xs text-gray-500">
-                          Quantité : {dishItem.quantity}
-                        </Text>
-                      </View>
+            ) : (
+              <>
+                {/* 1. NOTER LE CUISINIER / RESTAURANT */}
+                <View className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200/80 mb-4">
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-base font-bold text-gray-800">
+                      👨‍🍳 Le Cuisinier & la Cuisine
+                    </Text>
+                    <View className="bg-amber-100 px-2 py-0.5 rounded-md">
+                      <Text className="text-xs font-semibold text-amber-800">
+                        {order?.restaurantName || "Cuisine"}
+                      </Text>
                     </View>
-
-                    <StarRatingRow
-                      rating={dishItem.rating}
-                      onChange={(r) => updateDishRating(idx, r)}
-                      size={26}
-                    />
-
-                    <TextInput
-                      value={dishItem.comment}
-                      onChangeText={(c) => updateDishComment(idx, c)}
-                      placeholder="Votre avis sur ce plat (saveur, cuisson...)"
-                      placeholderTextColor="#9CA3AF"
-                      className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-gray-800 mt-1"
-                    />
                   </View>
-                ))
-              )}
-            </View>
+                  <Text className="text-xs text-gray-500 mb-2">
+                    Comment évaluez-vous la fraîcheur, la qualité et la générosité des plats ?
+                  </Text>
+
+                  <StarRatingRow rating={cookRating} onChange={setCookRating} />
+
+                  <TextInput
+                    value={cookComment}
+                    onChangeText={setCookComment}
+                    placeholder="Laissez un message d'encouragement au chef (optionnel)..."
+                    placeholderTextColor="#9CA3AF"
+                    multiline
+                    numberOfLines={2}
+                    className="bg-white border border-gray-200 rounded-xl p-3 text-sm text-gray-800 mt-2"
+                  />
+                </View>
+
+                {/* 2. NOTER LES PLATS */}
+                <View className="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200/80 mb-4">
+                  <Text className="text-base font-bold text-gray-800 mb-1">
+                    🍲 Les Plats Commandés
+                  </Text>
+                  <Text className="text-xs text-gray-500 mb-3">
+                    Donnez une note spécifique à chaque plat dégusté :
+                  </Text>
+
+                  {loadingDishes ? (
+                    <View className="py-4 items-center">
+                      <ActivityIndicator size="small" color="#059669" />
+                      <Text className="text-xs text-gray-500 mt-2">
+                        Chargement des plats...
+                      </Text>
+                    </View>
+                  ) : dishes.length === 0 ? (
+                    <Text className="text-xs text-gray-500 italic">
+                      Aucun détail de plat disponible pour cette commande.
+                    </Text>
+                  ) : (
+                    dishes.map((dishItem, idx) => (
+                      <View
+                        key={dishItem.dishId || idx}
+                        className="bg-white p-3 rounded-xl border border-emerald-100 mb-3 shadow-xs"
+                      >
+                        <View className="flex-row items-center space-x-3 mb-2">
+                          <Image
+                            source={{
+                              uri:
+                                dishItem.image &&
+                                (dishItem.image.startsWith("http") ||
+                                  dishItem.image.startsWith("data:image"))
+                                  ? dishItem.image
+                                  : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80",
+                            }}
+                            className="w-12 h-12 rounded-xl bg-gray-100"
+                            resizeMode="cover"
+                          />
+                          <View className="flex-1">
+                            <Text className="font-bold text-sm text-gray-800">
+                              {dishItem.name}
+                            </Text>
+                            <Text className="text-xs text-gray-500">
+                              Quantité : {dishItem.quantity}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <StarRatingRow
+                          rating={dishItem.rating}
+                          onChange={(r) => updateDishRating(idx, r)}
+                          size={26}
+                        />
+
+                        <TextInput
+                          value={dishItem.comment}
+                          onChangeText={(c) => updateDishComment(idx, c)}
+                          placeholder="Votre avis sur ce plat (saveur, cuisson...)"
+                          placeholderTextColor="#9CA3AF"
+                          className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-gray-800 mt-1"
+                        />
+                      </View>
+                    ))
+                  )}
+                </View>
+              </>
+            )}
 
             {/* 3. NOTER LE LIVREUR */}
             {hasDriver && (
@@ -422,7 +539,11 @@ const OrderRatingModal = ({ visible, onClose, order, onRatedSuccess }) => {
               onPress={handleSubmitRating}
               disabled={submitting}
               className={`p-4 rounded-2xl items-center flex-row justify-center space-x-2 mb-6 ${
-                submitting ? "bg-amber-400" : "bg-amber-500"
+                submitting
+                  ? "bg-amber-400"
+                  : isOwnerOfRestaurant && !hasDriver
+                  ? "bg-gray-700"
+                  : "bg-amber-500"
               } shadow-md`}
             >
               {submitting ? (
@@ -431,7 +552,11 @@ const OrderRatingModal = ({ visible, onClose, order, onRatedSuccess }) => {
                 <>
                   <StarIcon size={20} color="white" />
                   <Text className="text-white font-bold text-base">
-                    Valider et envoyer mes évaluations ⭐
+                    {isOwnerOfRestaurant
+                      ? hasDriver
+                        ? "Valider l'avis sur le livreur ⭐"
+                        : "Ignorer (Auto-notation interdite)"
+                      : "Valider et envoyer mes évaluations ⭐"}
                   </Text>
                 </>
               )}

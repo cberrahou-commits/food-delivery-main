@@ -36,6 +36,8 @@ import {
   collection,
   addDoc,
   serverTimestamp,
+  doc,
+  getDoc,
 } from "firebase/firestore";
 import { notifyCookForNewOrder } from "../services/notificationService";
 import OrderModeModal from "../components/OrderModeModal";
@@ -117,6 +119,43 @@ const BasketScreen = () => {
         ]
       );
       return;
+    }
+
+    // VÉRIFICATION ANTI-AUTO-COMMANDE :
+    // Un restaurateur ou un cuisinier ne peut pas passer de commande dans son propre établissement
+    const currentUid = user?.uid;
+    const restId = restaurant?.id;
+    if (currentUid && restId) {
+      let isOwner = Boolean(
+        restaurant.ownerId === currentUid ||
+        restaurant.userId === currentUid ||
+        restId === currentUid ||
+        dbUser?.kitchenId === restId ||
+        dbUser?.restaurantId === restId ||
+        (dbUser?.restaurantIds && Array.isArray(dbUser.restaurantIds) && dbUser.restaurantIds.includes(restId))
+      );
+
+      if (!isOwner) {
+        try {
+          const restSnap = await getDoc(doc(db, "restaurants", restId));
+          if (restSnap.exists()) {
+            const restData = restSnap.data();
+            if (restData.ownerId === currentUid || restData.userId === currentUid) {
+              isOwner = true;
+            }
+          }
+        } catch (e) {
+          console.warn("Erreur check ownership dans panier:", e);
+        }
+      }
+
+      if (isOwner) {
+        Alert.alert(
+          "Auto-commande impossible 🛑",
+          "Vous êtes le propriétaire ou cuisinier de cet établissement. Vous ne pouvez pas passer commande chez vous-même."
+        );
+        return;
+      }
     }
 
     try {
