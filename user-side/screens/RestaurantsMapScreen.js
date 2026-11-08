@@ -669,19 +669,25 @@ const RestaurantsMapScreen = () => {
                     marginTop: 2,
                   }}
                 >
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <StarIcon size={12} color="#F59E0B" />
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        fontWeight: "800",
-                        color: "#111827",
-                        marginLeft: 2,
-                      }}
-                    >
-                      {selectedEstablishment.rating || "5.0"}
+                  {selectedEstablishment.reviewCount > 0 && selectedEstablishment.rating ? (
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <StarIcon size={12} color="#F59E0B" />
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontWeight: "800",
+                          color: "#111827",
+                          marginLeft: 2,
+                        }}
+                      >
+                        {Number(selectedEstablishment.rating).toFixed(1)} ({selectedEstablishment.reviewCount})
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={{ fontSize: 11, fontWeight: "800", color: "#059669" }}>
+                      ✨ Nouveau
                     </Text>
-                  </View>
+                  )}
                   <Text style={{ fontSize: 11, color: "#9CA3AF" }}>•</Text>
                   <Text
                     style={{ fontSize: 11, color: "#6B7280" }}

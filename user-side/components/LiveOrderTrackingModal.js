@@ -22,6 +22,8 @@ import {
 } from "react-native-heroicons/solid";
 import { openWhatsApp } from "../constants/wilayas";
 import { useLanguage } from "../contexts/LanguageContext";
+import DriverProfileModal from "./DriverProfileModal";
+
 
 // Calcul de distance Haversine en kilomètres
 function getDistanceInKm(lat1, lon1, lat2, lon2) {
@@ -52,6 +54,7 @@ const LiveOrderTrackingModal = ({
 
   const [orderData, setOrderData] = useState(initialOrder);
   const [loading, setLoading] = useState(true);
+  const [driverProfileVisible, setDriverProfileVisible] = useState(false);
 
   // Écoute en temps réel STRICTEMENT de la commande du client pour suivre SON livreur
   useEffect(() => {
@@ -517,8 +520,12 @@ const LiveOrderTrackingModal = ({
               borderTopColor: "#F3F4F6",
             }}
           >
-            {/* Infos Livreur */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+            {/* Infos Livreur (Cliquable pour consulter son profil complet avec avis) */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setDriverProfileVisible(true)}
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}
+            >
               <View
                 style={{
                   width: 44,
@@ -534,12 +541,15 @@ const LiveOrderTrackingModal = ({
                 <Text style={{ fontSize: 20 }}>🛵</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text
-                  style={{ fontSize: 14, fontWeight: "800", color: "#111827" }}
-                  numberOfLines={1}
-                >
-                  {currentOrder?.driverName || "Livreur Wajbati"}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Text
+                    style={{ fontSize: 14, fontWeight: "800", color: "#111827" }}
+                    numberOfLines={1}
+                  >
+                    {currentOrder?.driverName || "Livreur Wajbati"}
+                  </Text>
+                  <Text style={{ fontSize: 10, color: "#D97706", fontWeight: "800" }}>⭐ Profil</Text>
+                </View>
                 <Text style={{ fontSize: 11, color: "#6B7280" }}>
                   {currentOrder?.vehicleType === "voiture"
                     ? "En voiture 🚗"
@@ -548,7 +558,7 @@ const LiveOrderTrackingModal = ({
                     : "En scooter 🛵"}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Boutons d'appel & WhatsApp & QR Code */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -618,6 +628,15 @@ const LiveOrderTrackingModal = ({
           </View>
         </View>
       </View>
+
+      {/* Modal Profil Consultable du Livreur */}
+      <DriverProfileModal
+        visible={driverProfileVisible}
+        onClose={() => setDriverProfileVisible(false)}
+        driverId={currentOrder?.assignedDriverId || currentOrder?.driverId}
+        initialDriverName={currentOrder?.driverName}
+        driverPhone={currentOrder?.driverPhone}
+      />
     </Modal>
   );
 };

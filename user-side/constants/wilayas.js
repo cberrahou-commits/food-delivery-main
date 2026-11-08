@@ -315,3 +315,13 @@ export const openGpsNavigation = (lat, lng, address = "", label = "Destination")
   }
 };
 
+/**
+ * Calcule le temps approximatif en minutes pour atteindre le restaurant (scooter / moto / voiture en Algérie)
+ */
+export const calculateEtaMinutes = (distKm) => {
+  if (distKm == null || isNaN(distKm) || distKm <= 0 || distKm === Infinity) return 5;
+  return Math.max(3, Math.round(distKm * 2.2));
+};
+
+
+

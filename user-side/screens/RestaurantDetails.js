@@ -35,14 +35,43 @@ const RestaurantDetails = () => {
   const restaurantUid = route.params?.id || "";
   const [restaurantInfo, setRestaurantInfo] = useState(route.params || {});
   const [dishes, setDishes] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingReviews, setLoadingReviews] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     if (!restaurantUid) return;
     fetchRestaurantData();
     fetchDishData();
+    fetchReviews();
   }, [restaurantUid]);
+
+  const fetchReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      const q = query(
+        collection(db, "reviews"),
+        where("restaurantId", "==", restaurantUid)
+      );
+      const snap = await getDocs(q);
+      const list = [];
+      snap.forEach((d) => {
+        const data = d.data();
+        list.push({ id: d.id, ...data });
+      });
+      list.sort((a, b) => {
+        const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+        const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+        return timeB - timeA;
+      });
+      setReviews(list);
+    } catch (err) {
+      console.warn("fetchReviews error:", err);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
 
   const fetchRestaurantData = async () => {
     try {
@@ -236,12 +265,25 @@ const RestaurantDetails = () => {
           </Text>
 
           <View className="flex-row items-center my-1.5 space-x-2">
-            <StarIcon color="#F59E0B" size={18} />
-            <Text className="text-xs text-gray-500 font-semibold">
-              <Text className="text-amber-600 font-bold">{restaurantInfo.rating || "5.0"}</Text>{" "}
-              {restaurantInfo.reviewCount ? `(${restaurantInfo.reviewCount} avis) ` : ""}·{" "}
-              {restaurantInfo.minDeliveryTime || 20} - {restaurantInfo.maxDeliveryTime || 35} {t("mins")}
-            </Text>
+            {(restaurantInfo.reviewCount > 0 || reviews.length > 0) && restaurantInfo.rating != null ? (
+              <View className="flex-row items-center space-x-1">
+                <StarIcon color="#F59E0B" size={18} />
+                <Text className="text-xs text-gray-500 font-semibold">
+                  <Text className="text-amber-600 font-bold">{Number(restaurantInfo.rating).toFixed(1)}</Text>{" "}
+                  ({restaurantInfo.reviewCount || reviews.length} {t("reviewsCount") || "avis"}) ·{" "}
+                  {restaurantInfo.minDeliveryTime || 20} - {restaurantInfo.maxDeliveryTime || 35} {t("mins")}
+                </Text>
+              </View>
+            ) : (
+              <View className="flex-row items-center space-x-1">
+                <Text style={{ fontSize: 13, fontWeight: "800", color: "#059669" }}>
+                  ✨ {t("newUnrated") || "Nouveau (Pas encore noté)"}
+                </Text>
+                <Text className="text-xs text-gray-400 font-medium">
+                  · {restaurantInfo.minDeliveryTime || 20} - {restaurantInfo.maxDeliveryTime || 35} {t("mins")}
+                </Text>
+              </View>
+            )}
           </View>
 
           <View className="flex-row items-center space-x-1 mb-2">
@@ -369,6 +411,154 @@ const RestaurantDetails = () => {
               </View>
             ))
           )}
+
+          {/* Section Commentaires & Avis des Clients (Profil consultable de l'établissement) */}
+          <View className="mt-4 px-4 pt-4 border-t-8 border-gray-100">
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center space-x-2">
+                <Text style={{ fontSize: 18, fontWeight: "900", color: "#111827" }}>
+                  ⭐ {t("reviewsSectionTitle") || "Avis & Commentaires clients"}
+                </Text>
+                {reviews.length > 0 && (
+                  <View className="bg-amber-100 px-2.5 py-0.5 rounded-full">
+                    <Text className="text-amber-800 text-xs font-bold">
+                      {reviews.length} {t("reviewsCount") || "avis"}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {loadingReviews ? (
+              <View className="py-6 items-center">
+                <ActivityIndicator size="small" color="#059669" />
+                <Text className="text-xs text-gray-400 mt-2">Chargement des avis...</Text>
+              </View>
+            ) : reviews.length === 0 ? (
+              <View className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 items-center my-2">
+                <Text style={{ fontSize: 26, marginBottom: 4 }}>✨</Text>
+                <Text className="text-sm font-bold text-emerald-900 text-center">
+                  {t("newUnrated") || "Nouveau sur Wajbati !"}
+                </Text>
+                <Text className="text-xs text-emerald-700 text-center mt-1">
+                  {t("noReviewsYet") || "Cet établissement n'a pas encore reçu d'avis. Commandez dès maintenant et soyez le premier à donner votre avis !"}
+                </Text>
+              </View>
+            ) : (
+              <View>
+                {/* Note globale résumé */}
+                <View className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 flex-row items-center justify-between mb-3">
+                  <View>
+                    <Text className="text-xs text-amber-800 font-semibold">
+                      Note moyenne certifiée
+                    </Text>
+                    <Text className="text-2xl font-black text-amber-900">
+                      {Number(restaurantInfo.rating || 5.0).toFixed(1)} / 5
+                    </Text>
+                  </View>
+                  <View className="items-end">
+                    <View className="flex-row items-center space-x-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <StarIcon
+                          key={star}
+                          size={16}
+                          color={
+                            star <= Math.round(restaurantInfo.rating || 5)
+                              ? "#F59E0B"
+                              : "#D1D5DB"
+                          }
+                        />
+                      ))}
+                    </View>
+                    <Text className="text-xs text-amber-700 font-medium mt-1">
+                      Basé sur {reviews.length} commande(s)
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Liste des avis et commentaires récents */}
+                {reviews.map((rev, revIdx) => {
+                  let dateStr = "";
+                  if (rev.createdAt?.toDate) {
+                    dateStr = rev.createdAt.toDate().toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    });
+                  } else if (rev.createdAt) {
+                    dateStr = new Date(rev.createdAt).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    });
+                  }
+
+                  return (
+                    <View
+                      key={rev.id || revIdx}
+                      className="p-3.5 mb-2.5 bg-white rounded-2xl border border-gray-100 shadow-xs"
+                    >
+                      <View className="flex-row items-center justify-between mb-1.5">
+                        <View className="flex-row items-center space-x-2">
+                          <View className="w-8 h-8 rounded-full bg-emerald-100 items-center justify-center">
+                            <Text className="text-emerald-800 font-black text-xs">
+                              {(rev.userName || "C").charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                          <View>
+                            <Text className="text-xs font-bold text-gray-900">
+                              {rev.userName || "Client Wajbati"}
+                            </Text>
+                            {dateStr ? (
+                              <Text className="text-[10px] text-gray-400">{dateStr}</Text>
+                            ) : null}
+                          </View>
+                        </View>
+
+                        {/* Étoiles de l'avis */}
+                        <View className="flex-row items-center bg-amber-50 px-2 py-1 rounded-lg">
+                          <StarIcon size={12} color="#F59E0B" />
+                          <Text className="text-xs font-black text-amber-800 ml-1">
+                            {rev.cookRating || 5}/5
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Commentaire textuel */}
+                      {rev.cookComment ? (
+                        <Text className="text-xs text-gray-700 mt-1 italic leading-4">
+                          "{rev.cookComment}"
+                        </Text>
+                      ) : (
+                        <Text className="text-xs text-gray-400 italic">
+                          (Aucun commentaire écrit)
+                        </Text>
+                      )}
+
+                      {/* Plats spécifiques notés dans la commande */}
+                      {rev.dishesRatings && rev.dishesRatings.length > 0 && (
+                        <View className="flex-row flex-wrap gap-1.5 mt-2 pt-2 border-t border-gray-100">
+                          {rev.dishesRatings.map((d, dIdx) => (
+                            <View
+                              key={dIdx}
+                              className="bg-gray-100 px-2 py-0.5 rounded-md flex-row items-center space-x-1"
+                            >
+                              <Text className="text-[10px] text-gray-600 font-medium">
+                                {d.name} :
+                              </Text>
+                              <Text className="text-[10px] font-bold text-amber-700">
+                                {d.rating}/5 ⭐
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
     </>

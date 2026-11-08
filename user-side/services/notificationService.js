@@ -16,6 +16,8 @@ import {
   getDocs,
   serverTimestamp,
 } from "firebase/firestore";
+import { findWilaya, calculateDistanceKm, calculateEtaMinutes } from "../constants/wilayas";
+
 
 export const ORDER_NOTIFICATION_CHANNEL_ID = "orders_alerts_loud_v1";
 export const COURIER_NOTIFICATION_CHANNEL_ID = "courier_alerts_loud_v1";
@@ -342,35 +344,120 @@ export const notifyCookClientConfirmed = async (restaurantId, orderId) => {
 };
 
 /**
- * 4. Broadcast aux livreurs : le plat est prêt, attribution au 1er arrivé, 1er servi !
+ * 4. Broadcast aux livreurs de la zone géographique : plat prêt, avec calcul de temps estimé (ETA)
  */
-export const broadcastOrderReadyToDrivers = async (orderId, restaurantName, restaurantAddress) => {
+export const broadcastOrderReadyToDrivers = async (
+  orderId,
+  restaurantName,
+  restaurantAddress,
+  geoInfo = {}
+) => {
   try {
-    // Récupérer tous les livreurs enregistrés avec un pushToken
+    // 1. Récupérer les détails géographiques de la commande / du restaurant si besoin
+    let restLat = geoInfo.lat || geoInfo.restaurantLat;
+    let restLng = geoInfo.lng || geoInfo.restaurantLng;
+    let restWilayaCode = geoInfo.wilayaCode || geoInfo.restaurantWilayaCode;
+    let restWilaya = geoInfo.wilaya || geoInfo.restaurantWilaya;
+
+    if (orderId && (!restLat || !restWilayaCode)) {
+      try {
+        const orderSnap = await getDoc(doc(db, "orders", orderId));
+        if (orderSnap.exists()) {
+          const ordData = orderSnap.data();
+          restLat = restLat || ordData.restaurantLat || ordData.lat;
+          restLng = restLng || ordData.restaurantLng || ordData.lng;
+          restWilayaCode = restWilayaCode || ordData.wilayaCode || ordData.restaurantWilayaCode;
+          restWilaya = restWilaya || ordData.wilaya || ordData.restaurantWilaya;
+
+          if (ordData.restaurantId && (!restLat || !restWilayaCode)) {
+            const restDoc = await getDoc(doc(db, "restaurants", ordData.restaurantId));
+            if (restDoc.exists()) {
+              const rData = restDoc.data();
+              restLat = restLat || rData.lat;
+              restLng = restLng || rData.lng;
+              restWilayaCode = restWilayaCode || rData.wilayaCode;
+              restWilaya = restWilaya || rData.wilaya;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Erreur récupération métadonnées géo commande :", err);
+      }
+    }
+
+    // Détection de la wilaya de référence du restaurant
+    const detectedRestWilaya = findWilaya({
+      code: restWilayaCode,
+      name: restWilaya || restaurantAddress,
+      coords: restLat && restLng ? { latitude: restLat, longitude: restLng } : null,
+    });
+
+    const targetWilayaCode = detectedRestWilaya?.code || restWilayaCode;
+
+    // 2. Récupérer tous les livreurs
     const usersRef = collection(db, "user");
     const q = query(usersRef, where("role", "==", "courier"));
     const snap = await getDocs(q);
 
-    const tokens = [];
-    snap.forEach((docSnap) => {
-      const data = docSnap.data();
-      if (data.pushToken) {
-        tokens.push(data.pushToken);
-      }
-    });
+    let notifiedCount = 0;
 
-    if (tokens.length > 0) {
-      console.log(`Diffusion de la course prête à ${tokens.length} livreur(s)...`);
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      const token = data.pushToken;
+      if (!token) continue;
+
+      // Position GPS du livreur
+      const driverLat = data.latitude || data.currentLocation?.latitude || data.lat;
+      const driverLng = data.longitude || data.currentLocation?.longitude || data.lng;
+
+      // Wilaya du livreur
+      const driverWilaya = findWilaya({
+        code: data.wilayaCode,
+        name: data.wilaya || data.address,
+        coords: driverLat && driverLng ? { latitude: driverLat, longitude: driverLng } : null,
+      });
+
+      // Calcul distance
+      let distKm = null;
+      if (driverLat && driverLng && restLat && restLng) {
+        distKm = calculateDistanceKm(driverLat, driverLng, restLat, restLng);
+      }
+
+      // Vérification géographique :
+      // - Même code Wilaya
+      // - Ou distance <= 25 km
+      const isSameWilaya =
+        targetWilayaCode && driverWilaya?.code
+          ? targetWilayaCode === driverWilaya.code
+          : false;
+
+      const isWithinProximity = distKm != null && distKm <= 25;
+
+      // Si le restaurant a une zone définie, le livreur doit être dans sa zone
+      if (targetWilayaCode && !isSameWilaya && !isWithinProximity) {
+        continue;
+      }
+
+      // Estimation de temps de trajet (ETA)
+      const etaMin = distKm != null ? calculateEtaMinutes(distKm) : 8;
+      const etaText = distKm != null ? `Trajet estimé : ~${etaMin} min (${distKm.toFixed(1)} km). ` : "";
+
       await sendPushNotification(
-        tokens,
+        token,
         "Nouvelle course disponible ! 🛵⚡",
-        `Plat prêt chez "${restaurantName || "Cuisine"}". 1er arrivé, 1er servi !`,
-        { orderId, type: "ORDER_READY_FOR_PICKUP" },
+        `Plat prêt chez "${restaurantName || "Cuisine"}". ${etaText}1er arrivé, 1er servi !`,
+        {
+          orderId,
+          type: "ORDER_READY_FOR_PICKUP",
+          etaMinutes: etaMin,
+          distanceKm: distKm,
+        },
         COURIER_NOTIFICATION_CHANNEL_ID
       );
-    } else {
-      console.log("Aucun livreur avec token push trouvé pour le broadcast.");
+      notifiedCount++;
     }
+
+    console.log(`Diffusion de la course prête envoyée à ${notifiedCount} livreur(s) dans la zone géographique.`);
   } catch (e) {
     console.warn("Erreur broadcast livreurs (plat prêt):", e);
   }

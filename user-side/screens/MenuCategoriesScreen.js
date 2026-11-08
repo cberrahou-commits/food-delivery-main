@@ -756,19 +756,25 @@ const MenuCategoriesScreen = () => {
                           gap: 8,
                         }}
                       >
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                          <StarIcon size={12} color="#F59E0B" />
-                          <Text
-                            style={{
-                              fontSize: 11,
-                              fontWeight: "800",
-                              color: "#111827",
-                              marginLeft: 2,
-                            }}
-                          >
-                            {est.rating || "5.0"}
+                        {est.reviewCount > 0 && est.rating ? (
+                          <View style={{ flexDirection: "row", alignItems: "center" }}>
+                            <StarIcon size={12} color="#F59E0B" />
+                            <Text
+                              style={{
+                                fontSize: 11,
+                                fontWeight: "800",
+                                color: "#111827",
+                                marginLeft: 2,
+                              }}
+                            >
+                              {Number(est.rating).toFixed(1)} ({est.reviewCount})
+                            </Text>
+                          </View>
+                        ) : (
+                          <Text style={{ fontSize: 11, fontWeight: "800", color: "#059669" }}>
+                            ✨ {t("newUnrated") || "Nouveau"}
                           </Text>
-                        </View>
+                        )}
 
                         <Text style={{ fontSize: 10, color: "#9CA3AF" }}>•</Text>
 

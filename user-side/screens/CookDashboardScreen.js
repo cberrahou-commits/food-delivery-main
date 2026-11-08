@@ -651,10 +651,18 @@ const CookDashboardScreen = () => {
                 {kitchenInfo?.name || kitchenInfo?.title || "Ma Cuisine Maison"}
               </Text>
               <View className="flex-row items-center gap-1 mt-0.5">
-                <StarIcon size={14} color="#F59E0B" />
-                <Text className="text-xs text-amber-700 font-bold">
-                  {kitchenInfo?.rating ? Number(kitchenInfo.rating).toFixed(1) : "5.0"} ({kitchenInfo?.reviewCount || 0} avis)
-                </Text>
+                {kitchenInfo?.reviewCount > 0 && kitchenInfo?.rating ? (
+                  <>
+                    <StarIcon size={14} color="#F59E0B" />
+                    <Text className="text-xs text-amber-700 font-bold">
+                      {Number(kitchenInfo.rating).toFixed(1)} ({kitchenInfo.reviewCount} avis)
+                    </Text>
+                  </>
+                ) : (
+                  <Text className="text-xs text-emerald-700 font-bold">
+                    ✨ Nouveau (Pas encore noté)
+                  </Text>
+                )}
               </View>
               <TouchableOpacity
                 onPress={handleOpenEditKitchen}
@@ -777,12 +785,20 @@ const CookDashboardScreen = () => {
                         <Text className="text-base font-bold text-gray-900 flex-1 mr-2" numberOfLines={1}>
                           {dish.name}
                         </Text>
-                        <View className="flex-row items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                          <StarIcon size={12} color="#F59E0B" />
-                          <Text className="text-amber-800 text-xs font-bold">
-                            {dish.rating ? Number(dish.rating).toFixed(1) : "5.0"} {dish.reviewCount ? `(${dish.reviewCount})` : ""}
-                          </Text>
-                        </View>
+                        {dish.reviewCount > 0 && dish.rating ? (
+                          <View className="flex-row items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                            <StarIcon size={12} color="#F59E0B" />
+                            <Text className="text-amber-800 text-xs font-bold">
+                              {Number(dish.rating).toFixed(1)} ({dish.reviewCount})
+                            </Text>
+                          </View>
+                        ) : (
+                          <View className="bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                            <Text className="text-emerald-800 text-[10px] font-bold">
+                              ✨ Nouveau
+                            </Text>
+                          </View>
+                        )}
                       </View>
                       <Text
                         className="text-xs text-gray-500 mt-1"

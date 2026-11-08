@@ -19,6 +19,9 @@ const RestaurantCard = ({
   const navigation = useNavigation();
   const DEFAULT_IMAGE = "https://i.postimg.cc/qvhzT8XP/pastry.jpg";
 
+  const count = typeof reviewCount === "number" ? reviewCount : Number(reviewCount) || 0;
+  const hasRating = count > 0 && rating !== null && rating !== undefined;
+
   return (
     <Pressable
       onPress={() => {
@@ -41,12 +44,24 @@ const RestaurantCard = ({
       <View className="px-3 pb-4 space-y-1">
         <Text className="font-bold text-xl pt-2">{title}</Text>
         <View className="flex-row items-center space-x-1">
-          <StarIcon color="green" opacity={0.5} size={22} />
-          <Text className="text-sm text-gray-500">
-            <Text className="text-green-500 font-bold">{rating || 5.0}</Text>{" "}
-            {reviewCount ? `(${reviewCount}) ` : ""}· {minDeliveryTime}
-            -{maxDeliveryTime} min
-          </Text>
+          {hasRating ? (
+            <View className="flex-row items-center space-x-1">
+              <StarIcon color="#F59E0B" size={18} />
+              <Text className="text-sm text-gray-500 font-semibold">
+                <Text className="text-amber-600 font-bold">{Number(rating).toFixed(1)}</Text>{" "}
+                ({count}) · {minDeliveryTime}-{maxDeliveryTime} min
+              </Text>
+            </View>
+          ) : (
+            <View className="flex-row items-center space-x-1">
+              <Text style={{ fontSize: 12, fontWeight: "800", color: "#059669" }}>
+                ✨ Nouveau
+              </Text>
+              <Text className="text-sm text-gray-400">
+                · {minDeliveryTime}-{maxDeliveryTime} min
+              </Text>
+            </View>
+          )}
         </View>
 
         <View className="flex-row items-center space-x-1">

@@ -9,6 +9,7 @@ import { StarIcon } from "react-native-heroicons/solid";
 import OrderRatingModal from "./OrderRatingModal";
 import OrderQrModal from "./OrderQrModal";
 import LiveOrderTrackingModal from "./LiveOrderTrackingModal";
+import DriverProfileModal from "./DriverProfileModal";
 import { openWhatsApp } from "../constants/wilayas";
 
 const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => {
@@ -16,6 +17,7 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [trackingModalVisible, setTrackingModalVisible] = useState(false);
+  const [driverProfileVisible, setDriverProfileVisible] = useState(false);
   const [hasRatedLocal, setHasRatedLocal] = useState(Boolean(order?.hasRated));
   const { t, formatPrice, language } = useLanguage();
 
@@ -473,6 +475,19 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
                   </Text>
                 </TouchableOpacity>
               ) : null}
+
+              {(order?.assignedDriverId || order?.driverName) && (
+                <TouchableOpacity
+                  onPress={() => setDriverProfileVisible(true)}
+                  activeOpacity={0.8}
+                  className="flex-1 min-w-[130px] flex-row items-center justify-center bg-amber-50 border border-amber-300 py-2.5 px-3 rounded-xl shadow-xs"
+                >
+                  <Text className="text-sm mr-1.5">⭐</Text>
+                  <Text className="text-xs font-bold text-amber-900">
+                    {t("driverProfileTitle") || "Profil Livreur"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -502,6 +517,15 @@ const Order = ({ orderId, status, timestamp, restaurantName, total, order }) => 
             orderId={orderId}
             initialOrder={{ ...order, id: orderId, restaurantName }}
             onOpenQrCode={() => setQrModalVisible(true)}
+          />
+
+          {/* Modal Profil Consultable du Livreur */}
+          <DriverProfileModal
+            visible={driverProfileVisible}
+            onClose={() => setDriverProfileVisible(false)}
+            driverId={order?.assignedDriverId}
+            initialDriverName={order?.driverName}
+            driverPhone={order?.driverPhone}
           />
         </View>
       </View>

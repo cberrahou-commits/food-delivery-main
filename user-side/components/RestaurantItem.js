@@ -11,6 +11,7 @@ const RestaurantItem = ({
   id,
   title,
   rating,
+  reviewCount,
   address,
   image,
   description,
@@ -27,6 +28,8 @@ const RestaurantItem = ({
   const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600";
 
   const isCookEstablishment = isCook || isHomemade;
+  const count = typeof reviewCount === "number" ? reviewCount : Number(reviewCount) || 0;
+  const hasRating = count > 0 && rating !== null && rating !== undefined;
 
   return (
     <Pressable
@@ -81,11 +84,24 @@ const RestaurantItem = ({
         </Text>
 
         <View className="flex-row items-center space-x-1 mt-1">
-          <StarIcon color="#F59E0B" size={16} />
-          <Text className="text-xs text-gray-500 font-semibold">
-            <Text className="text-amber-600 font-bold">{rating || 5.0}</Text> ·{" "}
-            {minDeliveryTime || 20} - {maxDeliveryTime || 35} {t("mins")}
-          </Text>
+          {hasRating ? (
+            <View className="flex-row items-center space-x-1">
+              <StarIcon color="#F59E0B" size={15} />
+              <Text className="text-xs text-gray-500 font-semibold">
+                <Text className="text-amber-600 font-bold">{Number(rating).toFixed(1)}</Text>{" "}
+                ({count}) · {minDeliveryTime || 20} - {maxDeliveryTime || 35} {t("mins")}
+              </Text>
+            </View>
+          ) : (
+            <View className="flex-row items-center space-x-1">
+              <Text style={{ fontSize: 11, fontWeight: "800", color: "#059669" }}>
+                ✨ {t("newUnrated") || "Nouveau"}
+              </Text>
+              <Text className="text-xs text-gray-400 font-medium">
+                · {minDeliveryTime || 20} - {maxDeliveryTime || 35} {t("mins")}
+              </Text>
+            </View>
+          )}
         </View>
 
         {genre ? (

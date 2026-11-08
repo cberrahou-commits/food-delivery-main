@@ -235,6 +235,24 @@ export const translations = {
     establishmentsIn: "Établissements à",
     noEstablishmentsForNow: "Aucun établissement pour le moment",
     noEstablishmentsWilaya: "Aucune cuisine enregistrée dans cette Wilaya. Choisissez \"Toutes les Wilayas\" pour explorer toute l'Algérie.",
+
+    // Ratings & Reviews
+    newUnrated: "Nouveau (Pas encore noté)",
+    unrated: "Pas encore noté",
+    reviewsCount: "avis",
+    pendingReviews: "Commandes à noter",
+    pendingReviewsSubtitle: "Donnez votre avis sur le restaurant et le livreur pour aider la communauté !",
+    rateNow: "Noter maintenant ⭐",
+    allOrdersTab: "Toutes",
+    toRateTab: "À noter",
+    activeOrdersTab: "En cours",
+    deliveredOrdersTab: "Historique",
+    reviewsSectionTitle: "Avis & Commentaires clients",
+    noReviewsYet: "Aucun avis pour le moment. Soyez le premier à noter !",
+    driverProfileTitle: "Profil du Livreur",
+    verifiedDriver: "Livreur Vérifié Wajbati",
+    contactDriver: "Contacter le livreur",
+    closeBtn: "Fermer",
   },
 
   ar: {
@@ -468,6 +486,24 @@ export const translations = {
     establishmentsIn: "المطاعم في",
     noEstablishmentsForNow: "لا توجد مطاعم أو مطابخ حالياً",
     noEstablishmentsWilaya: "لا يوجد مطبخ مسجل في هذه الولاية حالياً. اختر \"كل الولايات\" لاستكشاف كل الجزائر.",
+
+    // Ratings & Reviews
+    newUnrated: "جديد (غير مقيّم)",
+    unrated: "غير مقيّم",
+    reviewsCount: "تقييم",
+    pendingReviews: "طلبات بانتظار تقييمك",
+    pendingReviewsSubtitle: "شارك رأيك حول المطعم والسائق لمساعدة المجتمع !",
+    rateNow: "قيّم الآن ⭐",
+    allOrdersTab: "الكل",
+    toRateTab: "للتقييم",
+    activeOrdersTab: "جارية",
+    deliveredOrdersTab: "المكتملة",
+    reviewsSectionTitle: "آراء وتعليقات الزبائن",
+    noReviewsYet: "لا توجد تقييمات بعد. كن أول من يقيّم !",
+    driverProfileTitle: "ملف السائق",
+    verifiedDriver: "سائق معتمد وجبتي",
+    contactDriver: "الاتصال بالسائق",
+    closeBtn: "إغلاق",
   },
 
   en: {
@@ -701,6 +737,24 @@ export const translations = {
     establishmentsIn: "Establishments in",
     noEstablishmentsForNow: "No establishments for now",
     noEstablishmentsWilaya: "No kitchen registered in this Wilaya yet. Choose \"All Wilayas\" to explore all of Algeria.",
+
+    // Ratings & Reviews
+    newUnrated: "New (Unrated)",
+    unrated: "Unrated",
+    reviewsCount: "reviews",
+    pendingReviews: "Orders to Rate",
+    pendingReviewsSubtitle: "Share your feedback on the restaurant and driver to help our community!",
+    rateNow: "Rate now ⭐",
+    allOrdersTab: "All",
+    toRateTab: "To Rate",
+    activeOrdersTab: "Active",
+    deliveredOrdersTab: "History",
+    reviewsSectionTitle: "Customer Reviews & Comments",
+    noReviewsYet: "No reviews yet. Be the first to leave a review!",
+    driverProfileTitle: "Driver Profile",
+    verifiedDriver: "Wajbati Verified Driver",
+    contactDriver: "Contact Driver",
+    closeBtn: "Close",
   },
 };
 

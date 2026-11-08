@@ -787,6 +787,7 @@ const Home = () => {
                       id={item.id}
                       title={item.name}
                       rating={item.rating}
+                      reviewCount={item.reviewCount}
                       description={item.description}
                       address={item.address}
                       genre={item.genre}

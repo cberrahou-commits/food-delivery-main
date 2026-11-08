@@ -125,11 +125,11 @@ const DishRow = ({
               <Text className="text-emerald-700 text-base font-bold">
                 {formatPrice(price)}
               </Text>
-              {rating ? (
+              {reviewCount > 0 && rating ? (
                 <View className="flex-row items-center space-x-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
                   <StarIcon size={12} color="#F59E0B" />
                   <Text className="text-amber-800 text-xs font-bold">
-                    {Number(rating).toFixed(1)} {reviewCount ? `(${reviewCount})` : ""}
+                    {Number(rating).toFixed(1)} ({reviewCount})
                   </Text>
                 </View>
               ) : null}
