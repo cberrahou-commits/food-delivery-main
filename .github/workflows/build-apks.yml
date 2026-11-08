@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
-      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m -Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000"
 
     steps:
       - name: 📥 Récupération du code
@@ -51,10 +51,32 @@ jobs:
           cd user-side
           npx expo prebuild -p android --clean
 
+      - name: ⚡ Optimisation du Gradle Wrapper (Timeout & Taille)
+        run: |
+          cd user-side/android
+          # 1. Remplacer -all.zip par -bin.zip (55 Mo au lieu de 135 Mo = téléchargement 2.5x plus rapide)
+          sed -i 's/-all.zip/-bin.zip/g' gradle/wrapper/gradle-wrapper.properties || true
+          # 2. Augmenter le timeout réseau du wrapper de 10s par défaut à 120s
+          if ! grep -q "networkTimeout=" gradle/wrapper/gradle-wrapper.properties; then
+            echo "networkTimeout=120000" >> gradle/wrapper/gradle-wrapper.properties
+          fi
+          cat gradle/wrapper/gradle-wrapper.properties
+
+      - name: 🐘 Configuration de Gradle avec Cache GitHub
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-root-directory: user-side/android
+          cache-read-only: false
+
       - name: 🔨 Compilation de l'APK Android Standalone avec Gradle
         run: |
           cd user-side/android
           chmod +x gradlew
+          # Télécharger le wrapper avec jusqu'à 3 tentatives en cas de fluctuation réseau
+          for i in 1 2 3; do
+            echo "Tentative $i d'initialisation du Gradle Wrapper..."
+            ./gradlew --version && break || (echo "Échec tentative $i, nouvelle tentative dans 5 secondes..." && sleep 5)
+          done
           ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: 📋 Préparation du fichier APK Standalone
@@ -80,7 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
-      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m -Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000"
 
     steps:
       - name: 📥 Récupération du code
@@ -111,10 +133,32 @@ jobs:
           cd driver-app
           npx expo prebuild -p android --clean
 
+      - name: ⚡ Optimisation du Gradle Wrapper (Timeout & Taille)
+        run: |
+          cd driver-app/android
+          # 1. Remplacer -all.zip par -bin.zip (55 Mo au lieu de 135 Mo = téléchargement 2.5x plus rapide)
+          sed -i 's/-all.zip/-bin.zip/g' gradle/wrapper/gradle-wrapper.properties || true
+          # 2. Augmenter le timeout réseau du wrapper de 10s par défaut à 120s
+          if ! grep -q "networkTimeout=" gradle/wrapper/gradle-wrapper.properties; then
+            echo "networkTimeout=120000" >> gradle/wrapper/gradle-wrapper.properties
+          fi
+          cat gradle/wrapper/gradle-wrapper.properties
+
+      - name: 🐘 Configuration de Gradle avec Cache GitHub
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-root-directory: driver-app/android
+          cache-read-only: false
+
       - name: 🔨 Compilation de l'APK Android Standalone avec Gradle
         run: |
           cd driver-app/android
           chmod +x gradlew
+          # Télécharger le wrapper avec jusqu'à 3 tentatives en cas de fluctuation réseau
+          for i in 1 2 3; do
+            echo "Tentative $i d'initialisation du Gradle Wrapper..."
+            ./gradlew --version && break || (echo "Échec tentative $i, nouvelle tentative dans 5 secondes..." && sleep 5)
+          done
           ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: 📋 Préparation du fichier APK Standalone
